@@ -1,2 +1,2 @@
 # shardscript-info
-Informational site of ShardScript programming language
+Informational site of ShardScript programming language.
