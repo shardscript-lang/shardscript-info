@@ -5301,7 +5301,7 @@ function AsyncStateMachineInternalsContent() {
         <Bullet><strong className="text-text-primary">6. Set state.</strong> <InlineCode>_state = awaitIndex + 1</InlineCode> records which segment to resume at.</Bullet>
         <Bullet><strong className="text-text-primary">7. Register continuation.</strong> <InlineCode>_awaiterN.OnCompleted(this)</InlineCode> registers the state machine itself as the callback — when the async operation completes, the event loop will call <InlineCode>this.MoveNext()</InlineCode>.</Bullet>
         <Bullet><strong className="text-text-primary">8. Return.</strong> <InlineCode>RETURN</InlineCode> exits the MoveNext frame, unwinding the VM call stack back to the event loop.</Bullet>
-        <Callout type="info">
+        <Callout tone="blue">
           There is no <InlineCode>AWAIT</InlineCode> opcode in the ShardScript VM. The entire await
           protocol is expressed in terms of ordinary opcodes — <InlineCode>CALLMETHODSYMBOL</InlineCode>,{' '}
           <InlineCode>STOREFIELD</InlineCode>, <InlineCode>LOADFIELD</InlineCode>, conditional jumps, and{' '}
@@ -5329,7 +5329,7 @@ function AsyncStateMachineInternalsContent() {
         <Bullet><strong className="text-text-primary">Parameters:</strong> Field <InlineCode>&lt;p&gt;name</InlineCode> + local slot in MoveNext. Factory copies argument → field. Segment entry copies field → local.</Bullet>
         <Bullet><strong className="text-text-primary">Locals:</strong> Field <InlineCode>&lt;l&gt;name</InlineCode>. Original <InlineCode>SlotIndex</InlineCode> redirected to MoveNext slot. Segment entry: field → local. Segment exit (at await): local → field via <InlineCode>SaveLiftedParametersAndLocals</InlineCode>.</Bullet>
         <Bullet><strong className="text-text-primary">Enumerators:</strong> For <InlineCode>foreach</InlineCode>/<InlineCode>for..in</InlineCode> with awaits, field <InlineCode>&lt;e&gt;N</InlineCode> holds the enumerator across suspensions.</Bullet>
-        <Callout type="info">
+        <Callout tone="blue">
           The <InlineCode>ParameterSlotRemapper</InlineCode> RAII helper temporarily redirects parameter
           slot indices to their MoveNext equivalents during bytecode emission, ensuring all{' '}
           <InlineCode>LOADVARIABLE</InlineCode> / <InlineCode>STOREVARIABLE</InlineCode> instructions target
@@ -7131,7 +7131,7 @@ function CancellationTokenContent() {
           cleanly.
         </Prose>
         <CodeBlock code={cancellationTokenPollCode} language="csharp" filename="cancellation_poll.shard" />
-        <Callout type="info">
+        <Callout tone="blue">
           The polling check is extremely cheap: reading <InlineCode>IsCancellationRequested</InlineCode>{' '}
           traverses <InlineCode>token → _source → _canceled</InlineCode> — three pointer dereferences
           and one integer comparison. There is no lock, no allocation, and no system call on the
@@ -7345,7 +7345,7 @@ function AsyncStateMachineContent() {
           finishes. While suspended, the thread is returned to the event loop and can service other tasks.
         </Prose>
         <CodeBlock code={asyncSyntaxCode} language="csharp" filename="async_basic.shard" />
-        <Callout type="info">
+        <Callout tone="blue">
           An async method without any <InlineCode>await</InlineCode> runs synchronously but still
           returns a <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>.
           The compiler emits a warning if <InlineCode>async</InlineCode> is used without awaits.
@@ -8811,7 +8811,7 @@ function CollectionsQueueStackContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           The enumerator walks logical order (FIFO) by reading <InlineCode>array[(head + i) % capacity]</InlineCode>{' '}
           for <InlineCode>i = 0..Count-1</InlineCode>. This correctly handles the wrap-around case
           where physical indices are non-contiguous after a series of enqueue-dequeue cycles.
@@ -8849,7 +8849,7 @@ function CollectionsQueueStackContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           The enumerator walks in <strong className="text-text-primary">LIFO order</strong>{' '}
           (top to bottom). <InlineCode>Contains</InlineCode> also scans top-to-bottom via{' '}
           <InlineCode>for (i = size - 1; i &gt;= 0; --i)</InlineCode>, finding the most recently
@@ -8964,7 +8964,7 @@ function CollectionsDictContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           The indexer <InlineCode>dict[key]</InlineCode> has asymmetric behavior: the getter throws
           on missing keys, while the setter inserts silently. For non-throwing reads, use{' '}
           <InlineCode>ContainsKey</InlineCode> to guard the access. For bulk-safe insertion, prefer{' '}
@@ -9087,7 +9087,7 @@ function CollectionsListContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="warning">
+        <Callout tone="amber">
           <InlineCode>Add</InlineCode> and <InlineCode>RemoveAt</InlineCode> each allocate a{' '}
           <strong className="text-text-primary">new array</strong> and copy all surviving elements.
           For frequent insertions or removals in hot loops, consider pre-allocating with the
@@ -9415,7 +9415,7 @@ function JsonNodeContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           <InlineCode>AsString()</InlineCode> has special behavior for non-string types: it
           serializes the entire node to its JSON text representation via{' '}
           <InlineCode>WriteDom</InlineCode>. This means <InlineCode>AsString()</InlineCode> on a
@@ -9447,7 +9447,7 @@ function JsonNodeContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="warning">
+        <Callout tone="amber">
           <InlineCode>Set</InlineCode> on a non-object node <strong className="text-text-primary">converts
           it to an object</strong> by overwriting <InlineCode>dom-&gt;kind</InlineCode>. Similarly,{' '}
           <InlineCode>Add</InlineCode> converts non-array nodes to arrays. This is a design choice
@@ -9728,7 +9728,7 @@ function JsonSerializerContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           Only <strong className="text-text-primary">public fields</strong> are serialized. Private
           fields (the default access level in ShardScript) are silently skipped. Nested objects and
           arrays are encoded recursively up to a maximum depth of 512 — exceeding this throws a
@@ -9880,7 +9880,7 @@ function CollectionsContractsContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           Arrays are <strong className="text-text-primary">implicitly assignable</strong> to{' '}
           <InlineCode>IEnumerable&lt;T&gt;</InlineCode>. The compiler recognizes the{' '}
           <InlineCode>ArrayTypeSymbol</InlineCode> and resolves it as compatible during interface
@@ -10041,7 +10041,7 @@ function DebugDevToolsContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="warning">
+        <Callout tone="amber">
           Both functions require a <strong className="text-text-primary">non-null</strong> argument.
           Passing <InlineCode>null</InlineCode> throws a <InlineCode>RuntimeException</InlineCode>{' '}
           with message <InlineCode>"cannot get type of null instance"</InlineCode> or{' '}
@@ -10151,7 +10151,7 @@ function DebugVMInspectionContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           Both functions output to <InlineCode>stdout</InlineCode>, not <InlineCode>stderr</InlineCode>.
           Their output is <strong className="text-text-primary">not captured</strong> by the
           ShardScript I/O subsystem — it bypasses <InlineCode>println</InlineCode> and appears
@@ -10202,7 +10202,7 @@ function DebugVMInspectionContent() {
           that should have been collected but still have non-zero ref counts), and type
           distribution in long-running processes.
         </Prose>
-        <Callout type="warning">
+        <Callout tone="amber">
           <InlineCode>PrintGcInfo</InlineCode> reads the heap vector without synchronization.
           Calling it while the GC is actively collecting (e.g. inside a <InlineCode>defer</InlineCode>{' '}
           during unwinding) may produce inconsistent output. Use it at well-defined checkpoints,
@@ -10292,7 +10292,7 @@ function EnvironmentContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           Missing variables return an empty string — not <InlineCode>null</InlineCode> and not an
           error. Check <InlineCode>result == ""</InlineCode> to detect absence. This matches the
           C++ <InlineCode>std::getenv</InlineCode> / <InlineCode>_wgetenv</InlineCode> convention
@@ -10589,7 +10589,7 @@ function MathContent() {
           </table>
         </div>
         <CodeBlock code={mathRoundingCode} language="csharp" filename="math_rounding.shard" />
-        <Callout type="info">
+        <Callout tone="blue">
           <InlineCode>Ceil</InlineCode> always rounds toward positive infinity.{' '}
           <InlineCode>Floor</InlineCode> always rounds toward negative infinity.{' '}
           <InlineCode>Round</InlineCode> follows IEEE 754 round-half-away-from-zero semantics.
@@ -10810,7 +10810,7 @@ function MathTrigContent() {
             </tbody>
           </table>
         </div>
-        <Callout type="info">
+        <Callout tone="blue">
           <InlineCode>Atan2(y, x)</InlineCode> is the preferred way to compute an angle from
           Cartesian coordinates. Unlike <InlineCode>Atan(y / x)</InlineCode>, it correctly handles
           the quadrant using the signs of both arguments, and avoids division by zero when{' '}
