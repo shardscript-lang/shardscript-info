@@ -31,9 +31,9 @@ export default function Navigation() {
   }, [mobileOpen])
 
   const navLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/about', label: 'About' },
-    { to: '/docs', label: 'Documentation' },
+    { to: '/shardscript-info', label: 'Home' },
+    { to: '/shardscript-info/about', label: 'About' },
+    { to: '/shardscript-info/docs', label: 'Documentation' },
   ]
 
   const isActive = (path: string) => {
@@ -52,9 +52,9 @@ export default function Navigation() {
       >
         <div className="w-full max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/shardscript-info" className="flex items-center gap-3">
             <img
-              src="/logo.png"
+              src="/shardscript-info/logo.png"
               alt="ShardScript"
               className="w-9 h-9 rounded-lg object-contain"
             />
@@ -125,7 +125,7 @@ export default function Navigation() {
             </Link>
           ))}
           <Link
-            to="/docs"
+            to="/shardscript-info/docs"
             className="mt-4 px-8 py-3 rounded-button bg-burgundy text-text-primary font-space text-sm font-semibold uppercase tracking-widest"
             onClick={() => setMobileOpen(false)}
           >
