@@ -31,7 +31,7 @@ export default function Navigation() {
   }, [mobileOpen])
 
   const navLinks = [
-    { to: '/shardscript-info', label: 'Home' },
+    { to: '/shardscript-info/', label: 'Home' },
     { to: '/shardscript-info/about', label: 'About' },
     { to: '/shardscript-info/docs', label: 'Documentation' },
   ]
@@ -52,7 +52,7 @@ export default function Navigation() {
       >
         <div className="w-full max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/shardscript-info" className="flex items-center gap-3">
+          <Link to="/shardscript-info/" className="flex items-center gap-3">
             <img
               src="/shardscript-info/logo.png"
               alt="ShardScript"
