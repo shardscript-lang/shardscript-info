@@ -8,9 +8,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Logo & Description */}
           <div>
-            <Link to="/" className="flex items-center gap-3">
+            <Link to="/shardscript-info/" className="flex items-center gap-3">
               <img
-                src="/logo.png"
+                src="/shardscript-info/logo.png"
                 alt="ShardScript"
                 className="w-9 h-9 rounded-lg object-contain"
               />
@@ -30,19 +30,19 @@ export default function Footer() {
             </h4>
             <div className="flex flex-col gap-2.5">
               <Link
-                to="/"
+                to="/shardscript-info/"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200"
               >
                 Home
               </Link>
               <Link
-                to="/about"
+                to="/shardscript-info/about"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200"
               >
                 About
               </Link>
               <Link
-                to="/docs"
+                to="/shardscript-info/docs"
                 className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200"
               >
                 Documentation
