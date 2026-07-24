@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, ChevronDown } from 'lucide-react'
 import CodeBlock from '../components/CodeBlock'
 import ScrollReveal from '../components/ScrollReveal'
@@ -19,7 +20,7 @@ const syntaxGroups: DocGroup[] = [
   },
   {
     title: 'CONTROL FLOW',
-    items: ['3.1 · Conditionals', '3.2 · Loops', '3.3 · switch & Pattern Matching', '3.4 · Exceptions & Error Handling', '3.5 · defer'],
+    items: ['3.1 · Conditionals', '3.2 · Loops', '3.3 · switch & Pattern Matching', '3.4 · Exceptions & Error Handling', '3.5 · Defered execution'],
   },
   {
     title: 'OBJECT-ORIENTED PROGRAMMING',
@@ -71,6 +72,10 @@ const stdlibGroups: DocGroup[] = [
   {
     title: 'SHARD.FILESYSTEM',
     items: ['File & Path', 'Directory & DirectoryInfo', 'Path Concatenation', 'FS Scenarios'],
+  },
+  {
+    title: 'SHARD.SUBPROCESS',
+    items: ['Process & ProcessStartInfo', 'I/O & Lifecycle', 'Subprocess Scenarios'],
   },
 ]
 
@@ -1705,7 +1710,7 @@ public static func First<T>(source: IEnumerable<T>) -> T
     foreach (item in source)
         return item;
 
-    return 0;
+    return null;
 }
 
 public static func Main() -> void
@@ -1717,12 +1722,36 @@ public static func Main() -> void
 
 
 export default function Docs() {
-  const [docMode, setDocMode] = useState<'syntax' | 'stdlib'>('syntax')
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Parse URL hash to determine initial mode and active item.
+  const getInitialState = () => {
+    const hash = location.hash
+    const match = hash.match(/^#\/docs\/(syntax|stdlib)\/(.+)$/)
+    if (match) {
+      const mode = match[1] as 'syntax' | 'stdlib'
+      const item = decodeURIComponent(match[2])
+      return { mode, item }
+    }
+    return { mode: 'syntax' as const, item: '1.1 · ShardScript Philosophy' }
+  }
+
+  const initialState = getInitialState()
+  const [docMode, setDocMode] = useState<'syntax' | 'stdlib'>(initialState.mode)
   const docGroups = docMode === 'syntax' ? syntaxGroups : stdlibGroups
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['INTRODUCTION & ARCHITECTURE', 'LANGUAGE FUNDAMENTALS', 'CONTROL FLOW', 'OBJECT-ORIENTED PROGRAMMING', 'FUNCTIONAL PROGRAMMING', 'INTERNALS'])
-  const [activeItem, setActiveItem] = useState('1.1 · ShardScript Philosophy')
+  const [activeItem, setActiveItem] = useState(initialState.item)
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Update URL hash when activeItem or docMode changes.
+  useEffect(() => {
+    const hash = `#/docs/${docMode}/${encodeURIComponent(activeItem)}`
+    if (location.hash !== hash) {
+      navigate(hash, { replace: true })
+    }
+  }, [activeItem, docMode])
 
   useEffect(() => {
     document.title = 'Documentation — ShardScript'
@@ -1781,7 +1810,7 @@ export default function Docs() {
         return <SwitchContent />
       case '3.4 · Exceptions & Error Handling':
         return <ExceptionsContent />
-      case '3.5 · defer':
+      case '3.5 · Defered execution':
         return <DeferContent />
       case '4.1 · Classes, Fields and Properties':
         return <ClassesFieldsPropertiesContent />
@@ -1845,6 +1874,12 @@ export default function Docs() {
         return <PathConcatContent />
       case 'FS Scenarios':
         return <FsScenariosContent />
+      case 'Process & ProcessStartInfo':
+        return <SubprocessContent />
+      case 'I/O & Lifecycle':
+        return <SubprocessIOLifecycleContent />
+      case 'Subprocess Scenarios':
+        return <SubprocessScenariosContent />
       case 'Developer Tools':
         return <DebugDevToolsContent />
       case 'VM Inspection':
@@ -1883,7 +1918,7 @@ export default function Docs() {
           <div className="p-0">
             <div className="flex gap-1 mb-5 bg-[#1E1E2E] m-4 rounded-card p-1 border border-[#3A3A50]">
               <button
-                onClick={() => { setDocMode('syntax'); setActiveItem('1.1 · ShardScript Philosophy'); setExpandedGroups(['INTRODUCTION & ARCHITECTURE', 'LANGUAGE FUNDAMENTALS', 'CONTROL FLOW', 'OBJECT-ORIENTED PROGRAMMING', 'FUNCTIONAL PROGRAMMING', 'INTERNALS']) }}
+                onClick={() => { setDocMode('syntax'); setActiveItem('1.1 · ShardScript Philosophy'); setExpandedGroups(['INTRODUCTION & ARCHITECTURE', 'LANGUAGE FUNDAMENTALS', 'CONTROL FLOW', 'OBJECT-ORIENTED PROGRAMMING', 'FUNCTIONAL PROGRAMMING', 'RESOURCE MANAGEMENT AND LIFECYCLE', 'ASYNCHRONOUS PROGRAMMING', 'INTERNALS']) }}
                 className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
                   docMode === 'syntax'
                     ? 'bg-burgundy text-white shadow-md'
@@ -1893,7 +1928,7 @@ export default function Docs() {
                 Syntax
               </button>
               <button
-                onClick={() => { setDocMode('stdlib'); setActiveItem('Basic Math'); setExpandedGroups(['SHARD.MATH', 'SHARD.ENVIRONMENT', 'SHARD.DEBUG', 'SHARD.COLLECTIONS', 'SHARD.JSON', 'SHARD.STREAMS']) }}
+                onClick={() => { setDocMode('stdlib'); setActiveItem('Basic Math'); setExpandedGroups(['SHARD.MATH', 'SHARD.ENVIRONMENT', 'SHARD.DEBUG', 'SHARD.COLLECTIONS', 'SHARD.JSON', 'SHARD.STREAMS', 'SHARD.SUBPROCESS', 'SHARD.FILESYSTEM']) }}
                 className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
                   docMode === 'stdlib'
                     ? 'bg-burgundy text-white shadow-md'
@@ -5470,23 +5505,19 @@ public delegate Action(msg: string) -> void;
 
 public static func Main() -> void
 {
-    // Explicit return type:  lambda (params) -> Type { body }
+    // lambda (params) -> Type { body }
     add: BinOp = lambda (a: int, b: int) -> int
     {
         return a + b;
     };
 
-    // Inferred return type:  lambda (params) => { body }
-    shout: Action = lambda (msg: string) =>
+    // No parameters
+    fortyTwo: delegate int() = lambda () -> int
     {
-        println(msg);
+        return 42;
     };
 
-    // No parameters
-    fortyTwo: delegate int() = lambda () -> int { return 42; };
-
     println(add(2, 3));    // 5
-    shout("hi");           // hi
     println(fortyTwo());   // 42
 }`
 
@@ -6183,7 +6214,6 @@ public static func Main() -> void
 function LambdasClosuresContent() {
   const lambdaForms: [string, string][] = [
     ['lambda (params) -> Type { body }', 'Explicit return type.'],
-    ['lambda (params) => { body }', 'Inferred return type.'],
     ['async lambda (params) -> Task { body }', 'Asynchronous closure; explicit return type required.'],
   ]
 
@@ -8935,6 +8965,146 @@ public static func Main() -> void
     BuildPath();
 }`
 
+const subprocessCode = `using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Quick start: fileName + arguments.
+    defer p: Process = Process.Start("cmd.exe", "/c echo hello from subprocess");
+
+    output: string = p.ReadToEnd();
+    println(output);  // "hello from subprocess\r\n"
+
+    code: int = p.WaitForExit();
+    println("Exit code: " + code);
+    println("Has exited: " + p.HasExited);
+
+    // Start via ProcessStartInfo for full control.
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo info-based start";
+    info.CreateNoWindow = true;
+
+    defer p2: Process = Process.Start(info);
+    println(p2.ReadToEnd());
+    println("Info exit: " + p2.WaitForExit());
+}`
+
+const subprocessIOCode = `using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Capture both stdout and stderr separately.
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo stdout message & echo stderr message >&2";
+    info.RedirectStandardOutput = true;
+    info.RedirectStandardError = true;
+
+    defer p: Process = Process.Start(info);
+
+    out: string = p.ReadToEnd();
+    err: string = p.ReadErrorToEnd();
+
+    println("stdout: " + out);
+    println("stderr: " + err);
+    println("exit code: " + p.ExitCode);
+}`
+
+const subprocessTimeoutCode = `using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Start a process that takes time.
+    defer p: Process = Process.Start("cmd.exe", "/c ping 127.0.0.1 -n 3 > nul");
+
+    finished: bool = p.WaitForExit(100);
+    println("Finished within 100ms: " + finished);
+
+    if (!finished)
+    {
+        println("Still running — killing now");
+        p.Kill();
+    }
+
+    println("HasExited: " + p.HasExited);
+}`
+
+const subprocessScenariosCode = `using stdio;
+using process;
+
+namespace demo;
+
+// Scenario 1: invoke a compiler and capture both stdout and stderr.
+public static func InvokeCompiler(source: string) -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "gcc";
+    info.Arguments = "-Wall -o output " + source;
+    info.RedirectStandardOutput = true;
+    info.RedirectStandardError = true;
+
+    defer p: Process = Process.Start(info);
+
+    out: string = p.ReadToEnd();
+    err: string = p.ReadErrorToEnd();
+
+    if err != ""
+        println("compile errors:\n" + err);
+    else
+        println("compile ok");
+
+    println("exit: " + p.ExitCode);
+}
+
+// Scenario 2: call an external script/utility and check exit code.
+public static func RunLinter(target: string) -> void
+{
+    defer p: Process = Process.Start("lint.exe", "--check " + target);
+
+    output: string = p.ReadToEnd();
+    code: int = p.WaitForExit();
+
+    if code == 0
+        println("lint passed");
+    else
+        println("lint failed (" + code + "): " + output);
+}
+
+// Scenario 3: pipe data through an external filter.
+public static func ExternalSort(input: string) -> string
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "sort.exe";
+    info.RedirectStandardInput = true;
+    info.RedirectStandardOutput = true;
+
+    defer p: Process = Process.Start(info);
+
+    p.Write(input);
+    p.WriteLine("");  // ensure the stream is flushed with a newline
+
+    result: string = p.ReadToEnd();
+    return result;
+}
+
+public static func Main() -> void
+{
+    InvokeCompiler("main.shard");
+    RunLinter("src/");
+    sorted: string = ExternalSort("gamma\nalpha\nbeta");
+    println(sorted);
+}`
+
 function GCContent() {
   return (
     <div className="space-y-10">
@@ -10599,6 +10769,438 @@ function DirectoryContent() {
 /* ===== STANDARD LIBRARY: FILESYSTEM — PATH CONCATENATION ===== */
 
 /* ===== STANDARD LIBRARY: FILESYSTEM — USAGE SCENARIOS ===== */
+
+/* ===== STANDARD LIBRARY: SUBPROCESS — PROCESS & PROCESSSTARTINFO ===== */
+
+/* ===== STANDARD LIBRARY: SUBPROCESS — I/O & LIFECYCLE ===== */
+
+function SubprocessIOLifecycleContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          This section covers the three pillars of process interaction:{' '}
+          <strong className="text-text-primary">I/O redirection</strong> (stdout, stderr, stdin),{' '}
+          <strong className="text-text-primary">lifecycle control</strong> (WaitForExit, Kill), and{' '}
+          <strong className="text-text-primary">resource cleanup</strong> (IDisposable + defer).
+        </Prose>
+      </ScrollReveal>
+
+      {/* I/O Redirection */}
+      <ScrollReveal delay={0.05}>
+        <H2>I/O Redirection</H2>
+        <Prose>
+          By default, process I/O is not captured. To read stdout or stderr, set the corresponding{' '}
+          <InlineCode>RedirectStandard*</InlineCode> flag to <InlineCode>true</InlineCode> on the{' '}
+          <InlineCode>ProcessStartInfo</InlineCode> before launching. This causes the subprocess
+          library to create OS pipes and redirect the child's file descriptors.
+        </Prose>
+        <div className="space-y-5 mt-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Reading stdout: ReadToEnd()</strong>
+            </div>
+            <Prose>
+              Requires <InlineCode>RedirectStandardOutput = true</InlineCode>. Reads the stdout
+              pipe in 4096-byte chunks via <InlineCode>subprocess_read_stdout</InlineCode> until
+              the pipe is closed (child exits). After the read loop, calls{' '}
+              <InlineCode>subprocess_join</InlineCode> to collect the exit code. The result is
+              converted from UTF-8 to a ShardScript <InlineCode>string</InlineCode>. This is a{' '}
+              <strong className="text-text-primary">blocking</strong> call.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Reading stderr: ReadErrorToEnd()</strong>
+            </div>
+            <Prose>
+              Requires <InlineCode>RedirectStandardError = true</InlineCode>. Identical mechanics
+              to <InlineCode>ReadToEnd</InlineCode> but reads from the stderr pipe via{' '}
+              <InlineCode>subprocess_read_stderr</InlineCode>. Both can be called on the same
+              process — they read from independent pipes. Typical pattern: call{' '}
+              <InlineCode>ReadToEnd</InlineCode> for the expected output first, then{' '}
+              <InlineCode>ReadErrorToEnd</InlineCode> for diagnostic messages.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Writing stdin: Write() / WriteLine()</strong>
+            </div>
+            <Prose>
+              Requires <InlineCode>RedirectStandardInput = true</InlineCode>. Converts the
+              ShardScript string to UTF-8 and writes it to the child's stdin pipe via{' '}
+              <InlineCode>std::fwrite</InlineCode> followed by <InlineCode>std::fflush</InlineCode>.
+              <InlineCode>WriteLine</InlineCode> calls <InlineCode>Write</InlineCode> then appends{' '}
+              <InlineCode>\n</InlineCode>. This is typically used to feed input to interactive
+              CLI tools or pipe data between processes.
+            </Prose>
+          </div>
+        </div>
+        <CodeBlock code={subprocessIOCode} language="csharp" filename="subprocess_io.shard" />
+      </ScrollReveal>
+
+      {/* WaitForExit & Kill */}
+      <ScrollReveal delay={0.05}>
+        <H2>WaitForExit &amp; Kill</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">4</span>
+              <strong className="text-text-primary text-sm">WaitForExit() — Indefinite Block</strong>
+            </div>
+            <Prose>
+              Calls <InlineCode>subprocess_join</InlineCode> which blocks the calling thread until
+              the child process terminates. Returns the integer exit code. Stores the code in the{' '}
+              <InlineCode>_exitCode</InlineCode> field so <InlineCode>ExitCode</InlineCode> property
+              returns the correct value after the call. Throws if the process handle is invalid.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">5</span>
+              <strong className="text-text-primary text-sm">WaitForExit(ms) — Timed Poll</strong>
+            </div>
+            <Prose>
+              Polls <InlineCode>subprocess_alive</InlineCode> in a loop with 10ms sleep intervals
+              until either the process exits or the deadline is reached. Returns <InlineCode>true</InlineCode>{' '}
+              if the process exited within the timeout, <InlineCode>false</InlineCode> if it timed out.
+              On timeout, the process is <strong className="text-text-primary">not killed</strong> —
+              it continues running. Pass a negative timeout to fall through to the indefinite variant.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">6</span>
+              <strong className="text-text-primary text-sm">Kill() — Forceful Termination</strong>
+            </div>
+            <Prose>
+              Calls <InlineCode>subprocess_terminate</InlineCode> which sends{' '}
+              <InlineCode>TerminateProcess</InlineCode> (Windows) or <InlineCode>SIGTERM</InlineCode>{' '}
+              (Linux). Sets <InlineCode>_exitCode</InlineCode> to -1 to indicate forced termination.
+              Throws if the handle is invalid. After <InlineCode>Kill</InlineCode>,{' '}
+              <InlineCode>HasExited</InlineCode> returns true on the next poll.
+            </Prose>
+          </div>
+        </div>
+        <CodeBlock code={subprocessTimeoutCode} language="csharp" filename="subprocess_timeout.shard" />
+      </ScrollReveal>
+
+      {/* IDisposable */}
+      <ScrollReveal delay={0.05}>
+        <H2>IDisposable &amp; Defer</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">7</span>
+              <strong className="text-text-primary text-sm">Dispose() Implementation</strong>
+            </div>
+            <Prose>
+              <InlineCode>Process</InlineCode> implements <InlineCode>IDisposable</InlineCode> via{' '}
+              <InlineCode>.Implements(TRAIT_DISPOSABLE)</InlineCode>. The <InlineCode>Dispose</InlineCode>{' '}
+              method is registered as <InlineCode>IsImplementationOf(TRAIT_DISPOSABLE_Dispose)</InlineCode>.
+              Internally it calls <InlineCode>subprocess_destroy</InlineCode> which terminates the
+              process (if running) and closes all pipe handles, then <InlineCode>delete proc</InlineCode>{' '}
+              to free the C++ <InlineCode>subprocess_s*</InlineCode>, and resets the{' '}
+              <InlineCode>_handle</InlineCode> field to null via <InlineCode>SetProcessHandle(nullptr)</InlineCode>.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">8</span>
+              <strong className="text-text-primary text-sm">Recommended Pattern: defer + Process</strong>
+            </div>
+            <Prose>
+              Always use <InlineCode>defer p: Process = Process.Start(...)</InlineCode> instead
+              of storing the Process in a plain variable. This ensures <InlineCode>Dispose</InlineCode>{' '}
+              is called when the variable goes out of scope — whether by normal return, early
+              return, or exception. Without <InlineCode>defer</InlineCode>, a thrown exception
+              after <InlineCode>Start</InlineCode> but before <InlineCode>Dispose</InlineCode>{' '}
+              would leak the process handle and leave the child process running as an orphan.
+            </Prose>
+          </div>
+        </div>
+        <Callout tone="amber">
+          Calling <InlineCode>Dispose</InlineCode> multiple times is safe: the second call sees{' '}
+          <InlineCode>_handle == nullptr</InlineCode> and returns immediately without error.
+          Similarly, <InlineCode>Kill</InlineCode> after the process has already exited is a no-op
+          — <InlineCode>subprocess_terminate</InlineCode> returns an error code that is ignored.
+        </Callout>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: SUBPROCESS — USAGE SCENARIOS ===== */
+
+function SubprocessScenariosContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The subprocess library is designed for <strong className="text-text-primary">build
+          scripts and tool orchestration</strong>: invoke compilers, linters, formatters, and
+          external utilities, then capture and react to their output. Every scenario follows
+          the same pattern — configure a <InlineCode>ProcessStartInfo</InlineCode>, call{' '}
+          <InlineCode>Process.Start</InlineCode>, read the output, check the exit code, and let{' '}
+          <InlineCode>defer</InlineCode> handle cleanup.
+        </Prose>
+        <CodeBlock code={subprocessScenariosCode} language="csharp" filename="subprocess_scenarios.shard" />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>Common Patterns</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Invoke Compiler / Build Tool</strong>
+            </div>
+            <Prose>
+              Redirect both stdout and stderr. After <InlineCode>Start</InlineCode>, call{' '}
+              <InlineCode>ReadToEnd</InlineCode> first (compiler output on success), then{' '}
+              <InlineCode>ReadErrorToEnd</InlineCode> (warnings and errors). Check{' '}
+              <InlineCode>ExitCode</InlineCode> — 0 means success, non-zero means failure.
+              This pattern works for <InlineCode>gcc</InlineCode>, <InlineCode>clang</InlineCode>,{' '}
+              <InlineCode>javac</InlineCode>, <InlineCode>dotnet build</InlineCode>, or any
+              compiler that communicates via exit codes and stderr.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Run Linter / Code Quality Tool</strong>
+            </div>
+            <Prose>
+              Pass the target directory or file as <InlineCode>Arguments</InlineCode>. Use{' '}
+              <InlineCode>WaitForExit</InlineCode> to block until the tool finishes, then check
+              the exit code. For tools that produce output on stdout (violations, reports), call{' '}
+              <InlineCode>ReadToEnd</InlineCode> before <InlineCode>WaitForExit</InlineCode>{' '}
+              (or read first, wait second — both work because both block on the same pipe).
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Pipe Data Through External Filter</strong>
+            </div>
+            <Prose>
+              Enable both <InlineCode>RedirectStandardInput</InlineCode> and{' '}
+              <InlineCode>RedirectStandardOutput</InlineCode>. After <InlineCode>Start</InlineCode>,
+              write the input data via <InlineCode>Write</InlineCode> / <InlineCode>WriteLine</InlineCode>,
+              then call <InlineCode>ReadToEnd</InlineCode> to capture the filtered output. This
+              pattern is useful for <InlineCode>sort</InlineCode>, <InlineCode>grep</InlineCode>,{' '}
+              <InlineCode>sed</InlineCode>, <InlineCode>awk</InlineCode>, and other Unix-style
+              filter utilities. Remember to <InlineCode>WriteLine("")</InlineCode> or flush after
+              the last write to signal EOF.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">4</span>
+              <strong className="text-text-primary text-sm">Timeout + Kill for Safety</strong>
+            </div>
+            <Prose>
+              For tools that might hang (stalled compilers, network-dependent utilities), use{' '}
+              <InlineCode>WaitForExit(timeoutMs)</InlineCode> with a reasonable timeout. If it
+              returns <InlineCode>false</InlineCode>, call <InlineCode>Kill</InlineCode> and log
+              a warning. Combined with <InlineCode>defer</InlineCode>, even a killed process
+              gets its handles freed when the variable goes out of scope. The timeout loop polls
+              at 10ms intervals, so the maximum latency is 10ms + sleep overhead.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function SubprocessContent() {
+  const startInfoFields = [
+    ['FileName', 'string', 'REQUIRED. Path to the executable. Must be set before calling Process.Start().'],
+    ['Arguments', 'string', 'Command-line arguments passed to the process. Optional.'],
+    ['WorkingDirectory', 'string', 'Working directory for the process. If empty, inherits from the parent.'],
+    ['RedirectStandardOutput', 'bool', 'If true, Process.ReadToEnd() can read stdout. Default: false.'],
+    ['RedirectStandardError', 'bool', 'If true, Process.ReadErrorToEnd() can read stderr. Default: false.'],
+    ['RedirectStandardInput', 'bool', 'If true, Process.Write()/WriteLine() can send data to stdin. Default: false.'],
+    ['UseShellExecute', 'bool', 'NOT SUPPORTED. Setting to true throws an error at start time.'],
+    ['CreateNoWindow', 'bool', 'If true, prevents a console window from appearing (Windows only).'],
+    ['InheritEnvironment', 'bool', 'If true (default), the child inherits the parent process environment.'],
+    ['EnvironmentVariables', 'Dictionary<string,string>', 'Custom environment variables. Merged with inherited env if InheritEnvironment is true.'],
+  ]
+  const processMethods = [
+    ['Start(fileName)', 'Process', 'Starts the executable with no arguments. Returns a Process instance.'],
+    ['Start(fileName, arguments)', 'Process', 'Starts the executable with the given argument string.'],
+    ['Start(startInfo)', 'Process', 'Starts the process configured by a ProcessStartInfo instance. Throws if FileName is empty.'],
+  ]
+  const processMembers = [
+    ['HasExited', 'bool (property)', 'True if the process has terminated.'],
+    ['ExitCode', 'int (property)', 'The exit code of the process. Valid only after HasExited is true.'],
+    ['ProcessId', 'int (property)', 'OS-assigned process identifier.'],
+    ['WaitForExit()', 'int', 'Blocks until the process exits. Returns the exit code.'],
+    ['WaitForExit(ms)', 'bool', 'Waits up to ms milliseconds. Returns true if the process exited within the timeout; false if it timed out.'],
+    ['Kill()', 'void', 'Forcefully terminates the process.'],
+    ['ReadToEnd()', 'string', 'Reads all of stdout (requires RedirectStandardOutput = true). Blocks until the process exits.'],
+    ['ReadErrorToEnd()', 'string', 'Reads all of stderr (requires RedirectStandardError = true). Blocks until the process exits.'],
+    ['Write(text)', 'void', 'Writes text to stdin (requires RedirectStandardInput = true).'],
+    ['WriteLine(text)', 'void', 'Writes text + newline to stdin (requires RedirectStandardInput = true).'],
+    ['Dispose()', 'void', 'Kills the process if still running, closes handles, frees resources. Implements IDisposable.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.subprocess</InlineCode> library (namespace <InlineCode>process</InlineCode>)
+          enables <strong className="text-text-primary">spawning and controlling external processes</strong>{' '}
+          from ShardScript. It provides two classes: <InlineCode>ProcessStartInfo</InlineCode> (a
+          configuration bag for process launch parameters) and <InlineCode>Process</InlineCode> (the
+          running process handle with I/O and lifecycle control). The library is backed by the{' '}
+          <InlineCode>subprocess.h</InlineCode> C library for cross-platform process management.
+        </Prose>
+        <CodeBlock code={subprocessCode} language="csharp" filename="subprocess_basic.shard" />
+      </ScrollReveal>
+
+      {/* ProcessStartInfo */}
+      <ScrollReveal delay={0.05}>
+        <H2>ProcessStartInfo</H2>
+        <Prose>
+          A plain data class with public fields. Construct with <InlineCode>new ProcessStartInfo()</InlineCode>,
+          set fields, then pass to <InlineCode>Process.Start(info)</InlineCode>. The constructor
+          initializes <InlineCode>InheritEnvironment = true</InlineCode> and allocates an empty{' '}
+          <InlineCode>Dictionary&lt;string,string&gt;</InlineCode> for <InlineCode>EnvironmentVariables</InlineCode>.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Field</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {startInfoFields.map(([name, type, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{type}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="amber">
+          <InlineCode>UseShellExecute</InlineCode> is <strong className="text-text-primary">not supported</strong>.
+          Setting it to <InlineCode>true</InlineCode> causes <InlineCode>Process.Start</InlineCode> to
+          throw a <InlineCode>RuntimeException</InlineCode>. All processes are created directly via the
+          OS process-creation API, not through a shell.
+        </Callout>
+      </ScrollReveal>
+
+      {/* Process */}
+      <ScrollReveal delay={0.05}>
+        <H2>Class Process</H2>
+        <Prose>
+          Three static <InlineCode>Start</InlineCode> overloads create a new process and return a{' '}
+          <InlineCode>Process</InlineCode> instance:
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Overload</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {processMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Instance Members */}
+      <ScrollReveal delay={0.05}>
+        <H2>Instance Members</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {processMembers.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          <InlineCode>Process</InlineCode> implements <InlineCode>IDisposable</InlineCode>. Use{' '}
+          <InlineCode>defer p: Process = Process.Start(...)</InlineCode> to ensure the process is
+          killed and handles are freed when the variable goes out of scope, even if an exception
+          occurs. <InlineCode>Dispose</InlineCode> calls <InlineCode>Kill</InlineCode> if the
+          process is still running, then calls <InlineCode>subprocess_destroy</InlineCode>.
+        </Callout>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">subprocess.h Backend</strong>
+            </div>
+            <Prose>
+              The library is built on the <InlineCode>subprocess.h</InlineCode> single-header C
+              library. Each <InlineCode>Process</InlineCode> instance stores a{' '}
+              <InlineCode>subprocess_s*</InlineCode> pointer in the <InlineCode>_handle</InlineCode>{' '}
+              field (a NInt). On Windows, this uses <InlineCode>CreateProcessW</InlineCode> with
+              pipes for redirected I/O. On Linux, it uses <InlineCode>fork</InlineCode> +{' '}
+              <InlineCode>execvp</InlineCode> with <InlineCode>pipe</InlineCode> /{' '}
+              <InlineCode>dup2</InlineCode> for redirection. The handle is opaque to ShardScript.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Blocking Read Semantics</strong>
+            </div>
+            <Prose>
+              <InlineCode>ReadToEnd</InlineCode> and <InlineCode>ReadErrorToEnd</InlineCode> are{' '}
+              <strong className="text-text-primary">blocking calls</strong>. They read the pipe in
+              4096-byte chunks via <InlineCode>subprocess_read_stdout</InlineCode> /{' '}
+              <InlineCode>subprocess_read_stderr</InlineCode> until the pipe is closed, then call{' '}
+              <InlineCode>subprocess_join</InlineCode> to ensure the process has terminated. This
+              means calling <InlineCode>ReadToEnd</InlineCode> on a long-running process will
+              block the ShardScript VM thread until the process exits. For non-blocking I/O, use
+              the event loop (future API).
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
 
 function FsScenariosContent() {
   return (

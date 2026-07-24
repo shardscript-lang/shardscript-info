@@ -49,21 +49,21 @@ const timelineItems = [
     category: 'past',
   },
   {
+    date: '2026 Q4',
+    title: 'IPrintable & Operator Overloading',
+    description: 'The IPrintable contract for string conversion, plus operator overloads for custom types.',
+    category: 'past',
+  },
+  {
     date: '2024 Q4',
     title: 'Basic Framework Collection',
     description: 'Sharding — the modular DLL system: stdio, collections, math, networking, and more.',
     category: 'past',
   },
   {
-    date: '2025 Q2',
+    date: '2026 Q2',
     title: 'Open Source',
-    description: 'Public release of ShardScript under the MIT license.',
-    category: 'past',
-  },
-  {
-    date: '2025 Q4',
-    title: 'IPrintable & Operator Overloading',
-    description: 'The IPrintable contract for string conversion, plus operator overloads for custom types.',
+    description: 'Public release of ShardScript.',
     category: 'past',
   },
   {
@@ -74,14 +74,14 @@ const timelineItems = [
   },
   {
     date: '2026 Q2',
-    title: 'Branching as Expression',
-    description: 'if as an expression — status := if is_active "online" else "offline" — plus switch expressions.',
+    title: 'foreach, IEnumerable',
+    description: 'Iteration over IEnumerable<T>/IEnumerator<T>.',
     category: 'past',
   },
   {
     date: '2026 Q3',
-    title: 'foreach, IEnumerable & Async',
-    description: 'Iteration over IEnumerable<T>/IEnumerator<T>, and async/await with compiler-generated state machines.',
+    title: 'Async',
+    description: 'async/await with compiler-generated state machines.',
     category: 'past',
   },
   {
