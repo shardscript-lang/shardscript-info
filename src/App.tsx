@@ -28,7 +28,7 @@ export default function App() {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route
-            path="/"
+            path="/shardscript-info/"
             element={
               <PageWrapper>
                 <Home />
@@ -37,7 +37,7 @@ export default function App() {
             }
           />
           <Route
-            path="/about"
+            path="/shardscript-info/about"
             element={
               <PageWrapper>
                 <About />
@@ -46,7 +46,7 @@ export default function App() {
             }
           />
           <Route
-            path="/docs/*"
+            path="/shardscript-info/docs/*"
             element={
               <PageWrapper>
                 <Docs />
