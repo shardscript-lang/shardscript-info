@@ -37,7 +37,7 @@ export default function Navigation() {
   ]
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/'
+    if (path === '/shardscript-info/') return location.pathname === '/shardscript-info/'
     return location.pathname.startsWith(path)
   }
 
