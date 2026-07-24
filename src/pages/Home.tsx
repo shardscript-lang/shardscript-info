@@ -127,13 +127,13 @@ export default function Home() {
           <ScrollReveal delay={0.3}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
-                to="/docs"
+                to="/shardscript-info/docs"
                 className="px-8 py-3.5 rounded-button bg-burgundy text-text-primary font-space text-sm font-semibold uppercase tracking-widest transition-all duration-300 hover:bg-burgundy-dark hover:shadow-glowBurgundy hover:-translate-y-0.5"
               >
                 Get Started
               </Link>
               <Link
-                to="/about"
+                to="/shardscript-info/about"
                 className="px-8 py-3.5 rounded-button border border-border-light text-text-primary font-space text-sm font-semibold uppercase tracking-widest transition-all duration-300 hover:border-gold hover:text-gold hover:bg-[rgba(212,160,23,0.05)]"
               >
                 About
@@ -282,7 +282,7 @@ export default function Home() {
           <ScrollReveal delay={0.4}>
             <div className="mt-12 text-center">
               <Link
-                to="/about"
+                to="/shardscript-info/about"
                 className="inline-flex items-center gap-2 text-gold hover:text-gold-light transition-colors duration-200 font-space text-sm font-semibold uppercase tracking-widest"
               >
                 Full roadmap
@@ -317,7 +317,7 @@ export default function Home() {
 
           <ScrollReveal delay={0.2}>
             <Link
-              to="/docs"
+              to="/shardscript-info/docs"
               className="inline-block mt-8 px-10 py-4 rounded-button bg-burgundy text-text-primary font-space text-base font-semibold uppercase tracking-widest transition-all duration-300 hover:bg-burgundy-dark hover:shadow-glowBurgundy hover:-translate-y-0.5"
             >
               Documentation
