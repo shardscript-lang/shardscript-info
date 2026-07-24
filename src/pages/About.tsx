@@ -110,13 +110,6 @@ const timelineItems = [
   },
 ]
 
-const stats = [
-  { value: '3K+', label: 'GITHUB STARS' },
-  { value: '120+', label: 'CONTRIBUTORS' },
-  { value: '50+', label: 'PACKAGES' },
-  { value: '<1ms', label: 'GC PAUSE' },
-]
-
 export default function About() {
   useEffect(() => {
     document.title = 'About — ShardScript'
@@ -330,26 +323,6 @@ export default function About() {
               </div>
             </div>
           </ScrollReveal>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 px-6 bg-shard-card">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <ScrollReveal key={stat.label} delay={0.1 * i}>
-                <div className="text-center">
-                  <span className="font-space text-4xl md:text-5xl lg:text-[56px] font-bold text-gold leading-[1.1]">
-                    {stat.value}
-                  </span>
-                  <p className="mt-2 text-xs font-medium tracking-[0.05em] uppercase text-text-muted">
-                    {stat.label}
-                  </p>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
         </div>
       </section>
     </div>
