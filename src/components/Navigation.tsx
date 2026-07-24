@@ -85,7 +85,7 @@ export default function Navigation() {
 
           {/* CTA Button */}
           <Link
-            to="/docs"
+            to="/shardscript-info/docs"
             className="hidden md:inline-flex items-center px-6 py-2.5 rounded-button bg-burgundy text-text-primary font-space text-sm font-semibold uppercase tracking-widest transition-all duration-300 hover:bg-burgundy-dark hover:shadow-glowBurgundy hover:-translate-y-0.5"
           >
             Get Started
