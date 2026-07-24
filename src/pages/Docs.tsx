@@ -45,24 +45,32 @@ const syntaxGroups: DocGroup[] = [
 
 const stdlibGroups: DocGroup[] = [
   {
-    title: 'shard.math',
+    title: 'SHARD.MATH',
     items: ['Basic Math', 'Trigonometry & Logarithms', 'Math Scenarios'],
   },
   {
-    title: 'shard.environment',
+    title: 'SHARD.ENVIRONMENT',
     items: ['Environment'],
   },
   {
-    title: 'shard.debug',
+    title: 'SHARD.DEBUG',
     items: ['Developer Tools', 'VM Inspection'],
   },
   {
-    title: 'shard.collections',
+    title: 'SHARD.COLLECTIONS',
     items: ['IEnumerable & IEnumerator', 'List<T>', 'Dictionary<K, V>', 'Queue<T> & Stack<T>', 'Collections Scenarios'],
   },
   {
-    title: 'shard.json',
+    title: 'SHARD.JSON',
     items: ['JsonSerializer', 'JsonNode', 'JSON Scenarios'],
+  },
+  {
+    title: 'SHARD.STREAMS',
+    items: ['IStream, IReadableStream, IWritableStream', 'MemoryStream', 'StreamReader / StreamWriter', 'BinaryReader / BinaryWriter', 'Stream Scenarios'],
+  },
+  {
+    title: 'SHARD.FILESYSTEM',
+    items: ['File & Path', 'Directory & DirectoryInfo', 'Path Concatenation', 'FS Scenarios'],
   },
 ]
 
@@ -1819,6 +1827,24 @@ export default function Docs() {
         return <JsonNodeContent />
       case 'JSON Scenarios':
         return <JsonScenariosContent />
+      case 'IStream, IReadableStream, IWritableStream':
+        return <StreamInterfacesContent />
+      case 'MemoryStream':
+        return <MemoryStreamContent />
+      case 'StreamReader / StreamWriter':
+        return <StreamTextContent />
+      case 'BinaryReader / BinaryWriter':
+        return <StreamBinaryContent />
+      case 'Stream Scenarios':
+        return <StreamScenariosContent />
+      case 'File & Path':
+        return <FilesystemContent />
+      case 'Directory & DirectoryInfo':
+        return <DirectoryContent />
+      case 'Path Concatenation':
+        return <PathConcatContent />
+      case 'FS Scenarios':
+        return <FsScenariosContent />
       case 'Developer Tools':
         return <DebugDevToolsContent />
       case 'VM Inspection':
@@ -1850,12 +1876,12 @@ export default function Docs() {
 
       <div className="flex pt-[72px]">
         <aside
-          className={`fixed lg:sticky top-[72px] left-0 w-[280px] h-[calc(100vh-72px)] bg-[#252538] border-r border-[#3A3A50] overflow-y-auto z-20 transition-transform duration-300 ${
+          className={`fixed lg:sticky top-[72px] left-0 w-[320px] h-[calc(100vh-72px)] bg-[#252538] border-r border-[#3A3A50] overflow-y-auto z-20 transition-transform duration-300 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
-          <div className="p-6">
-            <div className="flex gap-1 mb-5 bg-[#1E1E2E] rounded-card p-1 border border-[#3A3A50]">
+          <div className="p-0">
+            <div className="flex gap-1 mb-5 bg-[#1E1E2E] m-4 rounded-card p-1 border border-[#3A3A50]">
               <button
                 onClick={() => { setDocMode('syntax'); setActiveItem('1.1 · ShardScript Philosophy'); setExpandedGroups(['INTRODUCTION & ARCHITECTURE', 'LANGUAGE FUNDAMENTALS', 'CONTROL FLOW', 'OBJECT-ORIENTED PROGRAMMING', 'FUNCTIONAL PROGRAMMING', 'INTERNALS']) }}
                 className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
@@ -1867,7 +1893,7 @@ export default function Docs() {
                 Syntax
               </button>
               <button
-                onClick={() => { setDocMode('stdlib'); setActiveItem('Basic Math'); setExpandedGroups(['shard.math', 'shard.environment', 'shard.debug', 'shard.collections', 'shard.json']) }}
+                onClick={() => { setDocMode('stdlib'); setActiveItem('Basic Math'); setExpandedGroups(['SHARD.MATH', 'SHARD.ENVIRONMENT', 'SHARD.DEBUG', 'SHARD.COLLECTIONS', 'SHARD.JSON', 'SHARD.STREAMS']) }}
                 className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
                   docMode === 'stdlib'
                     ? 'bg-burgundy text-white shadow-md'
@@ -1877,7 +1903,7 @@ export default function Docs() {
                 Std. Library
               </button>
             </div>
-            <div className="relative mb-6">
+            <div className="relative mb-6 m-4">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
               <input
                 type="text"
@@ -1888,27 +1914,29 @@ export default function Docs() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-6">
               {filteredGroups.map((group) => (
                 <div key={group.title}>
                   <button
                     onClick={() => toggleGroup(group.title)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium tracking-[0.05em] uppercase text-text-muted hover:text-text-secondary transition-colors duration-200"
+                    className="w-full flex items-center justify-between underline pl-2 pr-3 py-2 text-base font-semibold text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary bg-[rgba(30,30,46,0.5)] transition-colors duration-200"
                   >
-                    {group.title}
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${expandedGroups.includes(group.title) ? 'rotate-180' : ''}`} />
+                    <span className="truncate">{group.title}</span>
+                    <ChevronDown size={14} className={`ml-2 flex-shrink-0 transition-transform duration-200 ${expandedGroups.includes(group.title) ? 'rotate-180' : ''}`} />
                   </button>
 
                   {expandedGroups.includes(group.title) && (
-                    <div className="mt-1 space-y-0.5">
-                      {group.items.map((item) => (
+                    <div className="mt-1">
+                      {group.items.map((item, idx) => (
                         <button
                           key={item}
                           onClick={() => { setActiveItem(item); setSidebarOpen(false) }}
-                          className={`w-full text-left px-5 py-2 text-sm font-inter rounded transition-all duration-200 ${
+                          className={`w-full text-left pl-7 pr-5 py-2 text-sm font-inter rounded transition-all duration-200 ${
                             activeItem === item
                               ? 'bg-[rgba(100,110,160,0.15)] text-[#7A8AB5] border-l-[3px] border-l-burgundy'
-                              : 'text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary'
+                              : idx % 1 === 1
+                                ? 'text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary bg-[rgba(30,30,46,0.5)]'
+                                : 'text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary'
                           }`}
                         >
                           {item}
@@ -7695,7 +7723,7 @@ if (task state == FAULTED)
         <Callout tone="amber" title="Fire-and-forget with Shoot()">
           <InlineCode>Task.Shoot(task)</InlineCode> marks the task as fire-and-forget and releases
           its <InlineCode>FrameOwner</InlineCode>. The task still runs to completion (it is rooted
-          while pending), but the caller is not blocked. At shutdown,{' '}
+          while (pending), but the caller is not blocked. At shutdown,) {' '}
           <InlineCode>HaltFireAndForgetTasks</InlineCode> ensures all fire-and-forget tasks are
           properly terminated before the VM is destroyed.
         </Callout>
@@ -8484,6 +8512,427 @@ public static func Main() -> void
     // API response inspection.
     apiResponse := "{\\"status\\": \\"ok\\", \\"data\\": [{\\"id\\": 1}, {\\"id\\": 2}], \\"count\\": 2}";
     InspectApiResponse(apiResponse);
+}`
+
+const streamInterfacesCode = `using stdio;
+using io;
+using async;
+
+namespace demo;
+
+public static async func ReadFromStream(source: IReadableStream) -> Task
+{
+    buffer: byte[] = [0 as byte; 256];
+    totalRead: int = 0;
+    while (true)
+    {
+        bytesRead: int = await source.ReadAsync(buffer, 0, 256);
+        if (bytesRead <= 0)
+            break;
+        totalRead = totalRead + bytesRead;
+    }
+    println("read " + totalRead + " bytes total");
+}
+
+public static async func WriteToStream(target: IWritableStream, data: byte[]) -> Task
+{
+    await target.WriteAsync(data, 0, data.Length);
+    await target.FlushAsync();
+}
+
+public static func Main() -> void
+{
+    // IStream = the base interface extending IDisposable.
+    // Any stream can be cleaned up via IDisposable.
+    ms := new MemoryStream();
+    s: IStream = ms;
+    s.Dispose();
+
+    // IReadableStream extends IStream with reading methods.
+    // Accepts any readable stream — MemoryStream, FileStream, SocketStream.
+    ms2 := new MemoryStream();
+    ms2.Write([1 as byte, 2 as byte, 3 as byte], 0, 3);
+    readable: IReadableStream = ms2;
+    buf: byte[] = [0 as byte; 3];
+    n: int = readable.Read(buf, 0, 3);
+    println(n);  // 3
+    println(buf[0]);  // 1
+
+    // IWritableStream extends IStream with writing methods.
+    writable: IWritableStream = ms2;
+    writable.Flush();
+    writable.Dispose();
+}`
+
+const memoryStreamCode = `using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Create an empty writable MemoryStream.
+    ms := new MemoryStream();
+
+    // Write bytes — capacity auto-grows.
+    ms.Write([10 as byte, 20 as byte, 30 as byte], 0, 3);
+    println(ms.Length);    // 3
+    println(ms.Position);  // 3
+
+    // Seek back to the beginning.
+    ms.Seek(0, SeekOrigin.Begin);
+    println(ms.Position);  // 0
+
+    // Read bytes back.
+    buf: byte[] = [0 as byte, 0 as byte, 0 as byte];
+    read: int = ms.Read(buf, 0, 3);
+    println(read);         // 3
+    println(buf[0]);       // 10
+    println(buf[1]);       // 20
+    println(buf[2]);       // 30
+
+    // Extract the entire buffer as a byte[].
+    copy: byte[] = ms.ToArray();
+    println(copy.Length);  // 3
+
+    // Create a read-only stream from an existing buffer.
+    data: byte[] = [1 as byte, 2 as byte, 3 as byte, 4 as byte];
+    ms2 := new MemoryStream(data);
+    println(ms2.Length);   // 4
+    println(ms2.CanWrite); // false
+
+    // Close / dispose.
+    ms.Close();
+    ms2.Dispose();
+}`
+
+const streamReaderWriterCode = `using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ms := new MemoryStream();
+
+    // Write text lines.
+    writer := new StreamWriter(ms);
+    writer.WriteLine("hello");
+    writer.WriteLine("world");
+    writer.Flush();
+
+    // Read them back.
+    ms.Position = 0;
+    reader := new StreamReader(ms);
+    line1 := reader.ReadLine();
+    line2 := reader.ReadLine();
+    eof := reader.ReadLine();
+
+    println(line1);  // "hello"
+    println(line2);  // "world"
+    println(eof);    // ""  (EOF returns empty string)
+
+    reader.Dispose();
+    writer.Dispose();
+}`
+
+const streamBinaryCode = `using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ms := new MemoryStream();
+
+    // Write typed values in binary format.
+    bw := new BinaryWriter(ms);
+    bw.Write(true);
+    bw.Write(42 as byte);
+    bw.WriteInt32(12345);
+    bw.Write(9876543210);
+    bw.Write(3.14159);
+    bw.Write("shard");
+    payload: byte[] = [10 as byte, 20 as byte, 30 as byte];
+    bw.Write(payload);
+    bw.Flush();
+
+    // Read them back in the exact same order.
+    ms.Position = 0;
+    br := new BinaryReader(ms);
+    println(br.ReadBoolean());  // true
+    println(br.ReadByte());     // 42
+    println(br.ReadInt32());    // 12345
+    println(br.ReadInt64());    // 9876543210
+    d := br.ReadDouble();
+    println(d);                 // ~3.14159
+    println(br.ReadString());   // "shard"
+    bytes: byte[] = br.ReadBytes(3);
+    println(bytes[0]);          // 10
+    println(bytes[1]);          // 20
+    println(bytes[2]);          // 30
+
+    br.Dispose();
+    bw.Dispose();
+}`
+
+const streamScenariosCode = `using stdio;
+using io;
+using async;
+
+namespace demo;
+
+// Read a large file line-by-line without loading it into memory.
+public static async func CountLines(path: string) -> Task
+{
+    fs := new FileStream(path, FileMode.Open, FileAccess.Read);
+    defer fs.Dispose();
+
+    reader := new StreamReader(fs);
+    defer reader.Dispose();
+
+    count := 0;
+    while (true)
+    {
+        line := reader.ReadLine();
+        if (line == "")
+            break;
+        count = count + 1;
+    }
+
+    println("total lines: " + count);
+}
+
+// Stream binary records from a socket without buffering them all.
+public static async func ProcessRecords(stream: IReadableStream) -> Task
+{
+    br := new BinaryReader(stream);
+    defer br.Dispose();
+
+    processed := 0;
+    while (true)
+    {
+        id := br.ReadInt32();
+        value := br.ReadDouble();
+        processed = processed + 1;
+        println("record " + id + " = " + value);
+    }
+}
+
+// Compose a pipeline: MemoryStream -> write -> read -> transform.
+public static func TransformInPlace(data: byte[]) -> byte[]
+{
+    input := new MemoryStream(data);
+    defer input.Dispose();
+
+    output := new MemoryStream();
+    defer output.Dispose();
+
+    // Read from input, transform, write to output.
+    buf: byte[] = [0 as byte; 64];
+    while (true)
+    {
+        read: int = input.Read(buf, 0, 64);
+        if (read <= 0)
+            break;
+
+        for (i := 0; i < read; i = i + 1)
+            buf[i] = (buf[i] + 1) as byte;
+
+        output.Write(buf, 0, read);
+    }
+
+    return output.ToArray();
+}
+
+public static func Main() -> void
+{
+    original: byte[] = [1 as byte, 2 as byte, 3 as byte];
+    transformed: byte[] = TransformInPlace(original);
+    println(transformed[0]);  // 2
+    println(transformed[1]);  // 3
+    println(transformed[2]);  // 4
+}`
+
+const filesystemCode = `using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    path := "D:/temp/shard_demo.txt";
+
+    // Write text to a file (overwrites if exists).
+    File.WriteAllText(path, "hello\\nworld");
+
+    // Read it back.
+    content := File.ReadAllText(path);
+    println(content);  // "hello\\nworld"
+
+    // Check existence and delete.
+    println(File.Exists(path));  // true
+    File.Delete(path);
+    println(File.Exists(path));  // false
+
+    // Path utilities.
+    p := "C:/Users/gutii/docs/readme.txt";
+    println(Path.GetFileName(p));                 // "readme.txt"
+    println(Path.GetExtension(p));                // ".txt"
+    println(Path.GetFileNameWithoutExtension(p)); // "readme"
+    println(Path.GetDirectoryName(p));            // "C:/Users/gutii/docs"
+    println(Path.HasExtension(p));                // true
+    println(Path.DirectorySeparatorChar);         // "\\" (Windows) or "/" (Linux)
+
+    // Join path segments.
+    joined := Path.Join(["C:/", "Users", "gutii", "file.txt"]);
+    println(joined);  // "C:/Users/gutii/file.txt"
+}`
+
+const filesystemAsyncCode = `using stdio;
+using filesystem;
+using async;
+
+namespace demo;
+
+public static async func Run() -> Task
+{
+    path := "D:/temp/shard_async.txt";
+
+    // Async write.
+    await File.WriteAllTextAsync(path, "async content");
+
+    // Async read.
+    content := await File.ReadAllTextAsync(path);
+    println(content);  // "async content"
+
+    File.Delete(path);
+}
+
+public static func Main() -> void
+{
+    Task.Wait(Run());
+}`
+
+const directoryCode = `using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Static Directory class — check/create/delete by path.
+    path := "D:/temp/shard_dir_demo";
+
+    Directory.Delete(path);
+    println(Directory.Exists(path));  // false
+
+    info: DirectoryInfo = Directory.Create(path);
+    println(Directory.Exists(path));  // true
+    println(info.Name);               // "shard_dir_demo"
+    println(info.Exists);             // true
+
+    // Navigate: create FileInfo with DirectoryInfo and a file name.
+    file: FileInfo = new FileInfo(info, "readme.txt");
+    println(file.FullName); // "D:/temp/shard_dir_demo/readme.txt"
+
+    // Both types also support combining with strings.
+    sub: DirectoryInfo = info / "subfolder";
+    println(sub.FullName); // "D:/temp/shard_dir_demo/subfolder"
+
+    // Create the subfolder.
+    sub.Create();
+
+    // Delete the directory tree.
+    info.Delete();
+    println(info.Exists);             // false
+}`
+
+const pathConcatCode = `using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // string / string — pure path join, returns string.
+    // Formats two string into new path, using platform-specific separator.
+    base := "D:/projects";
+    full := base / "src" / "main.shard";
+    println(full);  // "D:/projects/src/main.shard"
+
+    // DirectoryInfo / string — returns new DirectoryInfo.
+    // Constructs a DirectoryInfo from a parent DirectoryInfo and a subdirectory name.
+    root: DirectoryInfo = new DirectoryInfo("D:/data");
+    sub: DirectoryInfo = root / "logs";
+    println(sub.FullName);  // "D:/data/logs"
+
+    // DirectoryInfo / FileInfo — returns FileInfo.
+    // Replaces FileInfo's containing directory
+    logFile: FileInfo = sub / "app.log";
+    println(logFile.FullName);  // "D:/data/logs/app.log"
+
+    // Chain multiple segments.
+    deep: string = root / "users" / "gutii" / "config.json";
+    println(deep);  // "D:/data/users/gutii/config.json"
+
+    // Also works with Path.Join as an explicit alternative.
+    joined: string = Path.Join(["D:/data", "users", "gutii", "config.json"]);
+    println(joined);  // "D:/data/users/gutii/config.json"
+}`
+
+const fsScenariosCode = `using stdio;
+using filesystem;
+using io;
+using async;
+
+namespace demo;
+
+// Scenario 1: Ensure a log directory exists, then write a timestamped file.
+public static func WriteLog(dirName: string, message: string) -> void
+{
+    logDir: DirectoryInfo = Directory.Create(dirName);
+    timestamp := "2026-07-23";
+
+    logFile: FileInfo = logDir / ("log_" + timestamp + ".txt");
+    File.WriteAllText(logFile.FullName, message + "\n");
+    println("wrote: " + logFile.FullName);
+}
+
+// Scenario 2: Read and aggregate all .txt files in a directory.
+public static func SummarizeDir(dirName: string) -> void
+{
+    info: DirectoryInfo = new DirectoryInfo(dirName);
+    if (!info.Exists)
+    {
+        println("no such directory: " + dirName);
+        return;
+    }
+
+    files: string[] = ["a.txt", "b.txt"];
+    total := 0;
+    foreach (name in files)
+    {
+        path := info / name;
+        content := File.ReadAllText(path.FullName);
+        total = total + content;
+    }
+
+    println("total chars in " + dirName + ": " + total);
+}
+
+// Scenario 3: Build a cross-platform path using / operator.
+public static func BuildPath() -> void
+{
+    base: DirectoryInfo = new DirectoryInfo("C:/app");
+    config: FileInfo = base / "config" / "settings.json";
+    println(config.FullName);  // "C:/app/config/settings.json"
+}
+
+public static func Main() -> void
+{
+    WriteLog("D:/temp/logs", "server started");
+    BuildPath();
 }`
 
 function GCContent() {
@@ -9639,6 +10088,1210 @@ function JsonScenariosContent() {
               <InlineCode>JsonSerializer.Deserialize&lt;T&gt;</InlineCode> for the known inner
               structure. This combines the flexibility of DOM inspection with the type safety of
               model binding: <InlineCode>JsonSerializer.Deserialize&lt;Item&gt;(root.Get("data").AsString())</InlineCode>.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: STREAMS — INTERFACES ===== */
+
+/* ===== STANDARD LIBRARY: STREAMS — MEMORYSTREAM ===== */
+
+/* ===== STANDARD LIBRARY: STREAMS — STREAMREADER / STREAMWRITER ===== */
+
+function StreamTextContent() {
+  const readerMethods = [
+    ['Read()', 'int', 'Reads a single UTF-8 codepoint. Returns the Unicode code point (0–0x10FFFF), or -1 at EOF.'],
+    ['ReadLine()', 'string', 'Reads characters until \\n or EOF. The returned string does not include the newline. Returns "" at EOF.'],
+    ['ReadToEnd()', 'string', 'Reads all remaining bytes and decodes them as UTF-8 into a single string.'],
+    ['Close() / Dispose()', 'void', 'Disposes the underlying stream and marks the reader as disposed.'],
+  ]
+  const writerMethods = [
+    ['Write(value)', 'void', 'Writes the string as UTF-8 bytes to the underlying stream.'],
+    ['WriteLine(value)', 'void', 'Writes the string as UTF-8 bytes followed by a \\n newline.'],
+    ['Flush()', 'void', 'Flushes the underlying stream.'],
+    ['Close() / Dispose()', 'void', 'Flushes and disposes the underlying stream, then marks the writer as disposed.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          <InlineCode>StreamReader</InlineCode> and <InlineCode>StreamWriter</InlineCode> are{' '}
+          <strong className="text-text-primary">text-oriented wrappers</strong> around an{' '}
+          <InlineCode>IReadableStream</InlineCode> / <InlineCode>IWritableStream</InlineCode>.
+          They handle UTF-8 encoding/decoding and provide line-oriented and whole-stream text
+          operations. Both implement <InlineCode>IDisposable</InlineCode> — disposing the
+          wrapper also disposes the underlying stream.
+        </Prose>
+        <CodeBlock code={streamReaderWriterCode} language="csharp" filename="stream_reader_writer.shard" />
+      </ScrollReveal>
+
+      {/* StreamReader */}
+      <ScrollReveal delay={0.05}>
+        <H2>StreamReader</H2>
+        <Prose>
+          Wraps an <InlineCode>IReadableStream</InlineCode> and provides UTF-8 text decoding
+          on top of raw byte reads. The internal buffer is a single 1-byte array reused via{' '}
+          <InlineCode>ObjectRef</InlineCode> to avoid per-character allocations.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readerMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          <InlineCode>Read()</InlineCode> decodes a full UTF-8 codepoint (1–4 bytes) using
+          the standard bit-pattern detection: 0xxxxxxx (1 byte), 110xxxxx (2 bytes), 1110xxxx
+          (3 bytes), 11110xxx (4 bytes). Invalid sequences throw{' '}
+          <InlineCode>RuntimeException("Invalid UTF-8 sequence.")</InlineCode>.
+        </Callout>
+      </ScrollReveal>
+
+      {/* StreamWriter */}
+      <ScrollReveal delay={0.05}>
+        <H2>StreamWriter</H2>
+        <Prose>
+          Wraps an <InlineCode>IWritableStream</InlineCode> and encodes ShardScript strings
+          to UTF-8 before writing raw bytes. <InlineCode>WriteLine</InlineCode> appends a{' '}
+          <InlineCode>\n</InlineCode> after the encoded string.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {writerMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">UTF-8 Byte-by-Byte Decoding</strong>
+            </div>
+            <Prose>
+              <InlineCode>ReadLine</InlineCode> reads one byte at a time via{' '}
+              <InlineCode>StreamReadRaw</InlineCode> into a reusable 1-byte <InlineCode>ObjectRef</InlineCode>{' '}
+              buffer, accumulating bytes until it hits <InlineCode>\n</InlineCode> or EOF.
+              The accumulated bytes are then converted from UTF-8 to a wide string via{' '}
+              <InlineCode>Utf8ToWide</InlineCode>. <InlineCode>ReadToEnd</InlineCode> uses
+              a 256-byte chunk buffer to reduce the number of stream read calls.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Dispose Cascades to Underlying Stream</strong>
+            </div>
+            <Prose>
+              Both <InlineCode>Close</InlineCode> and <InlineCode>Dispose</InlineCode> call{' '}
+              <InlineCode>StreamDisposeRaw</InlineCode> on the wrapped stream, then set{' '}
+              <InlineCode>_disposed = true</InlineCode>. All methods call{' '}
+              <InlineCode>EnsureReaderNotDisposed</InlineCode> /{' '}
+              <InlineCode>EnsureWriterNotDisposed</InlineCode> as their first action, throwing
+              a descriptive <InlineCode>RuntimeException</InlineCode> if the wrapper has been
+              disposed.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: STREAMS — BINARYREADER / BINARYWRITER ===== */
+
+function StreamBinaryContent() {
+  const readerMethods = [
+    ['ReadBoolean()', 'bool', 'Reads 1 byte; true if non-zero, false if zero.'],
+    ['ReadByte()', 'byte', 'Reads 1 byte.'],
+    ['ReadInt32()', 'int', 'Reads 4 bytes in little-endian order and returns as int.'],
+    ['ReadInt64()', 'int', 'Reads 8 bytes in little-endian order and returns as int.'],
+    ['ReadDouble()', 'double', 'Reads 8 bytes in little-endian IEEE 754 double-precision format.'],
+    ['ReadString()', 'string', 'Reads a length-prefixed UTF-8 string: 4-byte Int32 length, then that many bytes of UTF-8.'],
+    ['ReadBytes(count)', 'byte[]', 'Reads exactly count bytes. Throws if EOF is reached before count bytes.'],
+    ['Close() / Dispose()', 'void', 'Disposes the underlying stream and marks the reader as disposed.'],
+  ]
+  const writerMethods = [
+    ['Write(bool)', 'void', 'Writes 1 byte: 1 for true, 0 for false.'],
+    ['Write(byte)', 'void', 'Writes 1 byte.'],
+    ['Write(int)', 'void', 'Writes 8 bytes (Int64) in little-endian. Use WriteInt32 for 4 bytes.'],
+    ['WriteInt32(int)', 'void', 'Writes 4 bytes in little-endian.'],
+    ['WriteInt64(int)', 'void', 'Writes 8 bytes in little-endian.'],
+    ['Write(double)', 'void', 'Writes 8 bytes in little-endian IEEE 754 double-precision.'],
+    ['Write(string)', 'void', 'Writes a length-prefixed UTF-8 string: 4-byte Int32 length, then UTF-8 bytes.'],
+    ['Write(byte[])', 'void', 'Writes the raw bytes of the array.'],
+    ['Flush()', 'void', 'Flushes the underlying stream.'],
+    ['Close() / Dispose()', 'void', 'Flushes and disposes the underlying stream, then marks the writer as disposed.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          <InlineCode>BinaryReader</InlineCode> and <InlineCode>BinaryWriter</InlineCode> are{' '}
+          <strong className="text-text-primary">typed binary I/O wrappers</strong> around an{' '}
+          <InlineCode>IReadableStream</InlineCode> / <InlineCode>IWritableStream</InlineCode>.
+          They encode and decode ShardScript primitive types in a fixed binary format: integers
+          are little-endian, doubles are IEEE 754, strings are length-prefixed UTF-8. Both
+          implement <InlineCode>IDisposable</InlineCode>.
+        </Prose>
+        <CodeBlock code={streamBinaryCode} language="csharp" filename="binary_reader_writer.shard" />
+      </ScrollReveal>
+
+      {/* BinaryReader */}
+      <ScrollReveal delay={0.05}>
+        <H2>BinaryReader</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readerMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="amber">
+          <InlineCode>ReadBytes(count)</InlineCode> and <InlineCode>ReadString</InlineCode> are{' '}
+          <strong className="text-text-primary">exact-count reads</strong> — they throw if the
+          stream does not have enough bytes remaining. Check the stream's available data before
+          calling these methods, or wrap in <InlineCode>try</InlineCode>/<InlineCode>catch</InlineCode>.
+        </Callout>
+      </ScrollReveal>
+
+      {/* BinaryWriter */}
+      <ScrollReveal delay={0.05}>
+        <H2>BinaryWriter</H2>
+        <Prose>
+          Note the overloaded <InlineCode>Write</InlineCode> methods: the type of the argument
+          determines which encoding is used. <InlineCode>Write(42)</InlineCode> writes an Int64
+          (8 bytes); <InlineCode>WriteInt32(42)</InlineCode> writes an Int32 (4 bytes). Choose
+          the appropriate method based on the expected reader on the other side.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {writerMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Little-Endian Serialization</strong>
+            </div>
+            <Prose>
+              All multi-byte integer and floating-point types are serialized in{' '}
+              <strong className="text-text-primary">little-endian</strong> byte order. The raw
+              helper functions (<InlineCode>WriteInt32Raw</InlineCode>,{' '}
+              <InlineCode>ReadInt32Raw</InlineCode>, etc.) write/read <InlineCode>std::int32_t</InlineCode>{' '}
+              via <InlineCode>reinterpret_cast</InlineCode> to <InlineCode>uint8_t*</InlineCode> and
+              write <InlineCode>sizeof(T)</InlineCode> bytes directly. This is zero-copy at the
+              C++ level — no bit manipulation, no byte swapping.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Length-Prefixed Strings</strong>
+            </div>
+            <Prose>
+              <InlineCode>WriteString</InlineCode> encodes the ShardScript wide string to UTF-8,
+              writes a 4-byte Int32 length prefix, then writes the UTF-8 bytes.{' '}
+              <InlineCode>ReadString</InlineCode> reads the 4-byte length, then reads exactly
+              that many bytes, then converts from UTF-8 back to a wide string. An empty string
+              is stored as 4 zero bytes (length = 0).
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: STREAMS — USAGE SCENARIOS ===== */
+
+function StreamScenariosContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The stream interfaces and their concrete implementations enable a{' '}
+          <strong className="text-text-primary">streaming data model</strong>: process data
+          in chunks as it arrives, without holding the entire payload in memory. This section
+          demonstrates patterns for large-file line processing, binary record streaming over
+          sockets, and in-memory pipeline composition.
+        </Prose>
+        <CodeBlock code={streamScenariosCode} language="csharp" filename="stream_scenarios.shard" />
+      </ScrollReveal>
+
+      {/* Streaming patterns */}
+      <ScrollReveal delay={0.05}>
+        <H2>Streaming Patterns</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Chunked Reading from Disk</strong>
+            </div>
+            <Prose>
+              <InlineCode>FileStream</InlineCode> + <InlineCode>StreamReader</InlineCode> lets
+              you process a multi-gigabyte file <strong className="text-text-primary">line by
+              line</strong>. The reader reads one byte at a time from the stream, accumulating
+              until a newline. Only the current line is held in memory — the rest of the file
+              stays on disk. This is the standard pattern for log analysis, CSV parsing, and
+              data import pipelines where loading the entire file into a <InlineCode>string</InlineCode>{' '}
+              would exhaust memory.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Binary Record Streaming over Network</strong>
+            </div>
+            <Prose>
+              <InlineCode>SocketStream</InlineCode> + <InlineCode>BinaryReader</InlineCode> enables
+              protocol-level binary parsing without intermediate buffers. Read{' '}
+              <InlineCode>Int32</InlineCode> for record IDs, <InlineCode>Double</InlineCode> for
+              sensor values, <InlineCode>ReadBytes</InlineCode> for payloads — each call reads
+              exactly the required number of bytes from the socket. The OS TCP buffer handles
+              the streaming; your ShardScript code processes one record at a time.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">In-Memory Pipeline Composition</strong>
+            </div>
+            <Prose>
+              Chain two <InlineCode>MemoryStream</InlineCode> instances: read from one, transform
+              the data, write to the other. The 64-byte chunk buffer limits per-iteration memory
+              usage regardless of the source stream's total size. This pattern composes cleanly
+              — you can replace the <InlineCode>MemoryStream</InlineCode> with a{' '}
+              <InlineCode>FileStream</InlineCode> or <InlineCode>SocketStream</InlineCode> and
+              the transformation logic stays identical because it operates through the interface
+              abstraction.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">4</span>
+              <strong className="text-text-primary text-sm">Interface Polymorphism = Backend Independence</strong>
+            </div>
+            <Prose>
+              Because <InlineCode>StreamReader</InlineCode> accepts <InlineCode>IReadableStream</InlineCode>{' '}
+              and <InlineCode>BinaryReader</InlineCode> accepts <InlineCode>IReadableStream</InlineCode>,
+              the same parsing logic works identically for <InlineCode>FileStream</InlineCode>,{' '}
+              <InlineCode>SocketStream</InlineCode>, or <InlineCode>MemoryStream</InlineCode>.
+              Write your data-processing functions against the interfaces, and the callers decide
+              the backend. This is the core value of the three-tier interface hierarchy.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: FILESYSTEM — FILE & PATH ===== */
+
+/* ===== STANDARD LIBRARY: FILESYSTEM — DIRECTORY & DIRECTORYINFO ===== */
+
+function DirectoryContent() {
+  const dirStatic = [
+    ['Exists(path)', 'bool', 'Returns true if the directory exists on disk.'],
+    ['Create(path)', 'DirectoryInfo', 'Creates the directory (and any missing parents). Returns a DirectoryInfo for it. No-op if already exists.'],
+    ['Delete(path)', 'void', 'Deletes the directory. Throws if not empty or does not exist.'],
+  ]
+  const dirInfoMembers = [
+    ['init(fullPath)', 'Constructs a DirectoryInfo from an absolute or relative path.'],
+    ['FullName', 'string (property)', 'Returns the full path used to construct this DirectoryInfo.'],
+    ['Name', 'string (property)', 'Returns the directory name (last component of the path).'],
+    ['Exists', 'bool (property)', 'Checks whether the directory exists on disk via fs::is_directory().'],
+    ['Create()', 'void', 'Creates the directory on disk (including parent directories). No-op if already exists.'],
+    ['Delete()', 'void', 'Deletes the directory and all its contents recursively via fs::remove_all().'],
+    ['/ string', 'DirectoryInfo', 'Combines this directory path with a relative path segment, returning a new DirectoryInfo.'],
+    ['/ FileInfo', 'FileInfo', 'Combines this directory path with a FileInfo, returning a FileInfo with the joined path.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.filesystem</InlineCode> library provides two directory abstractions:{' '}
+          <InlineCode>Directory</InlineCode> (a <strong className="text-text-primary">static utility
+          class</strong>) and <InlineCode>DirectoryInfo</InlineCode> (an{' '}
+          <strong className="text-text-primary">instance-based wrapper</strong> around a directory
+          path). <InlineCode>Directory</InlineCode> is the quick "check/create/delete by path" API;
+          <InlineCode>DirectoryInfo</InlineCode> carries the path as state and supports the{' '}
+          <InlineCode>/</InlineCode> operator for path composition.
+        </Prose>
+        <CodeBlock code={directoryCode} language="csharp" filename="directory_basic.shard" />
+      </ScrollReveal>
+
+      {/* Directory */}
+      <ScrollReveal delay={0.05}>
+        <H2>Class Directory</H2>
+        <Prose>
+          All methods are <InlineCode>static</InlineCode>. <InlineCode>Create</InlineCode> returns
+          a <InlineCode>DirectoryInfo</InlineCode> for the newly created (or existing) directory,
+          enabling further operations.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dirStatic.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* DirectoryInfo */}
+      <ScrollReveal delay={0.05}>
+        <H2>Class DirectoryInfo</H2>
+        <Prose>
+          An instance wraps a single path stored in the <InlineCode>FullName</InlineCode> backing
+          field. The <InlineCode>/</InlineCode> operator creates new instances without touching the
+          disk — it is a pure path manipulation. Both <InlineCode>DirectoryInfo / string</InlineCode>{' '}
+          and <InlineCode>DirectoryInfo / FileInfo</InlineCode> are supported.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dirInfoMembers.map((row, i) => (
+                <tr key={row[0]} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{row[0]}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{row.length > 2 ? row[1] : '\u2014'}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{row.length > 2 ? row[2] : row[1]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Thin Wrappers Around std::filesystem</strong>
+            </div>
+            <Prose>
+              <InlineCode>Exists</InlineCode> calls <InlineCode>fs::exists(path)</InlineCode> for{' '}
+              <InlineCode>Directory</InlineCode> and <InlineCode>fs::is_directory(path)</InlineCode>{' '}
+              for <InlineCode>DirectoryInfo</InlineCode>. <InlineCode>Create</InlineCode> uses{' '}
+              <InlineCode>fs::create_directories</InlineCode> (recursive mkdir -p).{' '}
+              <InlineCode>Delete</InlineCode> uses <InlineCode>fs::remove</InlineCode> for{' '}
+              <InlineCode>Directory</InlineCode> (single directory, must be empty) and{' '}
+              <InlineCode>fs::remove_all</InlineCode> for <InlineCode>DirectoryInfo</InlineCode>{' '}
+              (recursive, deletes contents).
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Path Composition via / Operator</strong>
+            </div>
+            <Prose>
+              The <InlineCode>/</InlineCode> operator is overloaded on <InlineCode>DirectoryInfo</InlineCode>{' '}
+              as <InlineCode>TokenType::DivOperator</InlineCode>. It takes the stored{' '}
+              <InlineCode>FullName</InlineCode>, joins the right operand (string or FileInfo), and
+              allocates a new <InlineCode>DirectoryInfo</InlineCode> or <InlineCode>FileInfo</InlineCode>{' '}
+              with the result. This operator never touches the disk — it is a pure path manipulation.
+              The internal <InlineCode>pathJoin</InlineCode> helper uses platform-aware separator logic.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: FILESYSTEM — PATH CONCATENATION ===== */
+
+/* ===== STANDARD LIBRARY: FILESYSTEM — USAGE SCENARIOS ===== */
+
+function FsScenariosContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The filesystem classes compose naturally: <InlineCode>Directory</InlineCode> for
+          existence checks and creation, <InlineCode>DirectoryInfo</InlineCode> for path
+          navigation via <InlineCode>/</InlineCode>, <InlineCode>File</InlineCode> for reading
+          and writing content. This section demonstrates realistic combinations.
+        </Prose>
+        <CodeBlock code={fsScenariosCode} language="csharp" filename="filesystem_scenarios.shard" />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>Common Patterns</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Ensure-then-Write</strong>
+            </div>
+            <Prose>
+              Use <InlineCode>Directory.Create</InlineCode> to guarantee a directory exists, then
+              use the returned <InlineCode>DirectoryInfo</InlineCode> with <InlineCode>/</InlineCode>{' '}
+              to build the target file path. <InlineCode>File.WriteAllText</InlineCode> handles
+              creation and overwriting. This pattern is the standard "log to file" or "save output"
+              idiom.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Directory Enumeration</strong>
+            </div>
+            <Prose>
+              While <InlineCode>DirectoryInfo</InlineCode> does not natively enumerate directory
+              contents, you can combine it with <InlineCode>File</InlineCode> operations: collect
+              file names externally (e.g. from a known list, a database, or a separate index),
+              then join them with <InlineCode>DirectoryInfo / name</InlineCode> to produce full
+              <InlineCode>FileInfo</InlineCode> paths. Each resulting file can be read independently
+              without loading the entire directory into memory.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Cross-Platform Path Construction</strong>
+            </div>
+            <Prose>
+              Use <InlineCode>/</InlineCode> and <InlineCode>Path.Join</InlineCode> instead of
+              string concatenation with literal separators. The operator and helper both call the
+              same internal <InlineCode>pathJoin</InlineCode> which inserts the platform-appropriate
+              directory separator. This makes path-building code portable across Windows and Linux
+              without conditional logic.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">4</span>
+              <strong className="text-text-primary text-sm">Full Pipeline</strong>
+            </div>
+            <Prose>
+              The complete flow: <InlineCode>Directory.Create</InlineCode> →{' '}
+              <InlineCode>DirectoryInfo / name</InlineCode> →{' '}
+              <InlineCode>File.WriteAllText</InlineCode> for output, and{' '}
+              <InlineCode>DirectoryInfo / name</InlineCode> →{' '}
+              <InlineCode>File.ReadAllText</InlineCode> or <InlineCode>FileStream</InlineCode> for
+              input. For large files, swap <InlineCode>File.ReadAllText</InlineCode> for a{' '}
+              <InlineCode>FileStream</InlineCode> + <InlineCode>StreamReader</InlineCode>{' '}
+              combination to process data chunk-by-chunk (see Stream Scenarios in §shard.streams).
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function PathConcatContent() {
+  const overloads = [
+    ['string / string', 'string', 'Joins two path segments with the platform directory separator. Pure string manipulation — no disk I/O.'],
+    ['DirectoryInfo / string', 'DirectoryInfo', 'Returns a new DirectoryInfo with the joined path. Does not check disk existence.'],
+    ['DirectoryInfo / FileInfo', 'FileInfo', 'Returns a new FileInfo with the joined path. Takes only the file name from FileInfo. Does not check disk existence.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          ShardScript overloads the <strong className="text-text-primary">division operator</strong>{' '}
+          (<InlineCode>/</InlineCode>) for path concatenation. This is not a dedicated path operator —
+          it reuses <InlineCode>TokenType::DivOperator</InlineCode> with the semantics of "append a
+          path segment." The result always uses the platform's native directory separator.
+        </Prose>
+        <Prose>
+          Three overloads are registered: <InlineCode>string / string</InlineCode> (pure string join),{' '}
+          <InlineCode>DirectoryInfo / string</InlineCode> (returns new DirectoryInfo), and{' '}
+          <InlineCode>DirectoryInfo / FileInfo</InlineCode> (returns new FileInfo). All three are{' '}
+          <strong className="text-text-primary">pure path manipulations</strong> — they never
+          touch the disk, never validate that the path exists, and never normalize separators in the
+          already-joined result. Use <InlineCode>Path.Join</InlineCode> if you prefer an explicit
+          method call over operator syntax.
+        </Prose>
+        <CodeBlock code={pathConcatCode} language="csharp" filename="path_concat.shard" />
+      </ScrollReveal>
+
+      {/* Operator Overloads */}
+      <ScrollReveal delay={0.05}>
+        <H2>Operator Overloads</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Overload</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Semantics</th>
+              </tr>
+            </thead>
+            <tbody>
+              {overloads.map(([name, ret, sem], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{sem}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Chaining */}
+      <ScrollReveal delay={0.05}>
+        <H2>Chaining</H2>
+        <Prose>
+          The operator associates left-to-right, so <InlineCode>a / b / c</InlineCode> is parsed as{' '}
+          <InlineCode>(a / b) / c</InlineCode>. For <InlineCode>string / string / string</InlineCode>,
+          each step returns a new string, so chaining produces the fully-joined path. For{' '}
+          <InlineCode>DirectoryInfo / string / string</InlineCode>, the first step returns a{' '}
+          <InlineCode>DirectoryInfo</InlineCode>, and the second step uses the{' '}
+          <InlineCode>DirectoryInfo / string</InlineCode> overload. This makes it natural to
+          drill down into nested subdirectories or build file paths incrementally.
+        </Prose>
+      </ScrollReveal>
+
+      {/* vs Path.Join */}
+      <ScrollReveal delay={0.05}>
+        <H2>Comparison: / Operator vs Path.Join</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Aspect</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">/ Operator</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Path.Join</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Syntax', 'a / b / c', 'Path.Join(["a", "b", "c"])'],
+                ['Arity', 'Binary (chainable)', 'Variadic (array of segments)'],
+                ['Return type', 'Depends on left operand type', 'Always string'],
+                ['Type-aware', 'Yes — returns DirectoryInfo', 'No — always string'],
+                ['Backing helper', 'pathJoin (internal)', 'pathJoin (same helper)'],
+              ].map(([aspect, op, join], i) => (
+                <tr key={aspect} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{aspect}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{op}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{join}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Prose>
+          Both call the same internal <InlineCode>pathJoin</InlineCode> helper. The operator is
+          syntactic sugar for the common case of appending a single segment;{' '}
+          <InlineCode>Path.Join</InlineCode> is the explicit bulk API. Use the operator for
+          readability in typical navigation code; use <InlineCode>Path.Join</InlineCode> when
+          the segments come from a runtime-collected array.
+        </Prose>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function FilesystemContent() {
+  const fileMethods = [
+    ['ReadAllText(fileName)', 'string', 'Reads the entire file as a UTF-8 string. Throws if the file cannot be opened.'],
+    ['ReadAllTextAsync(fileName)', 'ValueTask<string>', 'Asynchronously reads the entire file using libuv fs operations. Uses 4 KB chunks internally.'],
+    ['WriteAllText(fileName, content)', 'void', 'Creates or overwrites the file with the given string content.'],
+    ['WriteAllTextAsync(fileName, content)', 'Task', 'Asynchronously writes content to the file using libuv fs operations.'],
+    ['AppendAllText(fileName, content)', 'void', 'Appends content to the end of the file. Creates the file if it does not exist.'],
+    ['Exists(fileName)', 'bool', 'Returns true if the file exists on disk.'],
+    ['Delete(fileName)', 'void', 'Deletes the file. No error if the file does not exist.'],
+    ['Copy(source, dest)', 'void', 'Copies a file from source to dest. Throws if source does not exist.'],
+    ['Move(source, dest)', 'void', 'Moves/renames a file from source to dest.'],
+  ]
+  const pathMethods = [
+    ['GetExtension(path)', 'string', 'Returns the file extension including the dot (e.g. ".txt"). Returns empty if none.'],
+    ['GetFileName(path)', 'string', 'Returns the file name with extension (e.g. "readme.txt").'],
+    ['GetFileNameWithoutExtension(path)', 'string', 'Returns the file name without extension (e.g. "readme").'],
+    ['GetDirectoryName(path)', 'string', 'Returns the parent directory path.'],
+    ['HasExtension(path)', 'bool', 'Returns true if the path has a file extension.'],
+    ['ChangeExtension(path, ext)', 'string', 'Returns a new path with the extension replaced. The "." prefix is added automatically if missing.'],
+    ['GetFullPath(path)', 'string', 'Returns the absolute path. Resolves relative paths against the current working directory.'],
+    ['Join(paths[])', 'string', 'Joins path segments using the platform directory separator.'],
+  ]
+  const pathProps = [
+    ['DirectorySeparatorChar', 'string', 'Platform directory separator: "\\" on Windows, "/" on Linux.'],
+    ['AltDirectorySeparatorChar', 'string', 'Alternate separator: "/" on Windows, "\\" on Linux.'],
+    ['PathSeparator', 'string', 'Path list separator: ";" on Windows, ":" on Linux (for PATH-like variables).'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.filesystem</InlineCode> library (namespace <InlineCode>filesystem</InlineCode>)
+          provides two <strong className="text-text-primary">static classes</strong>:{' '}
+          <InlineCode>File</InlineCode> for file-level operations (read, write, delete, copy, move)
+          and <InlineCode>Path</InlineCode> for path manipulation (split, join, extract components).
+          Both are backed by C++ filesystem operations — synchronous methods use{' '}
+          <InlineCode>std::fstream</InlineCode> / <InlineCode>std::filesystem</InlineCode>, while
+          async methods use <InlineCode>libuv</InlineCode> fs operations for non-blocking I/O.
+        </Prose>
+        <CodeBlock code={filesystemCode} language="csharp" filename="filesystem_basic.shard" />
+      </ScrollReveal>
+
+      {/* File */}
+      <ScrollReveal delay={0.05}>
+        <H2>Class File</H2>
+        <Prose>
+          All methods are <InlineCode>static</InlineCode>. The <InlineCode>File</InlineCode> class
+          is never instantiated — call methods directly as <InlineCode>File.ReadAllText(...)</InlineCode>.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fileMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Async */}
+      <ScrollReveal delay={0.05}>
+        <H2>Asynchronous File I/O</H2>
+        <Prose>
+          <InlineCode>ReadAllTextAsync</InlineCode> and <InlineCode>WriteAllTextAsync</InlineCode>{' '}
+          use <strong className="text-text-primary">libuv fs operations</strong> ({' '}
+          <InlineCode>uv_fs_open</InlineCode>, <InlineCode>uv_fs_read</InlineCode>,{' '}
+          <InlineCode>uv_fs_write</InlineCode>, <InlineCode>uv_fs_close</InlineCode>) to perform
+          non-blocking file I/O. ReadAllTextAsync reads in 4 KB chunks, accumulating results.
+          Both methods return <InlineCode>Task</InlineCode> / <InlineCode>ValueTask&lt;string&gt;</InlineCode>
+          and integrate with the event loop — the calling task suspends at <InlineCode>await</InlineCode>{' '}
+          and resumes when the libuv callback fires.
+        </Prose>
+        <CodeBlock code={filesystemAsyncCode} language="csharp" filename="filesystem_async.shard" />
+      </ScrollReveal>
+
+      {/* Path */}
+      <ScrollReveal delay={0.05}>
+        <H2>Class Path</H2>
+        <Prose>
+          All methods are <InlineCode>static</InlineCode>. Path operations never touch the disk —
+          they are purely string manipulations backed by <InlineCode>std::filesystem::path</InlineCode>.
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Method</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pathMethods.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Path Properties */}
+      <ScrollReveal delay={0.05}>
+        <H2>Path Separator Properties</H2>
+        <Prose>
+          Platform-specific separator characters are exposed as static read-only properties:
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Property</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pathProps.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Dual Backend: std::fstream + libuv</strong>
+            </div>
+            <Prose>
+              Synchronous <InlineCode>File</InlineCode> methods use C++ standard I/O:{' '}
+              <InlineCode>std::wifstream</InlineCode> / <InlineCode>std::wofstream</InlineCode>{' '}
+              for text files, <InlineCode>std::filesystem</InlineCode> for Exists/Delete/Copy/Move.
+              Async methods use libuv fs operations (<InlineCode>uv_fs_open</InlineCode> /{' '}
+              <InlineCode>uv_fs_read</InlineCode> / <InlineCode>uv_fs_close</InlineCode>) with
+              callback-based state machines that allocate a heap-allocated state struct freed
+              after the final callback. The sync path blocks the VM thread; the async path
+              suspends the task and registers a libuv callback that resumes it.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Path via std::filesystem::path</strong>
+            </div>
+            <Prose>
+              All <InlineCode>Path</InlineCode> methods are thin wrappers around{' '}
+              <InlineCode>std::filesystem::path</InlineCode> — they construct a path object from
+              the input string and call the corresponding C++17 method:{' '}
+              <InlineCode>.extension()</InlineCode>, <InlineCode>.filename()</InlineCode>,{' '}
+              <InlineCode>.stem()</InlineCode>, <InlineCode>.parent_path()</InlineCode>,{' '}
+              <InlineCode>.has_extension()</InlineCode>, <InlineCode>.replace_extension()</InlineCode>,{' '}
+              <InlineCode>fs::absolute()</InlineCode>. The result wide string is wrapped in an{' '}
+              <InlineCode>ObjectInstance</InlineCode> via <InlineCode>FromValue</InlineCode>.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Domain-Relative Paths</strong>
+            </div>
+            <Prose>
+              <InlineCode>GetFullPath</InlineCode> resolves relative paths against the{' '}
+              <strong className="text-text-primary">application domain’s working directory</strong>,
+              not the ShardScript script’s location. This means paths are relative to the process’s
+              CWD at launch time. Use <InlineCode>GetFullPath</InlineCode> to normalize user-supplied
+              paths before passing them to other <InlineCode>File</InlineCode> methods.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function MemoryStreamContent() {
+  const members = [
+    ['init()', 'Creates an empty, writable stream (capacity 0, grows on write).'],
+    ['init(buffer: byte[])', 'Creates a read-only stream backed by the given byte array. Position = 0, Length = buffer.Length.'],
+    ['init(capacity: int)', 'Creates an empty, writable stream with a pre-allocated buffer of the given capacity.'],
+    ['Read(buffer, offset, count)', 'int', 'Reads up to count bytes from the current position. Returns bytes actually read (0 at end).'],
+    ['ReadAsync(buffer, offset, count)', 'ValueTask<int>', 'Async read — delegates to synchronous Read under the hood.'],
+    ['ReadAsync(buffer, offset, count, token)', 'ValueTask<int>', 'Async read with cancellation support.'],
+    ['Write(buffer, offset, count)', 'void', 'Writes count bytes at the current position. Auto-grows capacity; advances Position.'],
+    ['WriteAsync(buffer, offset, count)', 'Task', 'Async write — delegates to synchronous Write under the hood.'],
+    ['WriteAsync(buffer, offset, count, token)', 'Task', 'Async write with cancellation support.'],
+    ['Flush() / FlushAsync()', 'void / Task', 'No-ops — MemoryStream has no underlying device to flush.'],
+    ['Seek(offset, origin)', 'int', 'Moves Position. origin: SeekOrigin.Begin (0), .Current (1), .End (2). Returns new position.'],
+    ['ToArray()', 'byte[]', 'Returns a new byte[] containing the stream contents from index 0 to Length-1.'],
+    ['GetBuffer()', 'byte[]', 'Returns the internal buffer directly (no copy). Use with caution — mutations affect the stream.'],
+    ['Close() / Dispose()', 'void', 'Marks the stream as closed. Further reads/writes throw.'],
+    ['Position', 'int (property)', 'Current read/write cursor. Get/Set allowed; set validates bounds.'],
+    ['Length', 'int (property)', 'Logical length of the stream. Can be set (truncates or zero-extends); get returns current length.'],
+    ['Capacity', 'int (property)', 'Allocated buffer size. Grows automatically on writes; can be set to pre-allocate or shrink.'],
+    ['CanWrite', 'bool (property)', 'True if created with init() or init(capacity); false if created from an existing buffer.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          <InlineCode>MemoryStream</InlineCode> is a <strong className="text-text-primary">byte-array-backed
+          in-memory stream</strong> implementing both <InlineCode>IReadableStream</InlineCode> and{' '}
+          <InlineCode>IWritableStream</InlineCode>. It is the simplest concrete stream type — no OS handles,
+          no I/O threads, no native buffers. All data lives in a ShardScript <InlineCode>byte[]</InlineCode>.
+          Capacity grows automatically on writes (doubling strategy: <InlineCode>max(required, capacity * 2)</InlineCode>).
+        </Prose>
+        <CodeBlock code={memoryStreamCode} language="csharp" filename="memory_stream.shard" />
+      </ScrollReveal>
+
+      {/* API Reference */}
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map((row, i) => (
+                <tr key={row[0]} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{row[0]}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{row.length > 2 ? row[1] : '\u2014'}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{row.length > 2 ? row[2] : row[1]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          <InlineCode>ReadAsync</InlineCode> and <InlineCode>WriteAsync</InlineCode> are{' '}
+          <strong className="text-text-primary">not truly asynchronous</strong> for MemoryStream —
+          they delegate to the synchronous <InlineCode>Read</InlineCode> / <InlineCode>Write</InlineCode>{' '}
+          internally and return a completed task. They exist for interface conformance so MemoryStream
+          can be substituted anywhere <InlineCode>IReadableStream</InlineCode> /{' '}
+          <InlineCode>IWritableStream</InlineCode> is expected.
+        </Callout>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Six-Field Internal State</strong>
+            </div>
+            <Prose>
+              The stream stores: <InlineCode>_buffer</InlineCode> (<InlineCode>byte[]</InlineCode>, the raw data),{' '}
+              <InlineCode>_position</InlineCode> (<InlineCode>int</InlineCode>, current cursor),{' '}
+              <InlineCode>_length</InlineCode> (<InlineCode>int</InlineCode>, logical data length),{' '}
+              <InlineCode>_capacity</InlineCode> (<InlineCode>int</InlineCode>, allocated buffer size),{' '}
+              <InlineCode>_writable</InlineCode> (<InlineCode>bool</InlineCode>, set false for buffer-backed streams),{' '}
+              <InlineCode>_isOpen</InlineCode> (<InlineCode>bool</InlineCode>, set false on Close/Dispose).
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Capacity Growth (Doubling)</strong>
+            </div>
+            <Prose>
+              <InlineCode>EnsureCapacity(instance, required)</InlineCode> triggers when a write
+              would exceed the current capacity. The new capacity is{' '}
+              <InlineCode>max(required, capacity * 2)</InlineCode>. A new <InlineCode>byte[]</InlineCode>{' '}
+              is allocated, existing data is copied element-by-element via{' '}
+              <InlineCode>GetElement</InlineCode> / <InlineCode>SetElement</InlineCode>, and the
+              <InlineCode>_buffer</InlineCode> field is replaced. The old array's reference count
+              drops and the GC collects it if no other references exist.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function StreamInterfacesContent() {
+  const istream = [
+    ['Dispose()', 'void', 'Closes the stream and releases all resources. Inherited from IDisposable.'],
+  ]
+  const readable = [
+    ['Read(buffer, offset, count)', 'int', 'Reads up to count bytes into buffer starting at offset. Returns the number of bytes actually read (0 = end of stream).'],
+    ['ReadAsync(buffer, offset, count)', 'ValueTask<int>', 'Asynchronously reads up to count bytes into buffer. Returns a ValueTask<int> with the number of bytes read.'],
+    ['ReadAsync(buffer, offset, count, token)', 'ValueTask<int>', 'Same as ReadAsync, with cancellation support via CancellationToken.'],
+  ]
+  const writable = [
+    ['Write(buffer, offset, count)', 'void', 'Writes count bytes from buffer starting at offset to the stream.'],
+    ['WriteAsync(buffer, offset, count)', 'Task', 'Asynchronously writes count bytes from buffer to the stream.'],
+    ['WriteAsync(buffer, offset, count, token)', 'Task', 'Same as WriteAsync, with cancellation support via CancellationToken.'],
+    ['Flush()', 'void', 'Forces any buffered data to be written to the underlying device.'],
+    ['FlushAsync()', 'Task', 'Asynchronously flushes buffered data to the underlying device.'],
+    ['FlushAsync(token)', 'Task', 'Same as FlushAsync, with cancellation support via CancellationToken.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.streams</InlineCode> library (namespace <InlineCode>io</InlineCode>)
+          defines a <strong className="text-text-primary">three-tier interface hierarchy</strong> for
+          byte-oriented streams. All concrete stream types (<InlineCode>MemoryStream</InlineCode>,{' '}
+          <InlineCode>FileStream</InlineCode>, <InlineCode>SocketStream</InlineCode>) implement
+          these interfaces, enabling polymorphic code that works with any stream regardless of its
+          underlying backend.
+        </Prose>
+        <CodeBlock code={streamInterfacesCode} language="csharp" filename="stream_interfaces.shard" />
+      </ScrollReveal>
+
+      {/* Hierarchy */}
+      <ScrollReveal delay={0.05}>
+        <H2>Interface Hierarchy</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Interface</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Extends</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['IStream', 'IDisposable', 'Base stream interface. Guarantees deterministic cleanup via Dispose().'],
+                ['IReadableStream', 'IStream', 'Adds synchronous and asynchronous read methods.'],
+                ['IWritableStream', 'IStream', 'Adds synchronous and asynchronous write + flush methods.'],
+              ].map(([name, ext, role], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ext}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{role}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          Both <InlineCode>ReadAsync</InlineCode> and <InlineCode>WriteAsync</InlineCode> have two
+          overloads: one without cancellation (3 parameters) and one with a{' '}
+          <InlineCode>CancellationToken</InlineCode> (4 parameters). The cancellation-aware overload
+          performs a fast-path check before dispatching I/O — if the token is already cancelled,
+          the method returns a <InlineCode>FAULTED</InlineCode> task immediately without initiating
+          any I/O (see §7.4 for details on the cancellation mechanism).
+        </Callout>
+      </ScrollReveal>
+
+      {/* IStream */}
+      <ScrollReveal delay={0.05}>
+        <H2>IStream</H2>
+        <Prose>
+          The base of the stream hierarchy. It extends <InlineCode>IDisposable</InlineCode>, ensuring
+          every stream can be used with <InlineCode>defer disposable := ...</InlineCode> and cleaned
+          up deterministically. It carries a single abstract method:
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {istream.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* IReadableStream */}
+      <ScrollReveal delay={0.05}>
+        <H2>IReadableStream</H2>
+        <Prose>
+          Extends <InlineCode>IStream</InlineCode> with read capabilities:
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readable.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* IWritableStream */}
+      <ScrollReveal delay={0.05}>
+        <H2>IWritableStream</H2>
+        <Prose>
+          Extends <InlineCode>IStream</InlineCode> with write and flush capabilities:
+        </Prose>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {writable.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Abstract Interface Methods</strong>
+            </div>
+            <Prose>
+              All methods on the three interfaces are declared <InlineCode>IsAbstract = true</InlineCode>
+              — they have no default implementation. Concrete stream types register their
+              conformance via <InlineCode>class.Implements(g_IReadableStream)</InlineCode> and
+              provide callbacks for each method. The compiler emits{' '}
+              <InlineCode>CALLINTERFACE</InlineCode> for interface-typed calls, which is resolved
+              at runtime through the <InlineCode>InterfaceMethodMap</InlineCode>.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Namespace: io</strong>
+            </div>
+            <Prose>
+              Unlike most ShardScript standard libraries (namespace matches library name), the stream
+              interfaces are in the <InlineCode>io</InlineCode> namespace — a shorthand for
+              "input/output". Import with <InlineCode>using io;</InlineCode>. The library file is{' '}
+              <InlineCode>streams.shard.cpp</InlineCode> and its metadata name is{' '}
+              <InlineCode>shard.streams</InlineCode>.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Concrete Implementations</strong>
+            </div>
+            <Prose>
+              Three concrete types implement these interfaces:{' '}
+              <InlineCode>MemoryStream</InlineCode> (shard.streams, in-memory byte buffer),{' '}
+              <InlineCode>FileStream</InlineCode> (shard.filesystem, disk-backed), and{' '}
+              <InlineCode>SocketStream</InlineCode> (shard.socket, network socket). Each implements
+              both <InlineCode>IReadableStream</InlineCode> and <InlineCode>IWritableStream</InlineCode>,
+              so a single instance can be assigned to either interface type depending on whether the
+              caller needs read, write, or both.
             </Prose>
           </div>
         </div>
