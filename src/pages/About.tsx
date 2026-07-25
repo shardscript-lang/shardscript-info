@@ -13,100 +13,13 @@ const pillars = [
     number: '02',
     title: 'Embed with Confidence',
     description:
-      'Built for embedding from the ground up. A lightweight runtime, a simple C API for the host application, a controlled GC, and sandboxing. Embed a scripting engine into a game, editor, server, or IoT device — ShardScript adapts.',
+      'Built for embedding from the ground up. A lightweight runtime, a simple extern "C" API, and C++ native-authoring headers ship today. SDKs for C#, Rust, Node.js, C++, and Go are in development. Hosts control shard loading, symbol injection, and callbacks.',
   },
   {
     number: '03',
     title: 'Statically Typed',
     description:
       'Strict static typing with automatic inference via :=. class is a reference type, struct is a value type, and string is a reference type. Type errors are caught at compile time, before anything runs on the VM.',
-  },
-]
-
-const timelineItems = [
-  {
-    date: '2023 Q1',
-    title: 'Project Inception',
-    description: 'First version of the compiler and parser. C-style syntax, primitive types, and the bytecode VM.',
-    category: 'past',
-  },
-  {
-    date: '2023 Q3',
-    title: 'Type System',
-    description: 'class, struct, interfaces, generics, and type inference via :=. Strict static typing.',
-    category: 'past',
-  },
-  {
-    date: '2024 Q1',
-    title: 'Functional Features',
-    description: 'Lambdas, delegates, closures, extension methods, and ranges with .. and ..&.',
-    category: 'past',
-  },
-  {
-    date: '2024 Q2',
-    title: 'Embed API',
-    description: 'The extern "C" API — an execution sandbox, symbol injection, and host callbacks.',
-    category: 'past',
-  },
-  {
-    date: '2026 Q4',
-    title: 'IPrintable & Operator Overloading',
-    description: 'The IPrintable contract for string conversion, plus operator overloads for custom types.',
-    category: 'past',
-  },
-  {
-    date: '2024 Q4',
-    title: 'Basic Framework Collection',
-    description: 'Sharding — the modular DLL system: stdio, collections, math, networking, and more.',
-    category: 'past',
-  },
-  {
-    date: '2026 Q2',
-    title: 'Open Source',
-    description: 'Public release of ShardScript.',
-    category: 'past',
-  },
-  {
-    date: '2026 Q1',
-    title: 'Exceptions & Enums',
-    description: 'Exception machinery — throw, try/catch over the IThrowable contract. Plain enums and flag enums with HasFlag().',
-    category: 'past',
-  },
-  {
-    date: '2026 Q2',
-    title: 'foreach, IEnumerable',
-    description: 'Iteration over IEnumerable<T>/IEnumerator<T>.',
-    category: 'past',
-  },
-  {
-    date: '2026 Q3',
-    title: 'Async',
-    description: 'async/await with compiler-generated state machines.',
-    category: 'past',
-  },
-  {
-    date: '2026 Q4',
-    title: 'Yield Iterators',
-    description: 'Lazy sequences through yield return, yield break, and yield range — generators without upfront allocation.',
-    category: 'upcoming',
-  },
-  {
-    date: '2027 Q1',
-    title: 'LINQ & Build System',
-    description: 'A shard.linq module — Where, Select, OrderBy, GroupBy — and a script-driven build system via build.shard.',
-    category: 'upcoming',
-  },
-  {
-    date: '2027 Q2',
-    title: 'Package Manager',
-    description: 'A NuGet-style tool to manage dependencies, shards, and versions, built on the SemVer resolver.',
-    category: 'upcoming',
-  },
-  {
-    date: '2027 Q3',
-    title: 'Shell & REPL',
-    description: 'Interactive mode with persistent state and a shard.shell module — process spawning and piping, a Bash/PowerShell alternative.',
-    category: 'upcoming',
   },
 ]
 
@@ -137,9 +50,8 @@ export default function About() {
           <ScrollReveal delay={0.2}>
             <p className="mt-6 text-base text-text-secondary leading-relaxed">
               ShardScript is a statically typed programming language that combines a familiar C-style
-              syntax with the power of functional and object-oriented programming. It compiles to bytecode
-              for a virtual machine and embeds through a clean extern &quot;C&quot; API — with a sandbox,
-              symbol injection, and callbacks.
+              syntax with functional and object-oriented programming. It compiles to bytecode for a
+              virtual machine and is designed to embed into host applications.
             </p>
           </ScrollReveal>
         </div>
@@ -199,11 +111,11 @@ export default function About() {
             {[
               {
                 title: 'Bytecode Compilation',
-                desc: 'Source compiles to bytecode for a virtual machine — no JIT, no on-the-fly interpretation. Portability, controlled execution, and no lazy binding.',
+                desc: 'Source compiles to portable bytecode executed by a stack-based virtual machine. Controlled execution without a JIT.',
               },
               {
                 title: 'Embeddable Engine',
-                desc: 'A C++ core with a clean extern "C" API and bindings for C, C#, and Rust. The host builds a sandbox with its own namespaces, classes, structs, and functions through symbol injection and callbacks.',
+                desc: 'A C++ core with a clean extern "C" API and C++ native-authoring headers today. SDKs for C#, Rust, Node.js, C++, and Go are in development. The host controls namespaces, classes, structs, and functions through symbol injection and callbacks.',
               },
               {
                 title: 'Refined C-Style',
@@ -245,86 +157,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Timeline Section */}
-      <section className="py-20 md:py-[120px] px-6">
-        <div className="max-w-[800px] mx-auto">
-          <ScrollReveal>
-            <p className="text-xs font-medium tracking-[0.05em] uppercase text-gold mb-4">
-              PAST & FUTURE
-            </p>
-          </ScrollReveal>
-
-          <ScrollReveal delay={0.1}>
-            <h2 className="font-space text-3xl md:text-[40px] font-bold text-text-primary leading-[1.2] tracking-tight mb-16">
-              Roadmap
-            </h2>
-          </ScrollReveal>
-
-          <div className="relative">
-            <div
-              className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2"
-              style={{
-                background:
-                  'linear-gradient(to bottom, #5B8C3E 0%, #9B2D30 50%, #D4A017 100%)',
-              }}
-            />
-
-            {timelineItems.map((item, i) => (
-              <ScrollReveal key={`${item.date}-${item.title}`} delay={0.05 * i}>
-                <div
-                  className={`relative flex items-start mb-10 last:mb-0 ${
-                    i % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
-                  }`}
-                >
-                  <div
-                    className={`absolute left-4 md:left-1/2 w-4 h-4 rounded-full border-[3px] -translate-x-1/2 z-10 mt-1.5 ${
-                      item.category === 'past'
-                        ? 'bg-shard-dark border-burgundy'
-                        : 'bg-shard-dark border-gold'
-                    }`}
-                  />
-
-                  <div
-                    className={`pl-12 md:pl-0 md:w-[calc(50%-40px)] ${
-                      i % 2 === 0 ? 'md:pr-12 md:text-right' : 'md:pl-12'
-                    }`}
-                  >
-                    <span
-                      className={`text-xs font-medium tracking-[0.05em] uppercase ${
-                        item.category === 'past' ? 'text-burgundy-light' : 'text-gold'
-                      }`}
-                    >
-                      {item.date}
-                    </span>
-                    <h4 className="font-space text-lg font-semibold text-text-primary mt-1 mb-2">
-                      {item.title}
-                    </h4>
-                    <p className="text-sm text-text-secondary leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div className="hidden md:block md:w-[calc(50%-40px)]" />
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-
-          {/* Legend */}
-          <ScrollReveal delay={0.3}>
-            <div className="mt-12 flex items-center justify-center gap-8">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full border-[2px] border-burgundy" />
-                <span className="text-xs text-text-muted">Shipped</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full border-[2px] border-gold" />
-                <span className="text-xs text-text-muted">Planned</span>
-              </div>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
     </div>
   )
 }

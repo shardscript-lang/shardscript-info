@@ -47,7 +47,7 @@ const syntaxGroups: DocGroup[] = [
 const stdlibGroups: DocGroup[] = [
   {
     title: 'SHARD.MATH',
-    items: ['Basic Math', 'Trigonometry & Logarithms', 'Math Scenarios'],
+    items: ['Basic Math', 'Trigonometry & Logarithms', 'Random Number Generation', 'Math Scenarios'],
   },
   {
     title: 'SHARD.ENVIRONMENT',
@@ -76,6 +76,26 @@ const stdlibGroups: DocGroup[] = [
   {
     title: 'SHARD.SUBPROCESS',
     items: ['Process & ProcessStartInfo', 'I/O & Lifecycle', 'Subprocess Scenarios'],
+  },
+  {
+    title: 'SHARD.ASYNC',
+    items: ['TaskCompletionSource<T>', 'CancellationToken & CancellationTokenSource', 'Async Scenarios'],
+  },
+  {
+    title: 'SHARD.INTEROP',
+    items: ['Native Interop'],
+  },
+  {
+    title: 'SHARD.HTTP',
+    items: ['HttpClient', 'HttpServer', 'HTTP Scenarios'],
+  },
+  {
+    title: 'SHARD.SOCKET',
+    items: ['TCP Sockets'],
+  },
+  {
+    title: 'SHARD.REFLECTION',
+    items: ['Type Introspection'],
   },
 ]
 
@@ -1880,6 +1900,12 @@ export default function Docs() {
         return <SubprocessIOLifecycleContent />
       case 'Subprocess Scenarios':
         return <SubprocessScenariosContent />
+      case 'TaskCompletionSource<T>':
+        return <TaskCompletionSourceContent />
+      case 'CancellationToken & CancellationTokenSource':
+        return <CancellationTokenStdlContent />
+      case 'Async Scenarios':
+        return <AsyncScenariosContent />
       case 'Developer Tools':
         return <DebugDevToolsContent />
       case 'VM Inspection':
@@ -1890,8 +1916,22 @@ export default function Docs() {
         return <MathContent />
       case 'Trigonometry & Logarithms':
         return <MathTrigContent />
+      case 'Random Number Generation':
+        return <MathRandomContent />
       case 'Math Scenarios':
         return <MathScenariosContent />
+      case 'Native Interop':
+        return <CInteropContent />
+      case 'HttpClient':
+        return <HttpClientContent />
+      case 'HttpServer':
+        return <HttpServerContent />
+      case 'HTTP Scenarios':
+        return <HttpScenariosContent />
+      case 'TCP Sockets':
+        return <SocketContent />
+      case 'Type Introspection':
+        return <ReflectionContent />
       default:
         return <PlaceholderContent title={activeItem} />
     }
@@ -2254,9 +2294,9 @@ function PhilosophyContent() {
             host application links against.
           </Bullet>
           <Bullet>
-            <strong className="text-text-primary"><InlineCode>extern</InlineCode> interop</strong> — native
-            C++ functions can be exposed directly to script, so the host can hand precisely chosen
-            capabilities to the scripting layer.
+            <strong className="text-text-primary">Native interop</strong> — C++ functions can be
+            exposed directly to script, so the host can hand precisely chosen capabilities to the
+            scripting layer.
           </Bullet>
           <Bullet>
             <strong className="text-text-primary">Shards (loaded libraries)</strong> — the standard library
@@ -2268,8 +2308,8 @@ function PhilosophyContent() {
           </Bullet>
           <Bullet>
             <strong className="text-text-primary">Bindings beyond C++</strong> — the same runtime is exposed
-            through a <InlineCode>.NET</InlineCode> wrapper and a Language Server (<InlineCode>LspServer</InlineCode>),
-            so ShardScript can be embedded in managed applications and editors alike.
+            through a flat C API and a Language Server (<InlineCode>LspServer</InlineCode>, currently Win32-only
+            and in development), so ShardScript can be embedded in applications and editors alike.
           </Bullet>
         </ul>
       </ScrollReveal>
@@ -2600,7 +2640,7 @@ function InstallationContent() {
   ]
 
   const standardShards: [string, string][] = [
-    ['stdio', 'Console I/O: print, println, input'],
+    ['stdio', 'Console I/O: print, println, input, cursor control'],
     ['collections', 'List<T>, Dictionary<K,V>, Stack<T>, Queue<T>'],
     ['strings', 'String manipulation and formatting'],
     ['math', 'Math functions; math.random for RNG'],
@@ -2609,9 +2649,18 @@ function InstallationContent() {
     ['socket', 'TCP socket operations'],
     ['async', 'Task, TaskCompletionSource, cancellation'],
     ['streams', 'Stream-based I/O'],
+    ['filesystem', 'File, directory, and path operations'],
+    ['environment', 'Environment variable access'],
+    ['interop', 'Native library calls and marshalling (cinterop.dll)'],
     ['debug', 'typeof, sizeof, PrintGcInfo'],
     ['reflection', 'Type, method, and field inspection'],
     ['subprocess', 'Spawn and manage child processes'],
+  ]
+
+  const thirdPartyShards: [string, string][] = [
+    ['raylib', '2D/3D graphics, windowing, input, audio (optional third-party shard)'],
+    ['Database', 'SQLite3 connection and command execution (optional third-party shard)'],
+    ['terminality', 'Terminal UI host and controls (optional third-party shard)'],
   ]
 
   return (
@@ -2621,9 +2670,9 @@ function InstallationContent() {
           Getting ShardScript running is a three-piece affair: the <InlineCode>shard</InlineCode>{' '}
           interpreter (which includes the compiler, the virtual machine, and the event loop), the{' '}
           <strong className="text-text-primary">Standard Shards Collection</strong> of dynamic libraries,
-          and — for dependency management — the <InlineCode>geode</InlineCode> package manager. This section
-          walks through building and using each, configuring library paths, and wiring editors to the
-          language server.
+          and — for dependency management — the <InlineCode>geode</InlineCode> package manager (in
+          development). This section walks through building and using the interpreter and shards,
+          configuring library paths, and wiring editors to the language server.
         </Prose>
       </ScrollReveal>
 
@@ -2697,11 +2746,29 @@ function InstallationContent() {
             </div>
           ))}
         </div>
-        <Callout tone="green" title="Sandboxing">
+        <Callout tone="green" title="Scope control">
           Pass <InlineCode>--no-std</InlineCode> to skip auto-loading the <InlineCode>system/</InlineCode>{' '}
           directory entirely, then add only the shards you trust with <InlineCode>-l</InlineCode>. Combined
-          with the symbol-injection model, this gives a tightly scoped execution sandbox.
+          with the symbol-injection model, this lets the host control exactly which APIs a script can reach.
         </Callout>
+      </ScrollReveal>
+
+      {/* Third-party shards --------------------------------------------- */}
+      <ScrollReveal delay={0.05}>
+        <H2>Optional Third-Party Shards</H2>
+        <Prose>
+          The framework repository also builds several optional shards in{' '}
+          <InlineCode>third_party/</InlineCode>. These are not loaded by default and must be referenced
+          explicitly with <InlineCode>-l</InlineCode> or copied into the host&apos;s shard search path.
+        </Prose>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {thirdPartyShards.map(([name, desc]) => (
+            <div key={name} className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+              <code className="text-sm font-jetbrains text-[#7A8AB5]">{name}</code>
+              <p className="text-sm text-text-secondary mt-1">{desc}</p>
+            </div>
+          ))}
+        </div>
       </ScrollReveal>
 
       {/* Paths ---------------------------------------------------------- */}
@@ -2716,38 +2783,44 @@ function InstallationContent() {
         <CodeBlock code={systemLayoutCurrentCode} language="text" filename="layout-current.txt" />
         <h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">The intended %SHARDSCRIPT% layout</h3>
         <Prose>
-          The planned design introduces a <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable
+          The intended design introduces a <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable
           pointing at an install root, with standard shards living under{' '}
-          <InlineCode>%SHARDSCRIPT%/system_libs</InlineCode>. Both the interpreter and Geode would consult
+          <InlineCode>%SHARDSCRIPT%/system_libs</InlineCode>. Both the interpreter and Geode will consult
           this root, giving every tool on the machine one canonical place to find the executable and its
           libraries.
         </Prose>
         <CodeBlock code={systemLayoutPlannedCode} language="text" filename="layout-planned.txt" />
-        <Callout tone="amber" title="Planned, not yet implemented">
+        <Callout tone="amber" title="Intended direction, not yet active">
           The interpreter does not currently read <InlineCode>%SHARDSCRIPT%</InlineCode> or{' '}
           <InlineCode>system_libs</InlineCode> — the <InlineCode>system/</InlineCode>-beside-the-executable
-          mechanism above is what ships today. The environment-variable layout is the intended direction.
+          mechanism above is what ships today. The environment-variable layout is the intended direction
+          and will be implemented in a future release.
         </Callout>
       </ScrollReveal>
 
       {/* Geode ---------------------------------------------------------- */}
       <ScrollReveal delay={0.05}>
         <H2>The Geode Package Manager</H2>
+        <Callout tone="amber" title="In development">
+          Geode is the planned package manager for ShardScript. It is under active development and is not
+          yet available for general use. The design described here is the target shape, not the shipping
+          implementation.
+        </Callout>
         <Prose>
-          <InlineCode>geode</InlineCode> is the package manager for ShardScript — a NuGet-style tool for
-          resolving, fetching, and publishing shards. A project is described by a{' '}
-          <InlineCode>geode.env</InlineCode> manifest; Geode resolves dependencies (with SemVer constraints),
-          caches them under <InlineCode>~/.geode/cache</InlineCode>, and restores them into a local{' '}
+          <InlineCode>geode</InlineCode> is intended to be a NuGet-style tool for resolving, fetching, and
+          publishing shards. A project will be described by a <InlineCode>geode.env</InlineCode> manifest;
+          Geode will resolve dependencies (with SemVer constraints), cache them under{' '}
+          <InlineCode>~/.geode/cache</InlineCode>, and restore them into a local{' '}
           <InlineCode>./libs</InlineCode> directory for the interpreter to load.
         </Prose>
         <Prose>
-          Geode is a .NET solution: build it, then run the backend registry and use the{' '}
+          Geode is being built as a .NET solution: build it, then run the backend registry and use the{' '}
           <InlineCode>geode</InlineCode> CLI.
         </Prose>
         <CodeBlock code={geodeBuildCode} language="bash" filename="geode-setup.sh" />
-        <Prose>A project manifest (<InlineCode>geode.env</InlineCode>) looks like this:</Prose>
+        <Prose>A project manifest (<InlineCode>geode.env</InlineCode>) is planned to look like this:</Prose>
         <CodeBlock code={geodeEnvCode} language="toml" filename="geode.env" />
-        <Prose>The CLI verbs:</Prose>
+        <Prose>The planned CLI verbs:</Prose>
         <div className="overflow-x-auto mb-4">
           <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
             <thead>
@@ -2767,14 +2840,14 @@ function InstallationContent() {
           </table>
         </div>
         <Prose>
-          Packages are distributed as <InlineCode>.shardpkg</InlineCode> archives (<InlineCode>pack</InlineCode>{' '}
+          Packages will be distributed as <InlineCode>.shardpkg</InlineCode> archives (<InlineCode>pack</InlineCode>{' '}
           builds one, <InlineCode>publish</InlineCode> uploads it) and may target a specific runtime
           identifier so platform-specific native shards resolve correctly.
         </Prose>
         <Callout tone="amber" title="Self-hosted registry">
-          Geode&apos;s registry currently defaults to <InlineCode>http://localhost:5000</InlineCode> — you run
-          the backend yourself. There is no public package index published yet, so for now Geode is most
-          useful for managing shards across your own projects and machines.
+          Geode&apos;s registry is planned to default to <InlineCode>http://localhost:5000</InlineCode> — you
+          run the backend yourself. There is no public package index yet; Geode will first be useful for
+          managing shards across your own projects and machines.
         </Callout>
       </ScrollReveal>
 
@@ -2782,10 +2855,14 @@ function InstallationContent() {
       <ScrollReveal delay={0.05}>
         <H2>Editor Integration</H2>
         <Prose>
-          ShardScript ships a Language Server (the <InlineCode>lsp</InlineCode> binary, built from{' '}
+          ShardScript includes a Language Server (the <InlineCode>lsp</InlineCode> binary, built from{' '}
           <InlineCode>ShardScript.LspServer</InlineCode>) that speaks the Language Server Protocol over
           stdio. Editors connect to it like any other LSP server.
         </Prose>
+        <Callout tone="amber" title="In development and Win32-only">
+          The language server builds and runs on Windows today. Linux/Unix support is not yet implemented,
+          and the server is still rough — expect missing diagnostics and incomplete completions.
+        </Callout>
         <Callout tone="blue" title="No first-party extensions yet">
           There are no packaged Zed, VS Code, or Neovim extensions published today. Each editor is wired to
           the <InlineCode>lsp</InlineCode> binary manually as a generic LSP server; some editors may also
@@ -2809,9 +2886,9 @@ function InstallationContent() {
 
       <ScrollReveal delay={0.05}>
         <Callout tone="green" title="You are set up">
-          With <InlineCode>shard</InlineCode> built, the standard shards in <InlineCode>system/</InlineCode>,
-          <InlineCode>geode</InlineCode> managing dependencies, and your editor wired to the language server,
-          you have the full toolchain. Head to the language reference to start writing code.
+          With <InlineCode>shard</InlineCode> built, the standard shards in <InlineCode>system/</InlineCode>, and
+          your editor wired to the language server, you have the core toolchain. Geode and additional SDKs are
+          in development. Head to the language reference to start writing code.
         </Callout>
       </ScrollReveal>
     </div>
@@ -3429,8 +3506,13 @@ function ConditionalsContent() {
       {/* if as expression ---------------------------------------------- */}
       <ScrollReveal delay={0.05}>
         <H2>if as an Expression</H2>
+        <Callout tone="amber" title="In development">
+          Expression-form <InlineCode>if</InlineCode> is parsed by the compiler, but it is not yet emitted to
+          bytecode. The syntax below is recognized by the parser but does not run in today&apos;s builds. The
+          semantics described here are the intended design.
+        </Callout>
         <Prose>
-          Used in expression position, <InlineCode>if</InlineCode> yields a value:{' '}
+          Used in expression position, <InlineCode>if</InlineCode> will yield a value:{' '}
           <InlineCode>if cond thenExpr else elseExpr</InlineCode>. Parentheses around the condition are
           optional — they are just grouping. This replaces the C-style ternary.
         </Prose>
@@ -3454,8 +3536,8 @@ function ConditionalsContent() {
           </table>
         </div>
         <Callout tone="amber" title="No ternary, and unless is statement-only">
-          There is no C-style <InlineCode>cond ? a : b</InlineCode> — use an <InlineCode>if</InlineCode>{' '}
-          expression. And only <InlineCode>if</InlineCode> works as an expression;{' '}
+          There is no C-style <InlineCode>cond ? a : b</InlineCode> — once expression <InlineCode>if</InlineCode>{' '}
+          ships, use that. And only <InlineCode>if</InlineCode> works as an expression;{' '}
           <InlineCode>unless</InlineCode> is a statement form only.
         </Callout>
       </ScrollReveal>
@@ -3562,21 +3644,28 @@ function SwitchContent() {
           ShardScript&apos;s pattern-matching toolkit is built around the <InlineCode>switch</InlineCode>{' '}
           expression — which matches a value against a set of constant patterns — and the{' '}
           <InlineCode>is</InlineCode> / <InlineCode>as</InlineCode> operators for testing and casting types at
-          runtime.
+          runtime. Today, <InlineCode>is</InlineCode> is fully implemented; <InlineCode>switch</InlineCode> and{' '}
+          <InlineCode>as</InlineCode> are parsed but not yet emitted.
         </Prose>
       </ScrollReveal>
 
       {/* switch expression --------------------------------------------- */}
       <ScrollReveal delay={0.05}>
         <H2>switch Expressions</H2>
+        <Callout tone="amber" title="In development">
+          Expression-form <InlineCode>switch</InlineCode> is under active development. The parser skeleton
+          exists, but the keyword is not yet emitted by the lexer, so the syntax below does not compile in
+          today&apos;s builds. The semantics described here are the intended design.
+        </Callout>
         <Prose>
-          A <InlineCode>switch</InlineCode> is an <strong className="text-text-primary">expression</strong>:
-          it evaluates a scrutinee, then yields the value of the first arm whose pattern equals it. Each arm
-          is <InlineCode>pattern =&gt; result</InlineCode>, arms are separated by commas, and{' '}
+          A <InlineCode>switch</InlineCode> is planned to be an{' '}
+          <strong className="text-text-primary">expression</strong>: it will evaluate a scrutinee, then
+          yield the value of the first arm whose pattern equals it. Each arm is{' '}
+          <InlineCode>pattern =&gt; result</InlineCode>, arms are separated by commas, and{' '}
           <InlineCode>_</InlineCode> is the default (catch-all) arm.
         </Prose>
         <CodeBlock code={switchExprCode} language="csharp" filename="switch.shard" />
-        <Callout tone="blue" title="How arms match">
+        <Callout tone="blue" title="How arms will match">
           Patterns are compared to the scrutinee by equality, so they are constants — numbers, strings,
           enum members. There is no fall-through and no C-style <InlineCode>case</InlineCode>/{' '}
           <InlineCode>break</InlineCode>: one arm runs, and its value is the switch&apos;s result. A trailing
@@ -3587,20 +3676,23 @@ function SwitchContent() {
       {/* is / as -------------------------------------------------------- */}
       <ScrollReveal delay={0.05}>
         <H2>Type Tests: is and as</H2>
+        <Callout tone="amber" title="In development">
+          <InlineCode>is</InlineCode> is implemented and emits correctly. <InlineCode>as</InlineCode> is parsed
+          by the compiler but does not yet have a bytecode emitter, so the <InlineCode>as</InlineCode> examples
+          below do not compile in today&apos;s builds. The semantics described here are the intended design.
+        </Callout>
         <Prose>
           <InlineCode>is</InlineCode> checks whether a value is compatible with a type and yields a{' '}
-          <InlineCode>bool</InlineCode>. <InlineCode>as</InlineCode> is a <strong className="text-text-primary">safe
+          <InlineCode>bool</InlineCode>. <InlineCode>as</InlineCode> will be a <strong className="text-text-primary">safe
           cast</strong>: it returns the value typed as the target type when compatible, or{' '}
           <InlineCode>null</InlineCode> otherwise. Together they handle the &quot;is this one of these?&quot;
           branching that a constant-only <InlineCode>switch</InlineCode> can&apos;t.
         </Prose>
         <CodeBlock code={isAsCode} language="csharp" filename="is_as.shard" />
         <Callout tone="amber" title="Notes">
-          <InlineCode>as</InlineCode> never throws on a mismatch — it returns <InlineCode>null</InlineCode>,
-          so check the result before using it. Both <InlineCode>is</InlineCode> and{' '}
-          <InlineCode>as</InlineCode> work against classes, structs, and interfaces, and{' '}
-          <InlineCode>as</InlineCode> can even be overloaded on your own types with{' '}
-          <InlineCode>operator as</InlineCode>.
+          <InlineCode>as</InlineCode> is intended to return <InlineCode>null</InlineCode> on a mismatch rather
+          than throwing, so check the result before using it. Once implemented, both <InlineCode>is</InlineCode>{' '}
+          and <InlineCode>as</InlineCode> will work against classes, structs, and interfaces.
         </Callout>
       </ScrollReveal>
     </div>
@@ -7426,6 +7518,12 @@ function AsyncStateMachineContent() {
           <InlineCode>Task</InlineCode> it evaluates to nothing (void); for{' '}
           <InlineCode>ValueTask&lt;T&gt;</InlineCode> it evaluates to <InlineCode>T</InlineCode>.
         </Prose>
+        <Callout tone="amber" title="Current limitation">
+          In today&apos;s compiler, <InlineCode>await</InlineCode> must appear at the top level of the async
+          method body. Awaiting inside <InlineCode>if</InlineCode> branches, loops, or other nested
+          expressions is not yet supported by the hoisting pass and will report a compiler error. Move the
+          awaited value into a local variable at the top level when needed.
+        </Callout>
       </ScrollReveal>
 
       {/* ValueTask<T> */}
@@ -9103,6 +9201,164 @@ public static func Main() -> void
     RunLinter("src/");
     sorted: string = ExternalSort("gamma\nalpha\nbeta");
     println(sorted);
+}`
+
+const taskCompletionSourceCode = `using stdio;
+using async;
+
+namespace demo;
+
+public static async func CompleteLater(tcs: TaskCompletionSource<string>) -> Task
+{
+    // Simulate work: wait 10ms, then complete the task.
+    await Task.Delay(10);
+    tcs.SetResult("done asynchronously");
+}
+
+public static func Main() -> void
+{
+    // Create a TCS and hand its Task to someone who will complete it later.
+    tcs := new TaskCompletionSource<string>();
+    CompleteLater(tcs);
+
+    // Wait for the task to complete and read the result.
+    ValueTask.Wait(tcs.Task);
+    println(tcs.Task.Result);  // "done asynchronously"
+}`
+
+const tcsSyncCode = `using stdio;
+using async;
+
+namespace demo;
+
+public static async func GetResultSync() -> ValueTask<string>
+{
+    tcs := new TaskCompletionSource<string>();
+
+    // Set the result before anyone awaits — the task completes synchronously.
+    tcs.SetResult("sync");
+
+    return await tcs.Task;
+}
+
+public static async func GetResultAsync() -> ValueTask<string>
+{
+    tcs := new TaskCompletionSource<string>();
+
+    // Complete the TCS from a separate async operation.
+    CompleteLater(tcs);
+    return await tcs.Task;
+}
+
+public static func Main() -> void
+{
+    // Sync: result is already set before the first await.
+    task1 := GetResultSync();
+    ValueTask.Wait(task1);
+    println(task1.Result);  // "sync"
+
+    // Async: result arrives later via CompleteLater.
+    task2 := GetResultAsync();
+    ValueTask.Wait(task2);
+    println(task2.Result);  // "done asynchronously"
+}`
+
+const asyncScenariosCode = `using stdio;
+using async;
+
+namespace demo;
+
+// Scenario 1: Run multiple concurrent timers without blocking.
+async func Worker(name: string, delayMs: int, rounds: int) -> Task
+{
+    for (i := 0; i < rounds; i = i + 1)
+    {
+        println(name + " step " + (i + 1));
+        await Task.Delay(delayMs);
+    }
+}
+
+// Scenario 2: Orchestrate I/O-like async work from a single entry point.
+public static async func Orchestrate() -> Task
+{
+    // Start three workers concurrently — all three timers run in parallel.
+    tA := Worker("A", 400, 2);
+    tB := Worker("B", 600, 2);
+    tC := Worker("C", 200, 2);
+
+    // Wait for all to finish.
+    await tA;
+    await tB;
+    await tC;
+
+    println("all workers finished");
+}
+
+// Scenario 3: TaskCompletionSource — bridge callback to await.
+async func SimulateAsyncWork() -> ValueTask<string>
+{
+    tcs := new TaskCompletionSource<string>();
+
+    // Simulate: after 100ms, "complete" the async operation.
+    CompleteLater(tcs);
+    return await tcs.Task;
+}
+
+async func CompleteLater(tcs: TaskCompletionSource<string>) -> Task
+{
+    await Task.Delay(100);
+    tcs.SetResult("done via TCS");
+}
+
+// Scenario 4: CancellationToken — cooperative cancellation in a loop.
+async func CancellableWork(token: CancellationToken) -> Task
+{
+    iterations := 0;
+    while (!token.IsCancellationRequested)
+    {
+        iterations = iterations + 1;
+        println("iteration " + iterations);
+        await Task.Delay(50);
+    }
+    println("canceled after " + iterations + " iterations");
+}
+
+// Scenario 5: Timeout pattern — poll with a deadline.
+public static async func TimeoutPattern() -> Task
+{
+    elapsed := 0;
+    timeout := 200;
+
+    // Simulate a long operation that checks for timeout periodically.
+    while (elapsed < timeout)
+    {
+        await Task.Delay(50);
+        elapsed = elapsed + 50;
+        println("working... " + elapsed + "ms");
+    }
+
+    println("timeout reached after " + elapsed + "ms");
+}
+
+public static func Main() -> void
+{
+    // Scenario 3: TCS.
+    tcsTask := SimulateAsyncWork();
+    ValueTask.Wait(tcsTask);
+    println("TCS result: " + tcsTask.Result);
+
+    // Scenario 4: CancellationToken.
+    cts := new CancellationTokenSource();
+    cancelTask := CancellableWork(cts.Token);
+    Task.Delay(200).Wait();
+    cts.Cancel();
+    Task.Wait(cancelTask);
+
+    // Scenario 1 & 2: concurrent workers.
+    Task.Wait(Orchestrate());
+
+    // Scenario 5: timeout polling.
+    Task.Wait(TimeoutPattern());
 }`
 
 function GCContent() {
@@ -11009,6 +11265,341 @@ function SubprocessScenariosContent() {
               a warning. Combined with <InlineCode>defer</InlineCode>, even a killed process
               gets its handles freed when the variable goes out of scope. The timeout loop polls
               at 10ms intervals, so the maximum latency is 10ms + sleep overhead.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+/* ===== STANDARD LIBRARY: ASYNC — TASKCOMPLETIONSOURCE<T> ===== */
+
+/* ===== STANDARD LIBRARY: ASYNC — CANCELLATION ===== */
+
+/* ===== STANDARD LIBRARY: ASYNC — USAGE SCENARIOS ===== */
+
+function AsyncScenariosContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.async</InlineCode> primitives compose into patterns for{' '}
+          <strong className="text-text-primary">non-blocking concurrency</strong>: parallel
+          timers, concurrent I/O orchestration, timeout races, and defer-safe cleanup. Every
+          pattern relies on the fact that <InlineCode>await Task.Delay(ms)</InlineCode> returns
+          control to the event loop, allowing other tasks to make progress while the current
+          one is suspended.
+        </Prose>
+        <CodeBlock code={asyncScenariosCode} language="csharp" filename="async_scenarios.shard" />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>Common Patterns</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Concurrent Timers</strong>
+            </div>
+            <Prose>
+              Start multiple <InlineCode>async func</InlineCode> tasks simultaneously, each with
+              its own <InlineCode>Task.Delay</InlineCode> suspension points. All timers run
+              concurrently in the libuv event loop. <InlineCode>Task.Wait</InlineCode> collects
+              them in any order — the event loop services whichever timer fires next. This
+              is the cooperative equivalent of multi-threaded timers without any synchronization
+              primitives.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Non-Blocking I/O Orchestration</strong>
+            </div>
+            <Prose>
+              While <InlineCode>Task.Delay</InlineCode> is a timer, the same pattern applies to
+              real I/O: start multiple async operations (file reads, socket accepts, HTTP requests),
+              then <InlineCode>await</InlineCode> each one. The event loop handles all of them
+              concurrently on a single thread. This is the core value proposition of the
+              cooperative model — thousands of in-flight I/O operations without threads,
+              locks, or context switches.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">TaskCompletionSource — Callback Bridge</strong>
+            </div>
+            <Prose>
+              Create a <InlineCode>TaskCompletionSource&lt;T&gt;</InlineCode>, hand its{' '}
+              <InlineCode>.Task</InlineCode> to the code that will <InlineCode>await</InlineCode>{' '}
+              it, then pass the <InlineCode>TCS</InlineCode> itself to the code that will complete
+              it later (a separate async function, a native callback, a timer). When the async
+              work finishes, call <InlineCode>SetResult</InlineCode> — this transitions the
+              task to <InlineCode>COMPLETED</InlineCode> and resumes the awaiter. For error
+              paths, call <InlineCode>SetException</InlineCode> instead to propagate exceptions
+              into the await site (see §shard.async: TaskCompletionSource).
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">4</span>
+              <strong className="text-text-primary text-sm">CancellationToken — Cooperative Cancellation</strong>
+            </div>
+            <Prose>
+              Create a <InlineCode>CancellationTokenSource</InlineCode>, pass its{' '}
+              <InlineCode>.Token</InlineCode> to an async worker function. The worker polls{' '}
+              <InlineCode>token.IsCancellationRequested</InlineCode> on each loop iteration.
+              From the outside, call <InlineCode>cts.Cancel()</InlineCode> after a timeout or
+              on user request — the worker sees the flag on its next poll and exits cleanly.
+              All active <InlineCode>Task.Delay</InlineCode> suspensions still complete, but
+              the loop condition prevents further work. This is cooperative, not preemptive
+              (see §shard.async: CancellationToken).
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">5</span>
+              <strong className="text-text-primary text-sm">Timeout Polling</strong>
+            </div>
+            <Prose>
+              Loop with <InlineCode>await Task.Delay(loopMs)</InlineCode> suspension points and
+              track elapsed time. When the deadline is reached, exit the loop. Only one{' '}
+              <InlineCode>Task.Delay</InlineCode> is active at any time — no orphan tasks
+              remain pending when the function returns. Each suspension returns control to the
+              event loop, allowing other tasks to make progress.
+            </Prose>
+          </div>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function CancellationTokenStdlContent() {
+  const ctsMembers = [
+    ['init()', '\u2014', 'Creates a new source and its linked CancellationToken. The internal _canceled flag is initialized to 0 (false).'],
+    ['Cancel()', 'void', 'Signals cancellation. Sets _canceled = 1. All tokens linked to this source immediately see the change. No callbacks, no locks.'],
+    ['Token', 'CancellationToken (property)', 'Returns the token managed by this source. Created during construction.'],
+  ]
+  const ctMembers = [
+    ['IsCancellationRequested', 'bool (property)', 'True after the linked source has been cancelled. Performs three defensive null-checks before reading the flag.'],
+    ['CanBeCanceled', 'bool (property)', 'True if the token is linked to a valid source (not null, not NullInstance).'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          <InlineCode>CancellationTokenSource</InlineCode> (the signaling side) and{' '}
+          <InlineCode>CancellationToken</InlineCode> (the listening side) form a{' '}
+          <strong className="text-text-primary">cooperative cancellation pair</strong> in the{' '}
+          <InlineCode>async</InlineCode> namespace. Construction cross-links them:{' '}
+          <InlineCode>token._source = source; source._token = token</InlineCode>. A single{' '}
+          <InlineCode>Cancel()</InlineCode> call propagates to all tokens referencing that source.
+        </Prose>
+        <Prose>
+          For a comprehensive walkthrough of the cancellation model, I/O integration, polling
+          patterns, and internal mechanics (including the{''} deliberate absence of uv_cancel),
+          see <strong className="text-text-primary">§7.4 Cancellation (CancellationToken)</strong>{' '}
+          in the Syntax documentation.
+        </Prose>
+      </ScrollReveal>
+
+      {/* CancellationTokenSource */}
+      <ScrollReveal delay={0.05}>
+        <H2>CancellationTokenSource</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ctsMembers.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          The <InlineCode>_canceled</InlineCode> field is a plain <InlineCode>int</InlineCode> (0 or 1).
+          <InlineCode>Cancel()</InlineCode> writes 1 via <InlineCode>SetField</InlineCode> — a
+          single integer write with no synchronization, no callbacks, and no heap allocations.
+        </Callout>
+      </ScrollReveal>
+
+      {/* CancellationToken */}
+      <ScrollReveal delay={0.05}>
+        <H2>CancellationToken</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ctMembers.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Prose>
+          The only field is <InlineCode>_source: CancellationTokenSource</InlineCode> — a
+          back-reference used by both <InlineCode>IsCancellationRequested</InlineCode> (reads{' '}
+          <InlineCode>_source._canceled</InlineCode>) and <InlineCode>CanBeCanceled</InlineCode>{' '}
+          (checks <InlineCode>_source != null</InlineCode>). An unlinked token (default, never
+          assigned to a source) returns <InlineCode>false</InlineCode> for both properties.
+        </Prose>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function TaskCompletionSourceContent() {
+  const members = [
+    ['init()', '\u2014', 'Creates a new TaskCompletionSource with a pending ValueTask<T> stored in the _task field.'],
+    ['Task', 'ValueTask<T> (property)', 'Returns the underlying ValueTask<T> that can be awaited. The same instance is returned every time.'],
+    ['SetResult(result)', 'void', 'Transitions the task to COMPLETED, stores the result value, and resumes any continuations.'],
+    ['SetException(exception)', 'void', 'Transitions the task to FAULTED, stores the exception, and resumes any continuations. Accepts any Exception-like object.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          <InlineCode>TaskCompletionSource&lt;T&gt;</InlineCode> is the{' '}
+          <strong className="text-text-primary">manual control side</strong> of the async
+          pattern. It creates a <InlineCode>ValueTask&lt;T&gt;</InlineCode> that starts in the{' '}
+          <InlineCode>PENDING</InlineCode> state and exposes two methods to complete it:{' '}
+          <InlineCode>SetResult</InlineCode> (success) and <InlineCode>SetException</InlineCode>{' '}
+          (failure). This is the bridge between callback-based or event-driven code and the
+          <InlineCode>await</InlineCode>-based async model.
+        </Prose>
+        <CodeBlock code={taskCompletionSourceCode} language="csharp" filename="tcs_basic.shard" />
+      </ScrollReveal>
+
+      {/* API Reference */}
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      {/* Patterns */}
+      <ScrollReveal delay={0.05}>
+        <H2>Usage Patterns</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Synchronous Completion (Already-Done)</strong>
+            </div>
+            <Prose>
+              Call <InlineCode>SetResult</InlineCode> before anyone awaits the task. The{' '}
+              <InlineCode>ValueTask&lt;T&gt;</InlineCode> is already{' '}
+              <InlineCode>COMPLETED</InlineCode>, so any subsequent <InlineCode>await</InlineCode>{' '}
+              hits the fast path (see §7.2) and returns immediately without ever suspending.
+              This is the zero-overhead case — no event-loop interaction at all.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">Async Completion (Callback Bridge)</strong>
+            </div>
+            <Prose>
+              Create a <InlineCode>TCS</InlineCode>, hand its <InlineCode>.Task</InlineCode> to the
+              code that will <InlineCode>await</InlineCode> it, then pass the <InlineCode>TCS</InlineCode>{' '}
+              itself to the code that will complete it later (a timer callback, a socket read callback,
+              a thread-pool work item). When the async operation finishes, call{' '}
+              <InlineCode>SetResult</InlineCode> — this transitions the task to{' '}
+              <InlineCode>COMPLETED</InlineCode> and resumes the awaiter via{' '}
+              <InlineCode>ResumeContinuation</InlineCode>.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+              <strong className="text-text-primary text-sm">Error Propagation</strong>
+            </div>
+            <Prose>
+              Call <InlineCode>SetException</InlineCode> instead of <InlineCode>SetResult</InlineCode>{' '}
+              to signal failure. The task transitions to <InlineCode>FAULTED</InlineCode>, and the
+              awaiter will re-throw the stored exception when it resumes. This lets callback-based
+              error paths (native exception, socket error, timeout) propagate naturally into the
+              ShardScript exception model.
+            </Prose>
+          </div>
+        </div>
+        <CodeBlock code={tcsSyncCode} language="csharp" filename="tcs_sync_async.shard" />
+      </ScrollReveal>
+
+      {/* Internal Mechanics */}
+      <ScrollReveal delay={0.05}>
+        <H2>Internal Mechanics</H2>
+        <div className="space-y-5">
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+              <strong className="text-text-primary text-sm">Generic ValueTask{'<T>'} Allocation</strong>
+            </div>
+            <Prose>
+              The constructor resolves the concrete <InlineCode>T</InlineCode> from the instance’s{' '}
+              <InlineCode>TypeShape-&gt;GenericArguments[0]</InlineCode> and allocates a{' '}
+              <InlineCode>ValueTask&lt;T&gt;</InlineCode> via{' '}
+              <InlineCode>AllocateGeneric(CLASS_VALUETASK, {'T'})</InlineCode>. The task starts in{' '}
+              <InlineCode>PENDING</InlineCode> state. The <InlineCode>Task</InlineCode> property
+              simply reads the <InlineCode>_task</InlineCode> field — no allocation on access.
+            </Prose>
+          </div>
+          <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+              <strong className="text-text-primary text-sm">State Transition + Continuation Resume</strong>
+            </div>
+            <Prose>
+              Both <InlineCode>SetResult</InlineCode> and <InlineCode>SetException</InlineCode>{' '}
+              follow the same two-step protocol: (1) set the task state to{' '}
+              <InlineCode>COMPLETED</InlineCode> or <InlineCode>FAULTED</InlineCode> and store the
+              result/exception in the corresponding field, (2) call{' '}
+              <InlineCode>ResumeContinuation</InlineCode> which reads the task’s{' '}
+              <InlineCode>_continuation</InlineCode> field (an <InlineCode>IAsyncState</InlineCode>)
+              and calls <InlineCode>MoveNext</InlineCode> on it. This resumes the state machine that
+              was suspended at the <InlineCode>await</InlineCode> site.
             </Prose>
           </div>
         </div>
@@ -13258,6 +13849,568 @@ function MathScenariosContent() {
             </Prose>
           </div>
         </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function MathRandomContent() {
+  const members = [
+    ['Integer()', 'int', 'Returns a random 64-bit integer across the full signed range.'],
+    ['Integer(top)', 'int', 'Returns a random integer in [0, top).'],
+    ['Integer(bottom, top)', 'int', 'Returns a random integer in [bottom, top].'],
+    ['Double()', 'double', 'Returns a random double in [0.0, 1.0).'],
+    ['Double(top)', 'double', 'Returns a random double in [0.0, top).'],
+    ['Double(bottom, top)', 'double', 'Returns a random double in [bottom, top).'],
+    ['Propably(chance)', 'bool', 'Returns true with the given percentage chance (0..100).'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>math.random</InlineCode> shard adds a static <InlineCode>Random</InlineCode> class
+          to the <InlineCode>math</InlineCode> namespace. It wraps a Mersenne Twister engine seeded from{' '}
+          <InlineCode>std::random_device</InlineCode> and provides overloads for both integer and floating-point
+          ranges.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using math;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println(Random.Integer(1, 6));      // roll a die
+    println(Random.Double());           // 0.0 .. 1.0
+    println(Random.Propably(50.0));     // coin flip
+}`}
+          language="csharp"
+          filename="random_basic.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="blue">
+          Every call creates a fresh <InlineCode>std::mt19937</InlineCode> generator. For reproducible
+          sequences (e.g., deterministic game seeds), a seedable API is not yet exposed.
+        </Callout>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function CInteropContent() {
+  const marshalMemory = [
+    ['Alloc(size)', 'nint', 'Allocates size bytes with std::malloc.'],
+    ['AllocZeroed(count, size)', 'nint', 'Allocates zeroed memory with std::calloc.'],
+    ['Realloc(ptr, size)', 'nint', 'Reallocates a block with std::realloc.'],
+    ['Free(ptr)', 'void', 'Frees a block allocated by the Alloc family.'],
+    ['Copy(src, dst, length)', 'void', 'Copies length bytes from src to dst.'],
+    ['Fill(ptr, value, length)', 'void', 'Fills length bytes with value.'],
+  ]
+  const marshalReadWrite = [
+    ['ReadByte(ptr)', 'byte', 'Reads one byte from native memory.'],
+    ['ReadInt16(ptr)', 'int', 'Reads a 16-bit signed integer.'],
+    ['ReadInt32(ptr)', 'int', 'Reads a 32-bit signed integer.'],
+    ['ReadInt64(ptr)', 'int', 'Reads a 64-bit signed integer.'],
+    ['ReadIntPtr(ptr)', 'nint', 'Reads a native pointer-sized integer.'],
+    ['ReadFloat(ptr)', 'double', 'Reads a 32-bit float (returned as double).'],
+    ['ReadDouble(ptr)', 'double', 'Reads a 64-bit double.'],
+    ['WriteByte(ptr, value)', 'void', 'Writes one byte.'],
+    ['WriteInt16(ptr, value)', 'void', 'Writes a 16-bit signed integer.'],
+    ['WriteInt32(ptr, value)', 'void', 'Writes a 32-bit signed integer.'],
+    ['WriteInt64(ptr, value)', 'void', 'Writes a 64-bit signed integer.'],
+    ['WriteIntPtr(ptr, value)', 'void', 'Writes a native pointer-sized integer.'],
+    ['WriteFloat(ptr, value)', 'void', 'Writes a 32-bit float.'],
+    ['WriteDouble(ptr, value)', 'void', 'Writes a 64-bit double.'],
+  ]
+  const nativeCall = [
+    ['Call(fn)', 'int', 'Calls a C function returning int, no args.'],
+    ['Call(fn, a, ...)', 'int', 'Calls a C function returning int with 1..4 args.'],
+    ['CallI64(fn, ...)', 'int', 'Calls a C function returning int64.'],
+    ['CallN(fn, ...)', 'nint', 'Calls a C function returning a pointer.'],
+    ['CallVoid(fn, ...)', 'void', 'Calls a C function returning void.'],
+    ['CallDouble(fn, ...)', 'double', 'Calls a C function taking and returning double.'],
+  ]
+
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.interop</InlineCode> library (the native DLL is <InlineCode>cinterop.dll</InlineCode>;
+          namespace <InlineCode>interop</InlineCode>) provides low-level foreign-function interface primitives:
+          dynamic library loading, raw memory allocation, typed reads/writes, and direct invocation of C
+          function pointers. It is intended for calling into existing C libraries and OS APIs without writing
+          a native ShardScript wrapper.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    lib: nint = NativeLibrary.Load("user32.dll");
+    msgbox: nint = NativeLibrary.GetFunction(lib, "MessageBoxW");
+    NativeCall.CallVoid4(msgbox, 0, "Hello from ShardScript!", "Title", 0);
+    NativeLibrary.Free(lib);
+}`}
+          language="csharp"
+          filename="interop_messagebox.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>NativeLibrary</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Load(path)', 'nint', 'Loads a native DLL/SO and returns its handle.'],
+                ['GetFunction(handle, name)', 'nint', 'Returns the address of the named export.'],
+                ['Free(handle)', 'void', 'Unloads the library.'],
+              ].map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>Marshal — Memory Management</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {marshalMemory.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>Marshal — Typed Reads &amp; Writes</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {marshalReadWrite.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>NativeCall</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {nativeCall.map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="amber" title="Calling convention">
+          NativeCall targets the platform&apos;s default C calling convention. It does not support structs-by-value
+          or floating-point arguments in the general overloads — use <InlineCode>CallDouble</InlineCode> for
+          double-only signatures, or write a proper native wrapper for complex signatures.
+        </Callout>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function HttpClientContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.http</InlineCode> library (namespace <InlineCode>net</InlineCode>) provides a
+          simple HTTP client built on <InlineCode>httplib</InlineCode>. Create a{' '}
+          <InlineCode>HttpClient</InlineCode> with a base URL, then call <InlineCode>Get</InlineCode> or{' '}
+          <InlineCode>Post</InlineCode>. Both return an <InlineCode>HttpResponse</InlineCode> object with{' '}
+          <InlineCode>StatusCode</InlineCode> and <InlineCode>Body</InlineCode> properties.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    client := new HttpClient("http://httpbin.org");
+    resp := client.Get("/get");
+    println("status: " + resp.StatusCode);
+    println(resp.Body);
+    client.Dispose();
+}`}
+          language="csharp"
+          filename="http_client.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Class / Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['HttpClient.init(baseUrl)', 'HttpClient', 'Creates a client bound to the given base URL.'],
+                ['HttpClient.Get(path)', 'HttpResponse', 'Performs a GET request.'],
+                ['HttpClient.Post(path, jsonPayload)', 'HttpResponse', 'Performs a POST request with application/json.'],
+                ['HttpClient.Dispose()', 'void', 'Releases the native client.'],
+                ['HttpResponse.StatusCode', 'int', 'HTTP status code.'],
+                ['HttpResponse.Body', 'string', 'Response body as a wide string.'],
+              ].map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function HttpServerContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>net.HttpServer</InlineCode> class runs an HTTP server on a background thread and
+          dispatches incoming requests onto the ShardScript event loop. Register route handlers with{' '}
+          <InlineCode>Get(path, handler)</InlineCode>, where the handler is a delegate taking the request body
+          and returning the response body as a string. Then call <InlineCode>Listen(host, port)</InlineCode>.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Handler(body: string) -> string
+{
+    println("request: " + body);
+    return "ok";
+}
+
+public static func Main() -> void
+{
+    server := new HttpServer();
+    server.Get("/hello", Handler);
+    println("listening on :8080");
+    server.Listen("0.0.0.0", 8080);
+    server.Dispose();
+}`}
+          language="csharp"
+          filename="http_server.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['HttpServer.init()', 'HttpServer', 'Creates a new server instance.'],
+                ['HttpServer.Get(path, handler)', 'void', 'Registers a GET route handler.'],
+                ['HttpServer.Listen(host, port)', 'void', 'Starts the server; blocks until stopped.'],
+                ['HttpServer.Dispose()', 'void', 'Stops and releases the server.'],
+              ].map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="amber" title="Blocking listen">
+          <InlineCode>Listen</InlineCode> pumps the domain event loop on the calling thread and does not return
+          until the server is stopped. Run it inside an async task or on a dedicated thread if the host needs to
+          keep doing other work.
+        </Callout>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function HttpScenariosContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          Common HTTP patterns: fetching JSON and posting a payload. The client is synchronous, so for concurrent
+          requests launch each one from its own async task.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using net;
+using async;
+
+namespace demo;
+
+async func FetchStatus() -> Task
+{
+    client := new HttpClient("http://httpbin.org");
+    resp := client.Get("/status/200");
+    println("status: " + resp.StatusCode);
+    client.Dispose();
+}
+
+public static func Main() -> void
+{
+    Task.Wait(FetchStatus());
+}`}
+          language="csharp"
+          filename="http_scenario.shard"
+        />
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function SocketContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.socket</InlineCode> library (namespace <InlineCode>net</InlineCode>) exposes
+          blocking TCP sockets and a <InlineCode>SocketStream</InlineCode> adapter that implements the shard
+          stream interfaces. It is suitable for simple client/server protocols and for building higher-level
+          networking on top of raw TCP.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    socket := new Socket();
+    if (socket.Connect("127.0.0.1", 8080))
+    {
+        socket.Send("hello");
+        reply := socket.Receive(64);
+        println(reply);
+        socket.Close();
+    }
+}`}
+          language="csharp"
+          filename="socket_client.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Socket.init()', 'Socket', 'Creates a TCP socket.'],
+                ['Socket.Connect(ip, port)', 'bool', 'Connects to a remote endpoint.'],
+                ['Socket.Send(data)', 'int', 'Sends a wide-string payload; returns bytes sent.'],
+                ['Socket.Receive(bufferSize)', 'string', 'Receives up to bufferSize wide characters.'],
+                ['Socket.Bind(ip, port)', 'bool', 'Binds to a local endpoint.'],
+                ['Socket.Listen(backlog)', 'bool', 'Starts listening for incoming connections.'],
+                ['Socket.Accept()', 'Socket', 'Accepts a connection (blocking).'],
+                ['Socket.AcceptAsync()', 'ValueTask<Socket>', 'Accepts a connection asynchronously.'],
+                ['Socket.Close()', 'void', 'Closes the socket.'],
+                ['Socket.Dispose()', 'void', 'Implements IDisposable.'],
+                ['SocketStream.init()', 'SocketStream', 'Creates an unconnected stream.'],
+                ['SocketStream.init(socket)', 'SocketStream', 'Wraps an existing socket.'],
+                ['SocketStream.Connect(ip, port)', 'bool', 'Connects the underlying socket.'],
+                ['SocketStream.Read(buffer, offset, count)', 'int', 'Reads bytes into a byte array.'],
+                ['SocketStream.Write(buffer, offset, count)', 'void', 'Writes bytes from a byte array.'],
+                ['SocketStream.Close()', 'void', 'Closes the stream.'],
+              ].map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ScrollReveal>
+    </div>
+  )
+}
+
+function ReflectionContent() {
+  return (
+    <div className="space-y-10">
+      <ScrollReveal>
+        <Prose>
+          The <InlineCode>shard.reflection</InlineCode> library (namespace <InlineCode>reflection</InlineCode>)
+          exposes runtime type information: get the type of an instance, enumerate methods/fields/properties,
+          inspect parameter types, and test type characteristics. It is useful for diagnostics, serializers, and
+          generic tooling.
+        </Prose>
+        <CodeBlock
+          code={`using stdio;
+using collections;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list := new List<int>();
+    t := Type.Of(list);
+    println(t.Name);
+    println(t.IsGeneric);
+
+    methods := t.GetMethods();
+    println("methods: " + methods.Length);
+}`}
+          language="csharp"
+          filename="reflection_basic.shard"
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.05}>
+        <H2>API Reference</H2>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+            <thead>
+              <tr className="bg-[#2D2D45]">
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Member</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Return</th>
+                <th className="text-left px-4 py-3 text-xs font-medium tracking-wide uppercase text-text-primary">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ['Type.Of(instance)', 'Type', 'Returns the runtime type of an object.'],
+                ['Type.GetType(name)', 'Type', 'Looks up a type by name.'],
+                ['Type.Name / FullName', 'string', 'Type short or full name.'],
+                ['Type.IsArray / IsClass / IsStruct / IsInterface / IsEnum / IsGeneric / IsPrimitive', 'bool', 'Type classification.'],
+                ['Type.GetElementType()', 'Type', 'Element type for arrays.'],
+                ['Type.GetInterfaces()', 'Type[]', 'Implemented interfaces.'],
+                ['Type.IsAssignableFrom(other)', 'bool', 'Assignment compatibility test.'],
+                ['Type.GetMethods()', 'MethodInfo[]', 'Public methods.'],
+                ['Type.GetFields()', 'FieldInfo[]', 'Public fields.'],
+                ['Type.GetProperties()', 'PropertyInfo[]', 'Public properties.'],
+                ['MethodInfo.ReturnType', 'Type', 'Method return type.'],
+                ['MethodInfo.GetParameters()', 'ParameterInfo[]', 'Method parameters.'],
+                ['ParameterInfo.ParameterType', 'Type', 'Parameter type.'],
+              ].map(([name, ret, desc], i) => (
+                <tr key={name} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5] whitespace-nowrap">{name}</td>
+                  <td className="px-4 py-3 text-sm font-jetbrains text-[#7A8AB5]">{ret}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <Callout tone="amber" title="Work in progress">
+          Reflection is implemented but still experimental. Some paths — especially around generic types and
+          boxed primitives — can raise runtime errors. Test carefully before relying on it in production scripts.
+        </Callout>
       </ScrollReveal>
     </div>
   )

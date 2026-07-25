@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Github, MessageCircle, Twitter, Youtube } from 'lucide-react'
+import { Github } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -56,18 +56,20 @@ export default function Footer() {
               RESOURCES
             </h4>
             <div className="flex flex-col gap-2.5">
-              <span className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer">
+              <a
+                href="https://github.com/Rikitav/ShardScript"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200"
+              >
                 GitHub
-              </span>
-              <span className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer">
-                Package Manager
-              </span>
-              <span className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer">
-                Community
-              </span>
-              <span className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200 cursor-pointer">
-                Blog
-              </span>
+              </a>
+              <Link
+                to="/shardscript-info/docs"
+                className="text-sm text-text-secondary hover:text-text-primary transition-colors duration-200"
+              >
+                Documentation
+              </Link>
             </div>
           </div>
 
@@ -77,18 +79,15 @@ export default function Footer() {
               COMMUNITY
             </h4>
             <div className="flex items-center gap-4">
-              <span className="text-text-muted hover:text-gold transition-colors duration-200 cursor-pointer">
+              <a
+                href="https://github.com/Rikitav/ShardScript"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text-muted hover:text-gold transition-colors duration-200"
+                aria-label="GitHub"
+              >
                 <Github size={20} />
-              </span>
-              <span className="text-text-muted hover:text-gold transition-colors duration-200 cursor-pointer">
-                <MessageCircle size={20} />
-              </span>
-              <span className="text-text-muted hover:text-gold transition-colors duration-200 cursor-pointer">
-                <Twitter size={20} />
-              </span>
-              <span className="text-text-muted hover:text-gold transition-colors duration-200 cursor-pointer">
-                <Youtube size={20} />
-              </span>
+              </a>
             </div>
           </div>
         </div>

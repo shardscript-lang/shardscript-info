@@ -17,10 +17,11 @@ public static func Main() -> void
     items.Add("Shard");
     items.Add("Script");
 
-    // Functional lambda
-    items.ForEach(lambda (item: string) => {
+    // Iteration over IEnumerable<T>
+    foreach (item in items)
+    {
         println("Processing: " + item);
-    });
+    }
 
     // Ranges with defer
     for (i in 0..3)
@@ -35,19 +36,19 @@ const features = [
     icon: Code2,
     title: 'Refined C-Style',
     description:
-      'A familiar C-style syntax with modern refinements — type inference, lambdas, pattern matching, and an expressive type system. Source compiles to bytecode and runs on a virtual machine.',
+      'A familiar C-style syntax with modern refinements — type inference, lambdas, delegates, and an expressive type system. Source compiles to bytecode and runs on a virtual machine.',
   },
   {
     icon: Puzzle,
     title: 'Embeddable by Design',
     description:
-      'Use ShardScript as a scripting engine inside your own application. A clean extern "C" API with bindings for C, C#, and Rust — execution sandbox, symbol injection, and callbacks back to the host.',
+      'Use ShardScript as a scripting engine inside your own application. A clean extern "C" API and C++ native-authoring headers ship today; SDKs for C#, Rust, Node.js, C++, and Go are in development. Symbol injection and host callbacks are supported.',
   },
   {
     icon: Zap,
     title: 'Functional + OOP',
     description:
-      'Classes and structs, interfaces, generics, delegates, lambdas, and extension methods — everything you need for expressive code. defer for resources, properties for data, namespaces as modules.',
+      'Classes and structs, interfaces, generics, delegates, lambdas, and extension methods for expressive code. defer for resources, properties for data, namespaces as modules.',
   },
   {
     icon: Shield,
@@ -63,24 +64,28 @@ const upcomingFeatures = [
     desc: 'Lazy sequences through yield return, yield break, and yield range — generators backed by compiler-generated state machines.',
   },
   {
+    title: 'switch Expression',
+    desc: 'Expression-form switch with constant-pattern arms — the parser skeleton is in place and the feature is in active development.',
+  },
+  {
     title: 'LINQ-style Queries',
     desc: 'A shard.linq module — Where, Select, OrderBy, GroupBy, ToList — built on extension methods and IEnumerable<T>.',
   },
   {
-    title: 'Script-driven Build System',
-    desc: 'Describe sources, dependencies, and configuration in a build.shard instead of heavyweight CMake or MSBuild XML.',
+    title: 'Package Manager (Geode)',
+    desc: 'A NuGet-style tool to manage shards, dependencies, and versions — built on the engine’s existing SemVer resolver. Currently in development.',
   },
   {
-    title: 'Package Manager',
-    desc: 'A NuGet-style tool to manage shards, dependencies, and versions — built on the engine’s existing SemVer resolver.',
+    title: 'Scripting SDKs',
+    desc: 'Host SDKs for C#, Rust, Node.js, C++, and Go so ShardScript can be dropped into applications written in those languages.',
   },
   {
     title: 'Attribute Enforcement',
-    desc: '[deprecated] and custom attributes are recognized today; compile-time enforcement and reflection are planned.',
+    desc: 'Attributes ([deprecated], custom metadata) are on the roadmap; syntax parsing exists but no semantic handling or enforcement yet.',
   },
   {
     title: 'Shell & REPL',
-    desc: 'Interactive mode plus a shard.shell module — process spawning, piping, and filesystem navigation for automation.',
+    desc: 'Interactive mode ships today with shard -i; a shard.shell module for process spawning, piping, and filesystem navigation is planned.',
   },
   {
     title: 'Generic Constraints',
@@ -119,8 +124,7 @@ export default function Home() {
           <ScrollReveal delay={0.2}>
             <p className="mt-6 text-base text-text-secondary leading-relaxed max-w-[580px] mx-auto">
               ShardScript is a statically typed programming language with a refined C-style syntax. It
-              compiles to bytecode for a virtual machine and embeds into a host application through a clean
-              extern &quot;C&quot; API — with a sandbox, symbol injection, and callbacks.
+              compiles to bytecode for a virtual machine and is designed to embed into host applications.
             </p>
           </ScrollReveal>
 
@@ -310,8 +314,9 @@ export default function Home() {
 
           <ScrollReveal delay={0.1}>
             <p className="mt-4 text-base text-text-secondary leading-relaxed max-w-[500px] mx-auto">
-              A clean extern &quot;C&quot; API with bindings for C, C#, and Rust — an execution sandbox,
-              symbol injection, and callbacks back to the host.
+              A clean extern &quot;C&quot; API and C++ native-authoring headers ship today. SDKs for C#,
+              Rust, Node.js, C++, and Go are in development. Symbol injection and callbacks back to the
+              host are supported.
             </p>
           </ScrollReveal>
 
