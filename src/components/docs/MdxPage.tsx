@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react'
-import ScrollReveal from '../ScrollReveal'
 import CodeBlock from '../CodeBlock'
 import Callout from './Callout'
 import InlineCode from './InlineCode'
@@ -16,7 +15,6 @@ const components = {
   Prose,
   Bullet,
   DocsTable,
-  ScrollReveal,
 }
 
 interface MdxPageProps {
@@ -25,11 +23,9 @@ interface MdxPageProps {
 
 export default function MdxPage({ Component }: MdxPageProps) {
   return (
-    <ScrollReveal>
-      <div className="space-y-10">
-        <Component components={components} />
-      </div>
-    </ScrollReveal>
+    <div className="space-y-10">
+      <Component components={components} />
+    </div>
   )
 }
 

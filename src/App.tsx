@@ -22,11 +22,18 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 export default function App() {
   const location = useLocation()
 
+  // Only animate when switching between top-level routes (home / about / docs).
+  // Switching articles inside the docs section should not remount the whole page.
+  const routeKey = location.pathname.replace(
+    /^\/shardscript-info\/docs(?:\/.*)?$/,
+    '/shardscript-info/docs'
+  )
+
   return (
     <div className="min-h-screen bg-shard-dark">
       <Navigation />
       <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+        <Routes location={location} key={routeKey}>
           <Route
             path="/shardscript-info"
             element={
