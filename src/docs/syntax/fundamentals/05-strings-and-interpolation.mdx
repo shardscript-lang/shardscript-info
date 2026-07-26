@@ -1,0 +1,430 @@
+---
+title: Strings and Interpolation
+group: Fundamentals
+order: 5
+slug: strings-and-interpolation
+type: Concept
+---
+
+<Prose>
+  ShardScript distinguishes between <InlineCode>string</InlineCode> and{' '}
+  <InlineCode>char</InlineCode>: a <InlineCode>string</InlineCode> is a reference type that owns a
+  sequence of characters, while a <InlineCode>char</InlineCode> is a single 16-bit Unicode character.
+  Text can be built from literals, concatenated with <InlineCode>+</InlineCode>, composed with{' '}
+  <InlineCode>strings.Format</InlineCode>, or written verbatim with <InlineCode>@"..."</InlineCode>.
+  Interpolated string expressions are planned but not yet implemented.
+</Prose>
+
+<H2>Introduction</H2>
+
+<Prose>
+  Almost every program needs to represent text. ShardScript provides two built-in text primitives:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">string</strong> — a reference type that stores a read-only
+    sequence of characters.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">char</strong> — a value type that stores exactly one
+    character.
+  </Bullet>
+</ul>
+
+<Prose>
+  String literals are written in double quotes, character literals in single quotes, and verbatim
+  strings are prefixed with <InlineCode>@</InlineCode> to disable escape processing. Because strings
+  are immutable, every operation that appears to change a string returns a new instance and leaves
+  the original untouched.
+</Prose>
+
+<H2>What it is</H2>
+
+<Prose>
+  A <InlineCode>string</InlineCode> literal is a sequence of characters enclosed in double quotes.
+  A <InlineCode>char</InlineCode> literal is a single character enclosed in single quotes. Both are
+  stored as UTF-16 character data in the runtime, and string literals are interned into the compiled
+  program's string pool.
+</Prose>
+
+<H2>String literals</H2>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // A string literal is a sequence of characters in double quotes.
+    greeting: string = "hello";
+
+    // An empty string is a valid literal.
+    empty: string = "";
+
+    println(greeting);
+    println(empty.Length());
+}`}
+  language="csharp"
+  filename="string_literals.shard"
+/>
+
+<H2>Character literals</H2>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // A char literal holds exactly one character.
+    letter: char = 'A';
+    digit: char = '7';
+    space: char = ' ';
+
+    println(letter);
+    println(digit);
+    println(space);
+}`}
+  language="csharp"
+  filename="char_literals.shard"
+/>
+
+<H2>Escape sequences</H2>
+
+<Prose>
+  Escape sequences let you insert characters that are hard to type literally. The lexer recognizes
+  different escapes in <InlineCode>string</InlineCode> and <InlineCode>char</InlineCode> literals.
+</Prose>
+
+<DocsTable
+  headers={['Escape', 'Character', 'In string "..."', 'In char \'...\'']}
+  rows={[
+    ['\\\\', 'Backslash', 'Yes', 'Yes'],
+    ['\\"', 'Double quote', 'Yes', 'No'],
+    ["\\'", 'Single quote', 'No', 'Yes'],
+    ['\\n', 'Newline (LF)', 'Yes', 'Yes'],
+    ['\\t', 'Horizontal tab', 'No', 'Yes'],
+    ['\\r', 'Carriage return', 'No', 'Yes'],
+    ['\\0', 'Null', 'No', 'Yes'],
+  ]}
+/>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Escapes that work in both string and char literals.
+    newline: string = "line one\nline two";
+    backslash: string = "C:\\\\tools";
+    quoted: string = "she said \\"hi\\"";
+
+    // Escapes that are only valid in char literals.
+    tab: char = '\\t';
+    quote: char = '\\'';
+    nullChar: char = '\\0';
+
+    println(newline);
+    println(backslash);
+    println(quoted);
+    println(tab);
+    println(quote);
+    println(nullChar);
+}`}
+  language="csharp"
+  filename="escape_sequences.shard"
+/>
+
+<Callout tone="blue">
+  Only <InlineCode>\\</InlineCode>, <InlineCode>{'\\"'}</InlineCode>, and <InlineCode>\\n</InlineCode> are
+  processed inside double-quoted strings. If you need tabs or other control characters in a string,
+  concatenate a <InlineCode>char</InlineCode> literal or use a verbatim string.
+</Callout>
+
+<H2>Verbatim strings</H2>
+
+<Prose>
+  Prefix a string literal with <InlineCode>@</InlineCode> to create a verbatim string. Backslashes
+  and quotes are treated as literal characters, so verbatim strings are ideal for file paths,
+  regular expressions, and JSON fragments.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Backslashes are preserved exactly in a verbatim string.
+    path: string = @"C:\\Users\\name\\file.txt";
+
+    // Quotes must still be doubled to embed a literal quote.
+    sentence: string = @"she said ""hi""";
+
+    println(path);
+    println(sentence);
+}`}
+  language="csharp"
+  filename="verbatim_strings.shard"
+/>
+
+<H2>Concatenation with +</H2>
+
+<Prose>
+  The <InlineCode>+</InlineCode> operator concatenates strings. ShardScript also defines mixed
+  overloads so a string can be concatenated with <InlineCode>int</InlineCode>,{' '}
+  <InlineCode>bool</InlineCode>, or <InlineCode>char</InlineCode> operands, which are converted to
+  their string representations automatically.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    name: string = "Shard";
+    version: int = 1;
+    ready: bool = true;
+    sep: char = '-';
+
+    // String + string.
+    println("Hello, " + name);
+
+    // String + int converts the integer to text.
+    println("version: " + version);
+
+    // String + bool converts the boolean to "true" or "false".
+    println("ready: " + ready);
+
+    // Char + string and char * int are also supported.
+    println(sep + "start");
+    println(sep * 5);
+
+    // Chained concatenation builds the final string left-to-right.
+    label: string = "v" + version + sep + name;
+    println(label);
+}`}
+  language="csharp"
+  filename="concatenation.shard"
+/>
+
+<H2>strings.Format placeholders</H2>
+
+<Prose>
+  For formatted output, use the static method <InlineCode>strings.Format</InlineCode> from the{' '}
+  <InlineCode>strings</InlineCode> shard. It replaces numbered placeholders{' '}
+  <InlineCode>{'{0}'}</InlineCode>, <InlineCode>{'{1}'}</InlineCode>, and so on with the
+  corresponding argument. Use doubled braces to write literal <InlineCode>{'{'}</InlineCode> or{' '}
+  <InlineCode>{'}'}</InlineCode> characters.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using strings;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    name: string = "Shard";
+    count: int = 42;
+    ratio: double = 0.95;
+
+    // Positional placeholders index the argument array.
+    line: string = strings.Format("{0} has {1} items at {2}%", [name, count, ratio]);
+    println(line);
+
+    // Arguments may be reused in any order.
+    println(strings.Format("{1}, {0}, {1}", [name, count]));
+
+    // Double the braces to emit them literally.
+    println(strings.Format("{{0}} -> {0}", ["x"]));
+}`}
+  language="csharp"
+  filename="strings_format.shard"
+/>
+
+<H2>Planned interpolation syntax</H2>
+
+<Callout tone="amber">
+  A C#-style interpolated string syntax such as{' '}
+  <InlineCode>{'$"name: {name}, count: {count}"'}</InlineCode> is planned but not yet implemented.
+  Today, use <InlineCode>+</InlineCode> concatenation or <InlineCode>strings.Format</InlineCode> to
+  compose dynamic text.
+</Callout>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    name: string = "Shard";
+    count: int = 42;
+
+    // Intended future syntax (not yet available):
+    // line := $"name: {name}, count: {count}";
+
+    // Current equivalent using concatenation.
+    line: string = "name: " + name + ", count: " + count;
+    println(line);
+}`}
+  language="csharp"
+  filename="interpolation_planned.shard"
+/>
+
+<H2>String mutability</H2>
+
+<Prose>
+  ShardScript strings are immutable. You can reassign a variable to point to a different string, but
+  you cannot change the characters of an existing instance. Every mutating-looking method, such as
+  <InlineCode>ToUpper</InlineCode> or <InlineCode>Replace</InlineCode>, returns a new string and
+  leaves the original unchanged.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using strings;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    original: string = "hello";
+
+    // Replace returns a new string; original is unchanged.
+    modified: string = original.Replace("l", "L");
+    println(original);   // hello
+    println(modified);   // heLLo
+
+    // Reassignment replaces the reference, it does not mutate the instance.
+    original = "world";
+    println(original);   // world
+}`}
+  language="csharp"
+  filename="string_mutability.shard"
+/>
+
+<H2>When to use it</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Use <InlineCode>string</InlineCode> for any text value: messages, names, serialized data, or
+    file content.
+  </Bullet>
+  <Bullet>
+    Use <InlineCode>char</InlineCode> when you are working with a single character, such as a
+    delimiter, a punctuation mark, or a control character.
+  </Bullet>
+  <Bullet>
+    Use a verbatim string <InlineCode>@"..."</InlineCode> when the text contains many backslashes
+    and escape processing would be noisy or incorrect.
+  </Bullet>
+  <Bullet>
+    Use <InlineCode>strings.Format</InlineCode> for templates, localized messages, or any situation
+    where the same text structure is reused with different values.
+  </Bullet>
+  <Bullet>
+    Use <InlineCode>+</InlineCode> for small, ad-hoc concatenations where a template would be
+    overkill.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  The runtime stores each <InlineCode>string</InlineCode> as a <InlineCode>std::wstring</InlineCode>{' '}
+  buffer, so every character is UTF-16. String literals are emitted into the compiled image's string
+  pool and loaded with the <InlineCode>ldstr</InlineCode> opcode. Concatenation with{' '}
+  <InlineCode>+</InlineCode> allocates a new buffer and copies both operands; for many pieces, prefer
+  building a <InlineCode>string[]</InlineCode> and calling <InlineCode>strings.Join</InlineCode> or{' '}
+  <InlineCode>strings.Concat</InlineCode> to reduce intermediate allocations.
+</Prose>
+
+<Prose>
+  The <InlineCode>strings.Format</InlineCode> implementation scans the format string for{' '}
+  <InlineCode>{'{N}'}</InlineCode> patterns and replaces them with the string representation of the
+  argument at index <InlineCode>N</InlineCode>. Doubled braces <InlineCode>{'{{'}</InlineCode> and{' '}
+  <InlineCode>{'}}'}</InlineCode> are emitted as single literal braces. If a placeholder index is out of
+  range, the runtime throws an error.
+</Prose>
+
+<Prose>
+  Because strings are immutable, they are safe to share across threads and async continuations. The
+  garbage collector reclaims unreachable string instances; there is no string-builder type yet, so
+  repeated concatenation in a hot loop allocates a new string on every iteration.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  The following example demonstrates escape handling, mixed-type concatenation, and formatting in a
+  single program.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using strings;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    user: string = "Ada";
+    score: int = 1200;
+    bonus: double = 1.5;
+
+    // Build a message with concatenation.
+    summary: string = "Player " + user + " scored " + score + " points.";
+    println(summary);
+
+    // Build the same message with a template.
+    summary = strings.Format("Player {0} scored {1} points (bonus {2}x).", [user, score, bonus]);
+    println(summary);
+
+    // Embed control characters using char literals.
+    tab: char = '\\t';
+    report: string = "Name" + tab + "Score";
+    println(report);
+}`}
+  language="csharp"
+  filename="strings_combined.shard"
+/>
+
+<Prose>
+  Common mistakes to avoid:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // CORRECT: double quotes for strings, single quotes for chars.
+    text: string = "hello";
+    letter: char = 'h';
+
+    // INCORRECT: single quotes around more than one character.
+    // word: string = 'hello';   // ERROR: a char literal must contain one character.
+
+    // INCORRECT: trying to mutate a string by index.
+    // text[0] = 'H';            // ERROR: strings do not support index assignment.
+
+    // CORRECT: create a new string instead.
+    text = "H" + text.Substring(1);
+    println(text);
+}`}
+  language="csharp"
+  filename="strings_common_mistakes.shard"
+/>

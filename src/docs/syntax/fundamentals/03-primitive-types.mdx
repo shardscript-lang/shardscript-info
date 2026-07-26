@@ -1,0 +1,383 @@
+---
+title: Primitive Types
+group: Fundamentals
+order: 3
+slug: primitive-types
+type: Reference
+---
+
+<Prose>
+  ShardScript provides a small set of built-in primitive types. Value types (<InlineCode>int</InlineCode>,{' '}
+  <InlineCode>double</InlineCode>, <InlineCode>bool</InlineCode>, <InlineCode>char</InlineCode>,{' '}
+  <InlineCode>byte</InlineCode>, and <InlineCode>nint</InlineCode>) are copied on assignment, while{' '}
+  <InlineCode>string</InlineCode> is a reference type and <InlineCode>void</InlineCode> marks the absence of a return value.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  Primitive types are the atomic units of the ShardScript type system. Each has a fixed literal syntax, a defined
+  runtime size, and a default zero-initialized value. The compiler resolves every primitive at compile time and emits
+  bytecode that operates directly on the value or reference, with no dynamic boxing except where interop or conversion
+  explicitly requires it.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Use the keyword as a type annotation, or use a literal directly in an expression.
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Literal syntax', 'Annotation example']}
+  rows={[
+    [<code>int</code>, '42, -7, 1`000`000, 0xA1, 0b1010, 2MB', <code>count: int = 42;</code>],
+    [<code>double</code>, '3.14, -0.5, 1.0e3', <code>pi: double = 3.14159;</code>],
+    [<code>bool</code>, 'true or false', <code>flag: bool = true;</code>],
+    [<code>char</code>, "'A', '\\n', '\\t'", <code>letter: char = 'A';</code>],
+    [<code>byte</code>, '0 through 255 (contextually typed)', <code>channel: byte = 255;</code>],
+    [<code>nint</code>, '0 or pointer value (contextually typed)', <code>handle: nint = 0;</code>],
+    [<code>string</code>, '"hello", "line\\nline", @"C:\\tools"', <code>name: string = "ShardScript";</code>],
+    [<code>void</code>, 'No literal; used only as a return type.', <code>func Reset() -&gt; void</code>],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Each primitive accepts a specific domain of values. Assigning or casting a value outside that domain produces a
+  compile-time or runtime error.
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Accepted values', 'Notes']}
+  rows={[
+    [<code>int</code>, '64-bit signed integer: -9 223 372 036 854 775 808 to 9 223 372 036 854 775 807', 'Literals may use base prefixes and volume suffixes.'],
+    [<code>double</code>, '64-bit IEEE 754 floating-point value', 'Cannot use base prefixes or volume suffixes.'],
+    [<code>bool</code>, 'Only true or false', 'No implicit conversion from numeric values.'],
+    [<code>char</code>, 'Single Unicode code unit (platform wchar_t)', 'Must be exactly one character or escape.'],
+    [<code>byte</code>, 'Unsigned 8-bit integer: 0 to 255', 'Requires contextual type or explicit cast.'],
+    [<code>nint</code>, 'Pointer-sized signed integer', 'Size matches sizeof(void*) on the target platform.'],
+    [<code>string</code>, 'Immutable sequence of UTF-16 code units', 'May be null; empty string is "".'],
+    [<code>void</code>, 'No value', 'Cannot be used for variables, parameters, or fields.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  Operations on primitives evaluate to a value of a specific type. Default values are zero-initialized memory.
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Default value', 'Common operation result types']}
+  rows={[
+    [<code>int</code>, <code>0</code>, 'int, promoted to double if mixed with double'],
+    [<code>double</code>, <code>0.0</code>, 'double'],
+    [<code>bool</code>, <code>false</code>, 'bool'],
+    [<code>char</code>, <code>'\0'</code>, 'char for increment/decrement; string for concatenation'],
+    [<code>byte</code>, <code>0</code>, 'byte'],
+    [<code>nint</code>, 'null pointer (0)', 'int for arithmetic involving int'],
+    [<code>string</code>, <code>null</code>, 'string'],
+    [<code>void</code>, '—', '—'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<DocsTable
+  headers={['Error', 'Cause', 'Example']}
+  rows={[
+    [<code>Type mismatch in assignment</code>, 'Assigning an incompatible type without a cast.', <code>i: int = "42";</code>],
+    [<code>Invalid characters in number</code>, 'Digits that do not match the declared base prefix.', <code>0xG1</code>],
+    [<code>Number out of range</code>, 'Literal exceeds int64 range after applying a volume suffix.', <code>9EB</code>],
+    [<code>Division by zero</code>, 'Divisor evaluates to zero at runtime.', <code>x / 0</code>],
+    [<code>Modulo by zero</code>, 'Modulus evaluates to zero at runtime.', <code>x % 0</code>],
+    [<code>Cannot cast from Type A to Type B</code>, 'Cast between incompatible scalar types or reference types.', <code>"hi" as int</code>],
+    [<code>Empty Char literal</code>, 'A char literal contains no character.', <code>ch: char = '';</code>],
+    [<code>Invalid Char literal length</code>, 'More than one character between single quotes.', <code>ch: char = 'AB';</code>],
+  ]}
+/>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Value types and reference types.</strong> <InlineCode>int</InlineCode>, <InlineCode>double</InlineCode>,{' '}
+  <InlineCode>bool</InlineCode>, <InlineCode>char</InlineCode>, <InlineCode>byte</InlineCode>, and{' '}
+  <InlineCode>nint</InlineCode> are value types implemented as <InlineCode>StructSymbol</InlineCode> nodes. They are stored
+  inline in objects, arrays, and locals, and assignment copies the bits. <InlineCode>string</InlineCode> is implemented as
+  a <InlineCode>ClassSymbol</InlineCode> and is heap-allocated; assignment copies the reference. <InlineCode>void</InlineCode>
+  is also a struct with zero size and is only legal as a return type.
+</Prose>
+
+<Prose>
+  <strong>Memory layout.</strong> The runtime stores each primitive in a contiguous memory block managed by the garbage
+  collector. Sizes follow the C++ backing type:
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Backing storage', 'Size (typical 64-bit host)']}
+  rows={[
+    [<code>bool</code>, <code>bool</code>, '1 byte'],
+    [<code>byte</code>, <code>std::uint8_t</code>, '1 byte'],
+    [<code>char</code>, <code>wchar_t</code>, '2 bytes on Windows, 4 bytes on most Unix hosts'],
+    [<code>int</code>, <code>std::int64_t</code>, '8 bytes'],
+    [<code>double</code>, <code>double</code>, '8 bytes'],
+    [<code>nint</code>, <code>void*</code>, '8 bytes on 64-bit hosts, 4 bytes on 32-bit hosts'],
+    [<code>string</code>, 'std::int64_t length + wchar_t* data', '16 bytes'],
+    [<code>void</code>, '—', '0 bytes'],
+  ]}
+/>
+
+<Prose>
+  <strong>Numeric literal parsing.</strong> Integer literals are <InlineCode>int</InlineCode> by default. They may include a
+  base prefix (<InlineCode>0x</InlineCode> hexadecimal, <InlineCode>0b</InlineCode> binary, <InlineCode>0d</InlineCode> decimal)
+  and digit separators (<InlineCode>`</InlineCode>). They may also end with a binary volume suffix:{' '}
+  <InlineCode>KB</InlineCode>, <InlineCode>MB</InlineCode>, <InlineCode>GB</InlineCode>, <InlineCode>TB</InlineCode>, or{' '}
+  <InlineCode>PB</InlineCode>. Floating-point literals are always <InlineCode>double</InlineCode> and may not use base prefixes
+  or volume suffixes.
+</Prose>
+
+<Prose>
+  <strong>Contextual literal typing.</strong> When an integer literal appears in a position whose expected type is{' '}
+  <InlineCode>byte</InlineCode> or <InlineCode>nint</InlineCode>, the compiler binds the literal to that type instead of{' '}
+  <InlineCode>int</InlineCode>. This lets you write <InlineCode>b: byte = 255;</InlineCode> or{' '}
+  <InlineCode>h: nint = 0;</InlineCode> without an explicit cast. Array element contexts do not currently propagate this
+  expectation, so byte arrays usually require casts such as <InlineCode>[1 as byte, 2 as byte]</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Conversion rules.</strong> ShardScript does not perform implicit numeric conversions on assignment or argument
+  passing. You must use the explicit cast operator <InlineCode>as</InlineCode> to convert between scalar primitives. The
+  built-in cast <InlineCode>value as TargetType</InlineCode> is supported between any pair of{' '}
+  <InlineCode>bool</InlineCode>, <InlineCode>int</InlineCode>, <InlineCode>double</InlineCode>, <InlineCode>char</InlineCode>,{' '}
+  <InlineCode>byte</InlineCode>, and <InlineCode>nint</InlineCode>. Reference types may be cast up or down their inheritance
+  chain and to or from interfaces.
+</Prose>
+
+<Prose>
+  <strong>Operator promotion.</strong> Although assignment requires exact type matching, arithmetic operators promote mixed
+  numeric operands. If either operand is <InlineCode>double</InlineCode>, the result is <InlineCode>double</InlineCode>.
+  Otherwise, if both operands are <InlineCode>int</InlineCode> or <InlineCode>nint</InlineCode>, the result is{' '}
+  <InlineCode>int</InlineCode>. <InlineCode>byte</InlineCode> arithmetic is defined only between two{' '}
+  <InlineCode>byte</InlineCode> values and yields <InlineCode>byte</InlineCode>. Adding a <InlineCode>char</InlineCode> to an
+  integer or string produces a <InlineCode>string</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Boolean and bitwise operators.</strong> The operators <InlineCode>&amp;</InlineCode>,{' '}
+  <InlineCode>|</InlineCode>, and <InlineCode>!</InlineCode> operate on booleans. The same symbols also perform bitwise
+  operations on integral types. There is no short-circuiting <InlineCode>&amp;&amp;</InlineCode> or{' '}
+  <InlineCode>||</InlineCode>; keyword aliases <InlineCode>and</InlineCode>, <InlineCode>or</InlineCode>, and{' '}
+  <InlineCode>not</InlineCode> map to the same operators and always evaluate both sides.
+</Prose>
+
+<Prose>
+  <strong>Printability.</strong> Every primitive implements <InlineCode>IPrintable</InlineCode> and therefore has a{' '}
+  <InlineCode>ToString()</InlineCode> method. <InlineCode>println</InlineCode> accepts any printable value without requiring
+  an open-ended <InlineCode>any</InlineCode> parameter. Boolean <InlineCode>true</InlineCode> prints as <InlineCode>true</InlineCode>
+  and <InlineCode>false</InlineCode> as <InlineCode>false</InlineCode>. <InlineCode>byte</InlineCode> prints as its decimal
+  numeric value, not as a character.
+</Prose>
+
+<Callout tone="amber">
+  String interpolation with <InlineCode>$"..."</InlineCode> is planned but not yet implemented. Today, concatenate with{' '}
+  <InlineCode>+</InlineCode> or use <InlineCode>strings.Format</InlineCode> from the standard library.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  The following program declares every primitive with an explicit type and prints each one.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Each primitive declared with an explicit annotation.
+    count: int       = 42;
+    pi: double       = 3.14159;
+    flag: bool       = true;
+    letter: char     = 'A';
+    channel: byte    = 255;
+    handle: nint     = 0;
+    name: string     = "ShardScript";
+
+    println(count);
+    println(pi);
+    println(flag);
+    println(letter);
+    println(channel);
+    println(name);
+}`}
+  language="csharp"
+  filename="primitives_intro.shard"
+/>
+
+<Prose>
+  Integer literals support several convenient formats.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Decimal, separated, hex, binary, and volume suffixes.
+    plain: int      = 42;
+    separated: int  = 1\`000\`000;
+    hex: int        = 0xA1;
+    binary: int     = 0b1010;
+    megabytes: int  = 2MB;
+
+    println(plain);        // 42
+    println(separated);    // 1000000
+    println(hex);          // 161
+    println(binary);       // 10
+    println(megabytes);    // 2097152
+}`}
+  language="csharp"
+  filename="numeric_literals.shard"
+/>
+
+<Prose>
+  Contextual typing lets small literals bind to <InlineCode>byte</InlineCode> and <InlineCode>nint</InlineCode> without a
+  cast, but mixed arithmetic requires care.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Contextual typing: the literal is bound as byte/nint because the target type says so.
+    a: byte = 10;
+    b: byte = 5;
+    handle: nint = 0;
+
+    // byte arithmetic is defined only between two byte operands.
+    sum: byte = a + b;
+    println(sum);          // 15
+
+    // nint mixed with int evaluates to int.
+    n: nint = 42;
+    mixed: int = n + 1;
+    println(mixed);        // 43
+
+    // To mix byte with int, cast explicitly.
+    wider: int = a as int + 100;
+    println(wider);        // 110
+}`}
+  language="csharp"
+  filename="byte_and_nint.shard"
+/>
+
+<Prose>
+  Character and string literals, including escape sequences and verbatim strings.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Regular string with escape sequences.
+    line: string = "line one\\nline two";
+    quoted: string = "she said \\"hi\\"";
+
+    // Verbatim string: backslashes are literal.
+    path: string = @"C:\\Users\\name\\file.txt";
+
+    // Character literals use single quotes.
+    newline: char = '\\n';
+    tab: char = '\\t';
+    backslash: char = '\\\\';
+
+    println(line);
+    println(quoted);
+    println(path);
+    println(newline == '\\n');
+    println(tab == '\\t');
+    println(backslash == '\\\\');
+}`}
+  language="csharp"
+  filename="strings_and_chars.shard"
+/>
+
+<Prose>
+  Explicit casts convert between scalar primitives. Casts truncate or reinterpret as needed.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Casting between numeric types.
+    whole: int = 9;
+    fraction: double = whole as double;
+    println(fraction);     // 9.0
+
+    truncated: int = 9.7 as int;
+    println(truncated);    // 9
+
+    // bool cast from int follows the rule: zero is false, everything else is true.
+    truthy: bool = 42 as bool;
+    falsy: bool = 0 as bool;
+    println(truthy);       // true
+    println(falsy);        // false
+
+    // char and int are interchangeable through casts.
+    code: int = 'A' as int;
+    letter: char = 65 as char;
+    println(code);         // 65
+    println(letter);       // A
+}`}
+  language="csharp"
+  filename="casts.shard"
+/>
+
+<Prose>
+  Common mistakes to avoid: implicit numeric widening, assigning a string to a number, and treating{' '}
+  <InlineCode>byte</InlineCode> as interchangeable with <InlineCode>int</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Valid: explicit cast is required.
+    d: double = 5 as double;
+    println(d);            // 5.0
+
+    // Valid: byte + byte stays byte.
+    a: byte = 10;
+    b: byte = 20;
+    println(a + b);        // 30
+
+    // Invalid and commented out:
+    // i: int = a;               // ERROR: cannot assign byte to int implicitly
+    // x: int = "42";            // ERROR: string is not assignable to int
+    // y: double = 5;            // ERROR: int is not assignable to double
+    // z: bool = 1;              // ERROR: int is not assignable to bool
+
+    println("done");
+}`}
+  language="csharp"
+  filename="common_mistakes.shard"
+/>

@@ -1,0 +1,509 @@
+---
+title: Generic Types
+group: Object-Oriented Programming
+order: 7
+slug: generics
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  Generic types and methods let classes, structs, methods, delegates, and extension
+  methods operate on a placeholder type <InlineCode>T</InlineCode> instead of a fixed
+  concrete type. The compiler substitutes the placeholder with the requested type
+  arguments at compile time, and the runtime creates a distinct layout for every
+  concrete instantiation.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Generic declarations introduce one or more type parameters inside angle brackets.
+  The same syntax is used for classes, methods, delegates, and extension methods.
+</Prose>
+
+<DocsTable
+  headers={['Construct', 'Syntax']}
+  rows={[
+    [<strong>Generic class</strong>, <code>{'public class Name<T> { ... }'}</code>],
+    [<strong>Generic method</strong>, <code>{'public func Name<T>(p: T) -> T { ... }'}</code>],
+    [<strong>Static generic method</strong>, <code>{'public static func Name<T>(p: T) -> T { ... }'}</code>],
+    [<strong>Generic delegate</strong>, <code>{'public delegate Name<T, U>(value: T) -> U;'}</code>],
+    [<strong>Generic extension method</strong>, <code>{'public static func Name<T>(this: T) -> T { ... }'}</code>],
+    [<strong>Type application</strong>, <>{<code>{'Name<int>'}</code>} or {<code>{'obj.Method<int>()'}</code>}</>],
+  ]}
+/>
+
+<Prose>
+  Multiple type parameters are separated by commas. Nested generic types are written by
+  applying type arguments to a type argument, for example{' '}
+  <InlineCode>Container&lt;Container&lt;int&gt;&gt;</InlineCode>.
+</Prose>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Type parameters are declared on the type or method and are scoped to that declaration.
+  Type arguments are the concrete types supplied when the generic is used.
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Type parameter</strong> — A placeholder
+    identifier such as <InlineCode>T</InlineCode>, <InlineCode>K</InlineCode>, or{' '}
+    <InlineCode>V</InlineCode>. It can appear in field types, parameter types, return
+    types, and local variable types inside the declaration.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type argument</strong> — A concrete type
+    supplied inside angle brackets, for example <InlineCode>int</InlineCode>,{' '}
+    <InlineCode>string</InlineCode>, or <InlineCode>List&lt;double&gt;</InlineCode>.
+    The argument count must exactly match the parameter count.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Inference candidate</strong> — For method
+    calls, the compiler can infer type arguments from the types of the supplied value
+    arguments. Inference is not available for class instantiations; you must write the
+    type arguments explicitly.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  A generic method or property returns the type that results from substituting the type
+  arguments into the return-type expression. For example, a method declared as{' '}
+  <InlineCode>func Make&lt;T&gt;(v: T) -> Container&lt;T&gt;</InlineCode> returns{' '}
+  <InlineCode>Container&lt;int&gt;</InlineCode> when called with <InlineCode>T = int</InlineCode>.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Wrong number of type arguments</strong> —
+    Supplying <InlineCode>Container&lt;int, string&gt;</InlineCode> for a single-parameter
+    class produces a compile error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Cannot infer type arguments</strong> — If
+    the arguments do not provide enough information to determine every type parameter,
+    the compiler reports an inference failure and you must supply the type arguments
+    explicitly.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch in inferred call</strong> —
+    When inference succeeds, every use of the type parameter must be consistent. Passing
+    an <InlineCode>int</InlineCode> to a parameter of type <InlineCode>T</InlineCode> and
+    a <InlineCode>string</InlineCode> to another parameter of type <InlineCode>T</InlineCode>
+    fails because <InlineCode>T</InlineCode> cannot be both.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Generic entry point</strong> — A class that
+    contains the program entry point <InlineCode>Main</InlineCode> must not itself have
+    type parameters.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid operation on type parameter</strong> —
+    Because type parameters are unconstrained, you cannot perform arithmetic, equality
+    tests, or member access on a value of type <InlineCode>T</InlineCode> unless the
+    concrete type argument happens to support it and the compiler can prove it.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Reified layouts versus shared bytecode.</strong> ShardScript generics are a
+  hybrid. Every distinct instantiation such as <InlineCode>Container&lt;int&gt;</InlineCode>
+  and <InlineCode>Container&lt;string&gt;</InlineCode> receives its own{' '}
+  <InlineCode>TypeShape</InlineCode> and field layout at runtime, so value types are stored
+  inline and reference types are stored as pointers. The bytecode for the generic method
+  bodies, however, is emitted once per declaration. At runtime the VM passes the concrete
+  type arguments in the call frame or derives them from the receiver object’s shape, then
+  uses them for allocation and method dispatch. This gives the memory characteristics of
+  reified generics while keeping the compiled image compact.
+</Prose>
+
+<Prose>
+  <strong>Type inference.</strong> When you call a generic method without supplying type
+  arguments, the compiler compares the declared parameter types against the arguments you
+  passed and solves for the type parameters. Inference works for single arguments, multiple
+  arguments, generic return types, array types, and nested generic types. If the compiler
+  cannot determine every parameter, or if the solution would be inconsistent, you must
+  provide the type arguments explicitly.
+</Prose>
+
+<Prose>
+  <strong>Generic methods on non-generic classes.</strong> A plain class can declare a
+  generic method. The method’s own type parameters are independent of any type parameters
+  on the containing class. This is the typical pattern for factory helpers and generic
+  extension methods.
+</Prose>
+
+<Prose>
+  <strong>Generic extension methods.</strong> Extension methods can introduce their own
+  type parameters. The first parameter is the receiver and may itself be generic. The call
+  syntax uses the receiver value followed by the method name and type arguments, for example
+  <InlineCode>value.Identity&lt;int&gt;()</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Generic delegates.</strong> A delegate type may declare type parameters and use
+  them in its parameter list and return type. Lambda expressions and named functions that
+  match the instantiated signature can be assigned to the delegate.
+</Prose>
+
+<Prose>
+  <strong>Nested generic types.</strong> You can use an already-generic type as a type
+  argument to another generic type. The compiler resolves the nesting left to right, and
+  the runtime builds a separate shape for the fully constructed type.
+</Prose>
+
+<Callout tone="amber" title="Generic constraints are not implemented">
+  ShardScript currently does not support <InlineCode>where</InlineCode> clauses or other
+  generic constraints. Type parameters are effectively unconstrained, which means you cannot
+  call operators or interface members on a value of type <InlineCode>T</InlineCode> without
+  first casting it to a concrete type. If you need a constraint, use an explicit cast or
+  redesign around a concrete interface parameter until constraints are added.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Generic class with a single type parameter.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+
+    public func Set(v: T) -> void
+    {
+        // Store the caller-supplied value in the generic field.
+        this.Value = v;
+    }
+
+    public func Get() -> T
+    {
+        return this.Value;
+    }
+}
+
+public static func Main() -> void
+{
+    c: Container<int> = new Container<int>();
+    c.Set(42);
+    println(c.Get());        // 42
+
+    d: Container<string> = new Container<string>();
+    d.Set("hello");
+    println(d.Get());        // hello
+}`}
+  language="csharp"
+  filename="generic_container.shard"
+/>
+
+<Prose>
+  <strong>Multiple type parameters.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Pair<K, V>
+{
+    public Key: K;
+    public Value: V;
+}
+
+public static func Main() -> void
+{
+    p: Pair<int, string> = new Pair<int, string>();
+    p.Key = 1;
+    p.Value = "one";
+
+    println(p.Key);          // 1
+    println(p.Value);        // one
+}`}
+  language="csharp"
+  filename="generic_pair.shard"
+/>
+
+<Prose>
+  <strong>Generic method on a non-generic class.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Factory
+{
+    public static func Make<T>(v: T) -> Container<T>
+    {
+        c: Container<T> = new Container<T>();
+        c.Value = v;
+        return c;
+    }
+}
+
+public class Container<T>
+{
+    public Value: T;
+}
+
+public static func Main() -> void
+{
+    // Type inference: T is int because the argument is int.
+    a: Container<int> = Factory.Make(42);
+    println(a.Value);        // 42
+
+    // Explicit type arguments are also allowed.
+    b: Container<string> = Factory.Make<string>("hi");
+    println(b.Value);        // hi
+}`}
+  language="csharp"
+  filename="generic_factory.shard"
+/>
+
+<Prose>
+  <strong>Generic instance method inside a generic class.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+
+    public func Set(v: T) -> void
+    {
+        this.Value = v;
+    }
+
+    public func Get() -> T
+    {
+        return this.Value;
+    }
+
+    // U is independent of the class type parameter T.
+    public func As<U>() -> Container<U>
+    {
+        result: Container<U> = new Container<U>();
+        return result;
+    }
+}
+
+public static func Main() -> void
+{
+    c: Container<int> = new Container<int>();
+    c.Set(42);
+    println(c.Get());        // 42
+
+    e: Container<string> = c.As<string>();
+    e.Set("converted");
+    println(e.Get());        // converted
+}`}
+  language="csharp"
+  filename="generic_class_method.shard"
+/>
+
+<Prose>
+  <strong>Nested generic types.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+}
+
+public static func Main() -> void
+{
+    // The outer container stores another Container<int>.
+    outer: Container<Container<int>> = new Container<Container<int>>();
+    inner: Container<int> = new Container<int>();
+    inner.Value = 99;
+    outer.Value = inner;
+
+    println(outer.Value.Value);   // 99
+}`}
+  language="csharp"
+  filename="generic_nested.shard"
+/>
+
+<Prose>
+  <strong>Generic extension method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Identity<T>(x: T) -> T
+{
+    return x;
+}
+
+public static func Duplicate<T>(x: T) -> List<T>
+{
+    result: List<T> = new List<T>();
+    result.Add(x);
+    result.Add(x);
+    return result;
+}
+
+public class List<T>
+{
+    private count: int;
+
+    public func Add(item: T) -> void
+    {
+        this.count = this.count + 1;
+    }
+
+    public func GetCount() -> int
+    {
+        return this.count;
+    }
+}
+
+public static func Main() -> void
+{
+    a: int = 5;
+    b: int = a.Identity<int>();
+    println(b);              // 5
+
+    c: List<int> = a.Duplicate<int>();
+    println(c.GetCount());   // 2
+}`}
+  language="csharp"
+  filename="generic_extension.shard"
+/>
+
+<Prose>
+  <strong>Generic delegate.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate Transform<T, U>(value: T) -> U;
+
+public static func Make<T, U>(action: Transform<T, U>) -> Transform<T, U>
+{
+    return action;
+}
+
+public static func Main() -> void
+{
+    addTen: Transform<int, int> = Make<int, int>(lambda (a: int) -> int
+    {
+        return a + 10;
+    });
+
+    println(addTen(5));      // 15
+}`}
+  language="csharp"
+  filename="generic_delegate.shard"
+/>
+
+<Prose>
+  <strong>Type inference with arrays and nested generics.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func First<T>(source: T[]) -> T
+{
+    // The caller is expected to pass a non-empty array.
+    return source[0];
+}
+
+public static func MakeContainer<T>(v: T) -> Container<T>
+{
+    c: Container<T> = new Container<T>();
+    c.Value = v;
+    return c;
+}
+
+public class Container<T>
+{
+    public Value: T;
+}
+
+public static func Main() -> void
+{
+    nums: int[] = [10, 20, 30];
+
+    // T is inferred as int from the int[] argument.
+    first: int = First(nums);
+    println(first);          // 10
+
+    // T is inferred as string from the string argument.
+    wrapped: Container<string> = MakeContainer("boxed");
+    println(wrapped.Value);  // boxed
+}`}
+  language="csharp"
+  filename="generic_inference.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+}
+
+public static func Swap<T>(a: T, b: T) -> void
+{
+    // The body is intentionally empty; the signature is what matters here.
+}
+
+public static func Main() -> void
+{
+    // Correct: both arguments have the same inferred type.
+    Swap(1, 2);
+
+    // ERROR: T cannot be both int and string.
+    // Swap(1, "two");
+
+    // ERROR: Container has one type parameter, not two.
+    // c: Container<int, string> = new Container<int, string>();
+
+    // Correct: nested generic types need matching arity at every level.
+    outer: Container<Container<int>> = new Container<Container<int>>();
+}`}
+  language="csharp"
+  filename="generic_mistakes.shard"
+/>

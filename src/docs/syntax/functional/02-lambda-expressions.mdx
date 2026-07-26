@@ -1,0 +1,464 @@
+---
+title: Lambda Expressions
+group: Functional Programming
+order: 2
+slug: lambda-expressions
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <InlineCode>lambda</InlineCode> expression creates an anonymous function value
+  that can be stored in a variable, passed as an argument, or returned from another
+  function. The resulting value is a <InlineCode>delegate</InlineCode> whose parameter
+  and return types are either declared explicitly or inferred from the lambda body.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Every lambda starts with the <InlineCode>lambda</InlineCode> keyword, followed by a
+  parenthesized parameter list and an arrow that chooses how the return type is determined.
+  The body is always a braced statement block.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Meaning']}
+  rows={[
+    [<><InlineCode>lambda</InlineCode> <InlineCode>(params)</InlineCode> <InlineCode>-&gt;</InlineCode> <InlineCode>ReturnType</InlineCode> <InlineCode>{'{'}</InlineCode> body <InlineCode>{'}'}</InlineCode></>, 'Explicit return type.'],
+    [<><InlineCode>lambda</InlineCode> <InlineCode>(params)</InlineCode> <InlineCode>=&gt;</InlineCode> <InlineCode>{'{'}</InlineCode> body <InlineCode>{'}'}</InlineCode></>, 'Inferred return type from the body\'s return statements.'],
+    [<><InlineCode>async</InlineCode> <InlineCode>lambda</InlineCode> <InlineCode>(params)</InlineCode> <InlineCode>-&gt;</InlineCode> <InlineCode>Task</InlineCode> <InlineCode>{'{'}</InlineCode> body <InlineCode>{'}'}</InlineCode></>, 'Asynchronous closure; explicit return type is required.'],
+  ]}
+/>
+
+<Prose>
+  A parameter list is a comma-separated sequence of typed parameters in the same form
+  used by named methods. A lambda that takes no arguments uses empty parentheses.
+</Prose>
+
+<CodeBlock
+  code={`// One parameter with an explicit return type.
+lambda (n: int) -> bool
+{
+    return n > 0;
+}
+
+// Two parameters.
+lambda (a: int, b: int) -> int
+{
+    return a + b;
+}
+
+// No parameters.
+lambda () -> string
+{
+    return "hello";
+}`}
+  language="csharp"
+  filename="lambda_signature.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Parameter list</strong> — Parenthesized and
+    comma-separated. Every parameter must be written as <InlineCode>name: Type</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No parameters</strong> — Use empty parentheses
+    <InlineCode>()</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Return type</strong> — With <InlineCode>-&gt; Type</InlineCode>{' '}
+    the delegate uses that type. With <InlineCode>=&gt;</InlineCode> the compiler infers the
+    return type from the first reachable <InlineCode>return</InlineCode> statement.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Body</strong> — Always a braced statement block.
+    Use <InlineCode>return</InlineCode> to produce a value; a void delegate may omit it.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  A lambda expression evaluates to a <InlineCode>delegate</InlineCode> value. Its type is
+  determined by context:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Named delegate</strong> — when assigned to a
+    user-declared delegate such as <InlineCode>IntFunc</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Fabricated delegate</strong> — when assigned to
+    an inline signature such as <InlineCode>delegate int(int)</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Anonymous delegate</strong> — when no target type
+    is available, the compiler constructs a delegate from the lambda's parameter and return
+    types.
+  </Bullet>
+</ul>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing lambda keyword</strong> — A bare{' '}
+    <InlineCode>(x) =&gt; ...</InlineCode> expression does not parse. The word{' '}
+    <InlineCode>lambda</InlineCode> is required.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing parameter type</strong> — Lambda parameters
+    must be explicitly typed with <InlineCode>name: Type</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing arrow or body</strong> — The parser expects
+    either <InlineCode>-&gt; Type</InlineCode> or <InlineCode>=&gt;</InlineCode>, followed by
+    a braced body.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Async lambda without explicit return type</strong>{' '}
+    — <InlineCode>async lambda</InlineCode> must declare <InlineCode>Task</InlineCode> or{' '}
+    <InlineCode>ValueTask&lt;T&gt;</InlineCode>; the <InlineCode>=&gt;</InlineCode> form is not
+    allowed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Return type mismatch</strong> — The type returned
+    by a <InlineCode>return</InlineCode> statement must match the explicit or inferred
+    delegate return type.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Delegate signature mismatch</strong> — A lambda
+    assigned to a delegate must have the same parameter count, parameter types, and return
+    type.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null delegate invocation</strong> — Calling a
+    delegate variable that holds <InlineCode>null</InlineCode> throws at runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Captured locals are not lifted</strong> — Referencing
+    a local variable from an enclosing scope parses and binds, but the current VM does not
+    capture it into the delegate object. The resulting behavior is undefined at runtime.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Single-expression versus block bodies.</strong> ShardScript lambdas currently
+  require a braced statement block. There is no shorthand such as{' '}
+  <InlineCode>lambda (x: int) -> int x + 1</InlineCode>; even a one-line body must be
+  wrapped in <InlineCode>{'{'}</InlineCode> <InlineCode>{'}'}</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Return-type inference.</strong> When <InlineCode>=&gt;</InlineCode> is used, the
+  compiler inspects the body's <InlineCode>return</InlineCode> statements to determine the
+  delegate return type. If the body has no return statement, the return type is{' '}
+  <InlineCode>void</InlineCode>. All return statements in the same lambda must agree on type.
+</Prose>
+
+<Prose>
+  <strong>Conversion to delegate types.</strong> A lambda is compatible with any delegate
+  whose signature matches exactly. This works for named delegates declared with{' '}
+  <InlineCode>public delegate</InlineCode>, fabricated inline types such as{' '}
+  <InlineCode>delegate int(int)</InlineCode>, and constructed generic delegates such as{' '}
+  <InlineCode>Transform&lt;int, int&gt;</InlineCode>. A named method with a matching signature
+  can also be assigned directly to a delegate variable without wrapping it in a lambda.
+</Prose>
+
+<Prose>
+  <strong>Capture rules and closures.</strong> The compiler resolves identifiers in the
+  lambda body against the enclosing scope chain, so outer local variables are visible during
+  semantic analysis. However, the current runtime does not implement closures: captured
+  locals are not lifted into the delegate object or passed to the anonymous method. A lambda
+  that references an enclosing local may compile but will read from the wrong stack slot at
+  runtime. Until closures are implemented, pass state explicitly through parameters or rely
+  on static fields and constants.
+</Prose>
+
+<Callout tone="amber" title="Closures are not fully implemented">
+  Do not rely on a lambda capturing local variables from its enclosing method. The syntax
+  is accepted, but the VM has no closure object and the captured value is not available when
+  the delegate runs. Pass needed values as arguments, or capture static/global state instead.
+</Callout>
+
+<Prose>
+  <strong>Asynchronous lambdas.</strong> Prefix the lambda with <InlineCode>async</InlineCode>{' '}
+  to use <InlineCode>await</InlineCode> inside the body. The return type must be declared
+  explicitly as <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>.
+  Async lambdas are lowered into the same state-machine machinery as async named methods.
+</Prose>
+
+<Prose>
+  <strong>VM representation.</strong> A lambda compiles to a static anonymous method whose
+  handle type is <InlineCode>Lambda</InlineCode>. At the call site the emitter produces a{' '}
+  <InlineCode>NEWDELEGATE</InlineCode> instruction that creates a delegate instance pointing
+  to that method. Invoking the delegate emits <InlineCode>CALLDELEGATE</InlineCode>, which
+  dispatches to the stored target method.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Named and fabricated delegate types.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+// A reusable named delegate type.
+public delegate IntFunc(a: int) -> int;
+
+public static func Main() -> void
+{
+    // Bound to a named delegate.
+    fromNamed: IntFunc = lambda (a: int) -> int
+    {
+        return a + 10;
+    };
+
+    // Bound to a fabricated inline delegate type.
+    fromInline: delegate int(int) = lambda (a: int) -> int
+    {
+        return a + 10;
+    };
+
+    println(fromNamed(1));   // 11
+    println(fromInline(2));  // 12
+}`}
+  language="csharp"
+  filename="lambda_delegate_types.shard"
+/>
+
+<Prose>
+  <strong>Inferred return type with the =&gt; arrow.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate IntFunc(a: int) -> int;
+
+public static func Main() -> void
+{
+    // The compiler infers 'int' from the return statement.
+    adder: IntFunc = lambda (a: int) =>
+    {
+        return a + 100;
+    };
+
+    println(adder(5));   // 105
+}`}
+  language="csharp"
+  filename="lambda_inferred.shard"
+/>
+
+<Prose>
+  <strong>Parameterless lambda.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    answer: delegate int() = lambda () -> int
+    {
+        return 42;
+    };
+
+    println(answer());   // 42
+}`}
+  language="csharp"
+  filename="lambda_parameterless.shard"
+/>
+
+<Prose>
+  <strong>Passing and returning lambdas.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate IntFunc(a: int) -> int;
+
+static func Apply(f: IntFunc, x: int) -> int
+{
+    return f(x);
+}
+
+static func Choose(op: int) -> IntFunc
+{
+    if (op == 0)
+    {
+        return lambda (a: int) -> int
+        {
+            return a + 1;
+        };
+    }
+
+    return lambda (a: int) -> int
+    {
+        return a - 1;
+    };
+}
+
+public static func Main() -> void
+{
+    // Pass a lambda directly as an argument.
+    square: IntFunc = lambda (a: int) -> int
+    {
+        return a * a;
+    };
+    println(Apply(square, 5));   // 25
+
+    // Receive a function and call it.
+    step: IntFunc = Choose(0);
+    println(step(10));           // 11
+}`}
+  language="csharp"
+  filename="lambda_higher_order.shard"
+/>
+
+<Prose>
+  <strong>Method-to-delegate conversion.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate IntFunc(a: int) -> int;
+
+static func Triple(x: int) -> int
+{
+    return x * 3;
+}
+
+public static func Main() -> void
+{
+    // A named method with a matching signature converts directly.
+    f: IntFunc = Triple;
+
+    println(f(7));   // 21
+}`}
+  language="csharp"
+  filename="lambda_method_group.shard"
+/>
+
+<Prose>
+  <strong>Lambda as a callback.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate Predicate(x: int) -> bool;
+
+static func CountWhere(items: int[], matches: Predicate) -> int
+{
+    count: int = 0;
+    for (i: int = 0; i < items.Length; i = i + 1)
+    {
+        if (matches(items[i]))
+        {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+public static func Main() -> void
+{
+    nums: int[] = [1, 6, 3, 9, 4];
+
+    // The predicate is supplied inline; no capture is required here.
+    big: int = CountWhere(nums, lambda (n: int) -> bool
+    {
+        return n > 5;
+    });
+
+    println(big);   // 2
+}`}
+  language="csharp"
+  filename="lambda_callback.shard"
+/>
+
+<Prose>
+  <strong>Async lambda.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Async lambdas must declare an explicit Task/ValueTask<T> return type.
+    work: delegate Task() = async lambda () -> Task
+    {
+        println("before");
+        await Task.Delay(100);
+        println("after");
+    };
+
+    Task.Wait(work());
+    println("done");
+}`}
+  language="csharp"
+  filename="lambda_async.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: capturing a local variable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate IntFunc(a: int) -> int;
+
+public static func Main() -> void
+{
+    factor: int = 10;
+
+    // WARNING: this references an outer local variable. It compiles, but the VM
+    // does not currently capture 'factor' into the delegate, so the result is
+    // undefined at runtime.
+    scale: IntFunc = lambda (a: int) -> int
+    {
+        return a * factor;
+    };
+
+    println(scale(5));
+}`}
+  language="csharp"
+  filename="lambda_capture_unsupported.shard"
+/>
+
+<Callout tone="amber">
+  Until variable capture is implemented, rewrite the lambda to accept the value as a
+  parameter or store the value in a static field that both scopes can access.
+</Callout>

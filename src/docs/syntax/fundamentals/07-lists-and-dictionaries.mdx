@@ -1,0 +1,392 @@
+---
+title: Lists and Dictionaries
+group: Fundamentals
+order: 7
+slug: lists-and-dictionaries
+type: Reference
+---
+
+<Prose>
+  The <InlineCode>shard.collections</InlineCode> shard provides two generic container types:
+  <InlineCode>List&lt;T&gt;</InlineCode> (a growable, ordered sequence) and{' '}
+  <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> (a hash map from keys to values). Both live in the{' '}
+  <InlineCode>collections</InlineCode> namespace, require <InlineCode>using collections;</InlineCode>,
+  and support indexers, explicit mutation, and <InlineCode>foreach</InlineCode> enumeration.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>List&lt;T&gt;</InlineCode> stores elements in insertion order and exposes a zero-based
+  integer indexer, an <InlineCode>Add</InlineCode> method, a <InlineCode>RemoveAt</InlineCode> method,
+  and a <InlineCode>Length</InlineCode> property. <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> maps
+  keys to values using a hash table and exposes a key-based indexer, <InlineCode>Add</InlineCode>,{' '}
+  <InlineCode>ContainsKey</InlineCode>, <InlineCode>Remove</InlineCode>, and a <InlineCode>Count</InlineCode>{' '}
+  property. Both types implement the enumerable contract used by <InlineCode>foreach</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<CodeBlock
+  code={`using collections;
+
+// Construction
+list: List<int> = new List<int>();
+listWithRoom: List<int> = new List<int>(16);
+scores: Dictionary<string, int> = new Dictionary<string, int>();
+
+// List operations
+list.Add(10);
+first: int = list[0];
+list[0] = 99;
+list.RemoveAt(0);
+remaining: int = list.Length;
+
+// Dictionary operations
+scores.Add("alice", 30);
+score: int = scores["alice"];
+scores["alice"] = 31;
+hasKey: bool = scores.ContainsKey("alice");
+wasRemoved: bool = scores.Remove("alice");
+total: int = scores.Count;
+
+// Enumeration
+foreach (item in list)
+{
+    // item has type T
+}
+
+foreach (pair in scores)
+{
+    name: string = pair.Key;
+    value: int = pair.Value;
+}`}
+  language="csharp"
+  filename="collections_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  The constructors and members shown in the following tables are the public surface of each type.
+  Generic arguments must be concrete ShardScript types such as <InlineCode>int</InlineCode>,{' '}
+  <InlineCode>string</InlineCode>, or a user-defined class.
+</Prose>
+
+<Prose>
+  <strong>List&lt;T&gt; members</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>new List&lt;T&gt;()</code>, 'none', 'List&lt;T&gt;', 'Creates an empty list with a default backing array.'],
+    [<code>new List&lt;T&gt;(capacity)</code>, 'capacity: int', 'List&lt;T&gt;', 'Creates a list whose backing array is pre-sized to capacity (clamped to 0 if negative).'],
+    [<code>Add(item)</code>, 'item: T', 'void', 'Appends the item to the end of the list.'],
+    [<code>ElementAt(index)</code>, 'index: int', 'T', 'Returns the element at the given index.'],
+    [<code>[index]</code>, 'index: int', 'T', 'Indexer get/set for the element at the given index.'],
+    [<code>RemoveAt(index)</code>, 'index: int', 'void', 'Removes the element at the given index and shifts later elements down.'],
+    [<code>Clear()</code>, 'none', 'void', 'Removes every element from the list.'],
+    [<code>Length</code>, 'none', 'int', 'Property that returns the current number of stored elements.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Dictionary&lt;K, V&gt; members</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>new Dictionary&lt;K, V&gt;()</code>, 'none', 'Dictionary&lt;K, V&gt;', 'Creates an empty hash table.'],
+    [<code>Add(key, value)</code>, 'key: K, value: V', 'void', 'Inserts a new key/value pair.'],
+    [<code>[key]</code>, 'key: K', 'V', 'Indexer get/set. Get throws if the key is missing; set inserts or updates.'],
+    [<code>ContainsKey(key)</code>, 'key: K', 'bool', 'Returns true when the key is present.'],
+    [<code>Remove(key)</code>, 'key: K', 'bool', 'Removes the key/value pair if present and returns true; otherwise returns false.'],
+    [<code>Clear()</code>, 'none', 'void', 'Removes every entry from the dictionary.'],
+    [<code>Count</code>, 'none', 'int', 'Property that returns the number of stored key/value pairs.'],
+    [<code>Keys</code>, 'none', 'K[]', 'Property that returns a fresh array containing every key.'],
+    [<code>Values</code>, 'none', 'V[]', 'Property that returns a fresh array containing every value.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Operation', 'Return value']}
+  rows={[
+    [<code>List&lt;T&gt;.Add</code>, 'void — the list is mutated in place.'],
+    [<code>List&lt;T&gt;.ElementAt</code>, 'T — the element stored at the requested index.'],
+    [<code>List&lt;T&gt;.Length</code>, 'int — the number of elements currently stored.'],
+    [<code>Dictionary&lt;K, V&gt;.Add</code>, 'void — the dictionary is mutated in place.'],
+    [<code>Dictionary&lt;K, V&gt;.ContainsKey</code>, 'bool — true when the key exists.'],
+    [<code>Dictionary&lt;K, V&gt;.Remove</code>, 'bool — true if an entry was actually removed.'],
+    [<code>Dictionary&lt;K, V&gt;.Count</code>, 'int — the number of key/value pairs stored.'],
+    [<code>Dictionary&lt;K, V&gt;.Keys</code>, 'K[] — a newly allocated array snapshot of all keys.'],
+    [<code>Dictionary&lt;K, V&gt;.Values</code>, 'V[] — a newly allocated array snapshot of all values.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-3">
+  <Bullet>
+    <strong className="text-text-primary">List index out of bounds</strong> —{' '}
+    <InlineCode>list[index]</InlineCode> (get or set), <InlineCode>ElementAt(index)</InlineCode>, and{' '}
+    <InlineCode>RemoveAt(index)</InlineCode> throw when <InlineCode>index</InlineCode> is negative or
+    greater than or equal to <InlineCode>list.Length</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dictionary key already exists</strong> —{' '}
+    <InlineCode>dict.Add(key, value)</InlineCode> throws if <InlineCode>key</InlineCode> is already in
+    the dictionary. Use the indexer set syntax to insert-or-update instead.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dictionary key not found</strong> —{' '}
+    <InlineCode>dict[key]</InlineCode> (get) throws when the key is absent. Prefer{' '}
+    <InlineCode>ContainsKey</InlineCode> or <InlineCode>Remove</InlineCode> to guard against missing
+    keys.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing namespace import</strong> — Forgetting{' '}
+    <InlineCode>using collections;</InlineCode> produces a compile-time error because the compiler
+    cannot resolve <InlineCode>List</InlineCode> or <InlineCode>Dictionary</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <InlineCode>List&lt;T&gt;</InlineCode> stores its elements in a private backing array. In the
+  current implementation, every call to <InlineCode>Add</InlineCode> allocates a brand-new array one
+  element larger and copies every existing element into it. Appends are therefore{' '}
+  <InlineCode>O(n)</InlineCode> rather than amortized <InlineCode>O(1)</InlineCode>, so very large
+  lists should be built with care. <InlineCode>RemoveAt</InlineCode> is also{' '}
+  <InlineCode>O(n)</InlineCode> because it shifts all later elements down. The capacity constructor
+  only avoids the first few reallocations; it does not change the copy-on-add behavior.
+</Prose>
+
+<Prose>
+  <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> is implemented as an open-addressing hash table with
+  linear probing. The internal table doubles in size once the load factor exceeds 0.75, and removed
+  slots are marked as tombstones so that probe chains remain intact. Enumeration yields entries in
+  internal slot order, which is not guaranteed to match insertion order. The <InlineCode>Keys</InlineCode>{' '}
+  and <InlineCode>Values</InlineCode> properties allocate a new array on every access, so cache the
+  result if it is needed repeatedly.
+</Prose>
+
+<Prose>
+  Both types implement the enumerable contract used by <InlineCode>foreach</InlineCode>. A{' '}
+  <InlineCode>List&lt;T&gt;</InlineCode> enumeration yields elements of type <InlineCode>T</InlineCode>.
+  A <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> enumeration yields{' '}
+  <InlineCode>KeyValuePair&lt;K, V&gt;</InlineCode> instances whose public fields are{' '}
+  <InlineCode>Key</InlineCode> and <InlineCode>Value</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Key hashing and equality are supported for primitives (<InlineCode>int</InlineCode>,{' '}
+  <InlineCode>char</InlineCode>, <InlineCode>bool</InlineCode>, <InlineCode>double</InlineCode>, and{' '}
+  <InlineCode>string</InlineCode>) by value. For other reference types, the dictionary falls back to
+  identity-based hashing and equality, which means two different object instances are never equal
+  even if their fields match.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic List usage</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<string> = new List<string>();
+
+    // Add appends items in order.
+    list.Add("alpha");
+    list.Add("beta");
+    list.Add("gamma");
+
+    println(list.Length);   // 3
+    println(list[0]);       // alpha
+    println(list[2]);       // gamma
+
+    // Replace an element through the indexer.
+    list[1] = "BETA";
+    println(list[1]);       // BETA
+
+    // Remove the first element; later elements shift down.
+    list.RemoveAt(0);
+    println(list.Length);   // 2
+    println(list[0]);       // BETA
+
+    // foreach visits elements from index 0 upward.
+    foreach (word in list)
+    {
+        println(word);      // BETA, then gamma
+    }
+}`}
+  language="csharp"
+  filename="list_basic.shard"
+/>
+
+<Prose>
+  <strong>Basic Dictionary usage</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ages: Dictionary<string, int> = new Dictionary<string, int>();
+
+    ages.Add("alice", 30);
+    ages.Add("bob", 25);
+    ages.Add("carol", 27);
+
+    println(ages.Count);            // 3
+    println(ages["alice"]);         // 30
+
+    // Indexer set updates an existing value.
+    ages["bob"] = 26;
+    println(ages["bob"]);           // 26
+
+    // ContainsKey tests presence without throwing.
+    println(ages.ContainsKey("bob"));   // true
+    println(ages.ContainsKey("dave"));  // false
+
+    // Remove reports whether the key existed.
+    removed: bool = ages.Remove("carol");
+    println(removed);               // true
+    println(ages.Count);            // 2
+
+    // foreach yields KeyValuePair<string, int> in internal slot order.
+    foreach (pair in ages)
+    {
+        println(pair.Key + " = " + pair.Value);
+    }
+}`}
+  language="csharp"
+  filename="dictionary_basic.shard"
+/>
+
+<Prose>
+  <strong>Edge cases and exception handling</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(10);
+
+    // Negative indices are always rejected.
+    try
+    {
+        value: int = list[-1];
+        println(value);
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: negative list index");
+    }
+
+    dict: Dictionary<int, string> = new Dictionary<int, string>();
+    dict.Add(1, "one");
+
+    // Duplicate keys are rejected by Add.
+    try
+    {
+        dict.Add(1, "ONE");
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: duplicate key");
+    }
+
+    // Missing keys are rejected by the indexer getter.
+    try
+    {
+        missing: string = dict[42];
+        println(missing);
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: missing key");
+    }
+
+    // Remove returns false without throwing when the key is absent.
+    removed: bool = dict.Remove(99);
+    println(removed);   // false
+}`}
+  language="csharp"
+  filename="collections_edge_cases.shard"
+/>
+
+<Prose>
+  <strong>Capacity preallocation</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Pre-size the backing array to reduce the number of reallocations.
+    list: List<int> = new List<int>(100);
+
+    // The capacity constructor does not affect Length; the list starts empty.
+    println(list.Length);   // 0
+
+    list.Add(1);
+    list.Add(2);
+    println(list.Length);   // 2
+}`}
+  language="csharp"
+  filename="list_capacity.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes</strong>
+</Prose>
+
+<ul className="space-y-3">
+  <Bullet>
+    <strong className="text-text-primary">Using Count on a List</strong> —{' '}
+    <InlineCode>List&lt;T&gt;</InlineCode> exposes <InlineCode>Length</InlineCode>, not{' '}
+    <InlineCode>Count</InlineCode>. The opposite is true for dictionaries: they expose{' '}
+    <InlineCode>Count</InlineCode>, not <InlineCode>Length</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Mutating while enumerating</strong> — Adding or removing
+    elements from a list after creating an enumerator does not update that enumerator; the loop may
+    see stale data or skip elements. Clear the collection only after the loop completes.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Treating Dictionary order as meaningful</strong> — The
+    order produced by <InlineCode>foreach</InlineCode> reflects the internal hash-table layout, not
+    the order in which keys were inserted.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Forgetting the using directive</strong> — Both types live
+    in the <InlineCode>collections</InlineCode> namespace. Without{' '}
+    <InlineCode>using collections;</InlineCode> the compiler reports an unresolved type error.
+  </Bullet>
+</ul>

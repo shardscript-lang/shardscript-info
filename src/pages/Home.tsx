@@ -36,7 +36,7 @@ const features = [
     icon: Code2,
     title: 'Refined C-Style',
     description:
-      'A familiar C-style syntax with modern refinements — type inference, lambdas, delegates, and an expressive type system. Source compiles to bytecode and runs on a virtual machine.',
+      'A familiar C-style syntax with modern refinements — type inference, lambdas, delegates, generics, and static typing. Source compiles to bytecode and runs on a virtual machine.',
   },
   {
     icon: Puzzle,
@@ -48,7 +48,7 @@ const features = [
     icon: Zap,
     title: 'Functional + OOP',
     description:
-      'Classes and structs, interfaces, generics, delegates, lambdas, and extension methods for expressive code. defer for resources, properties for data, namespaces as modules.',
+      'Classes and structs, interfaces, generics, delegates, lambdas, and extension methods. defer for resources, properties for data, namespaces as modules.',
   },
   {
     icon: Shield,
@@ -209,11 +209,11 @@ export default function Home() {
             <ScrollReveal delay={0.3}>
               <div className="lg:pl-4">
                 <h3 className="font-space text-2xl md:text-[28px] font-semibold text-text-primary leading-[1.3] mb-4">
-                  Familiar syntax, modern power
+                  Familiar syntax, modern features
                 </h3>
                 <p className="text-base text-text-secondary leading-relaxed mb-4">
                   ShardScript keeps the familiar C-style syntax — curly braces, semicolons, and arrows for
-                  return types — and layers in the power of functional and object-oriented programming.
+                  return types — and adds first-class functions, lambdas, generics, and extension methods.
                 </p>
                 <p className="text-base text-text-secondary leading-relaxed mb-4">
                   Compilation to bytecode for a virtual machine brings portability and controlled
@@ -237,7 +237,7 @@ export default function Home() {
                     extern &quot;C&quot; API
                   </span>
                   <span className="px-4 py-1.5 rounded-pill text-xs font-medium tracking-wide uppercase bg-[rgba(91,140,62,0.15)] text-[#5B8C3E]">
-                    Sandbox
+                    Scope Control
                   </span>
                 </div>
               </div>

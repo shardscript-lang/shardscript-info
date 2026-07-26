@@ -1,0 +1,317 @@
+---
+title: Cooperative Multitasking
+group: Asynchronous Programming
+order: 1
+slug: cooperative-multitasking
+type: Concept
+---
+
+<Prose>
+  ShardScript programs are <strong>single-threaded and cooperative</strong>. Instead of spawning one OS thread per asynchronous operation, the runtime multiplexes every timer, I/O request, and background offload through one <InlineCode>libuv</InlineCode> event loop. An <InlineCode>async</InlineCode> method runs only while it has work to do; when it reaches an <InlineCode>await</InlineCode>, it yields control back to the loop so other tasks can run. This model gives the appearance of concurrency without locks, race conditions, or preemptive context switches.
+</Prose>
+
+<H2>What it is</H2>
+
+<Prose>
+  At the center of asynchronous execution is the <InlineCode>EventLoop</InlineCode> class owned by each <InlineCode>ApplicationDomain</InlineCode>. It wraps a single <InlineCode>uv_loop_t</InlineCode> from libuv and is shared by every virtual machine in that domain. The loop keeps track of active handles such as timers (<InlineCode>uv_timer_t</InlineCode>) and async send handles (<InlineCode>uv_async_t</InlineCode>), invoking their callbacks when the underlying OS signals readiness.
+</Prose>
+
+<DocsTable
+  headers={['Concept', 'Runtime representation', 'Role']}
+  rows={[
+    [<InlineCode>EventLoop</InlineCode>, 'uv_loop_t wrapper', 'Schedules all async work on a single thread.'],
+    [<InlineCode>Task</InlineCode>, 'Object instance with state, continuation, and exception fields', 'Represents an operation that completes or faults in the future.'],
+    [<InlineCode>IAwaiter / IAwaitable</InlineCode>, 'Interface contracts', 'Allow any type to participate in await.'],
+    [<InlineCode>NativeContinuation</InlineCode>, 'Internal IAsyncState implementation', 'Bridges libuv callbacks back into VM bytecode.'],
+    [<InlineCode>RootTask</InlineCode>, 'Reference-counted list in EventLoop', 'Keeps pending Task objects alive across suspensions.'],
+  ]}
+/>
+
+<Prose>
+  When an async method is invoked, the compiler has already rewritten it into a state machine with a <InlineCode>MoveNext</InlineCode> method. The first <InlineCode>MoveNext</InlineCode> call runs synchronously until the first <InlineCode>await</InlineCode>. At that point the method registers its own state machine as the awaited task&apos;s continuation and returns. Later, when the libuv callback completes the task, the runtime calls <InlineCode>ResumeContinuation</InlineCode>, which invokes <InlineCode>MoveNext</InlineCode> again to continue exactly where execution left off.
+</Prose>
+
+<H2>When to use it</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">I/O-bound work.</strong> HTTP requests, socket reads, file system operations, and timers spend most of their time waiting. Cooperative multitasking lets one thread juggle hundreds of pending operations.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Many lightweight concurrent operations.</strong> Spawning a thread per counter, delay, or connection is expensive; scheduling callbacks on a shared loop is cheap.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Scenarios that need simple sequencing.</strong> Because awaits are expressed directly in the source, reading and writing async code follows the same top-to-bottom order as synchronous code.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Heavy CPU work.</strong> Long-running computations must be offloaded with <InlineCode>RunOnThreadPool</InlineCode> so they do not starve the event loop.
+  </Bullet>
+</ul>
+
+<H2>Fire-and-forget vs blocking wait</H2>
+
+<Prose>
+  ShardScript offers two ways to relate a synchronous caller to an async operation:
+</Prose>
+
+<DocsTable
+  headers={['Style', 'Syntax', 'Behavior', 'Use when']}
+  rows={[
+    ['Blocking wait', <InlineCode>Task.Wait(task)</InlineCode>, 'Pumps the event loop until the task completes, then returns (or rethrows a fault).', 'The caller needs the result or completion before continuing.'],
+    ['Fire-and-forget', <><InlineCode>Background();</InlineCode> or <InlineCode>Task.Shoot(task);</InlineCode></>, 'Starts the operation and lets the loop drive it to completion independently.', 'The caller does not depend on the outcome.'],
+  ]}
+/>
+
+<Prose>
+  <InlineCode>Task.Wait</InlineCode> is the typical bridge from synchronous <InlineCode>Main</InlineCode> into async code. It is implemented as a tight loop that calls <InlineCode>EventLoop.RunOnce()</InlineCode> until the task leaves the <InlineCode>PENDING</InlineCode> state. While the call blocks its caller, the loop underneath continues to drain timers and I/O, so other tasks still make progress.
+</Prose>
+
+<Callout tone="blue">
+  A pending task is <strong>rooted</strong> by the event loop while it is suspended. Rooting keeps the task alive even if no ShardScript variable references it, which is why fire-and-forget calls do not disappear mid-flight.
+</Callout>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Single-threaded means no preemptive races.</strong> Because only one piece of VM code runs at a time, two async methods cannot mutate the same object simultaneously. The only way to interleave is through an explicit <InlineCode>await</InlineCode>, so reasoning about shared state is straightforward.
+</Prose>
+
+<Prose>
+  <strong>CPU work starves the loop.</strong> If an async method performs a long computation without awaiting, no timer or I/O callback can run. Native shards solve this by calling <InlineCode>AsyncScope::RunOnThreadPool</InlineCode>, which runs the work on a background <InlineCode>std::thread</InlineCode> and posts completion through a <InlineCode>uv_async_t</InlineCode> handle. The continuation always runs back on the loop thread, so VM state remains safe to touch.
+</Prose>
+
+<Prose>
+  <strong>Exceptions propagate through the task.</strong> If an async method throws before its first await, the exception is captured in the returned <InlineCode>Task</InlineCode>. If it throws after an await, the state machine captures it into the task&apos;s exception field. <InlineCode>Task.Wait</InlineCode> rethrows the captured exception into the caller, which is why wrapping async calls in <InlineCode>try/catch</InlineCode> works as expected.
+</Prose>
+
+<Prose>
+  <strong>Do not call <InlineCode>Task.Wait</InlineCode> inside an async method.</strong> Because the loop is single-threaded, blocking the loop waiting for a task prevents the very callback that would complete that task. This produces a deadlock. Inside async code, use <InlineCode>await</InlineCode> instead.
+</Prose>
+
+<Callout tone="amber" title="Composition helpers not yet implemented">
+  Helpers such as <InlineCode>Task.WhenAll</InlineCode>, <InlineCode>Task.WhenAny</InlineCode>, and <InlineCode>Task.ContinueWith</InlineCode> are not available today. To wait for multiple operations, store each <InlineCode>Task</InlineCode> in a variable and call <InlineCode>Task.Wait</InlineCode> on them in the order you need, or await them sequentially inside another <InlineCode>async</InlineCode> method.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Interleaved timers.</strong> Three counters start together. The first await in each returns control to the loop, so the shortest delay finishes first even though the methods were called in A-B-C order.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+async func CounterA() -> Task
+{
+    println("A: 1");
+    await Task.Delay(500);
+    println("A: 2");
+    await Task.Delay(500);
+    println("A: 3");
+}
+
+async func CounterB() -> Task
+{
+    println("B: 1");
+    await Task.Delay(800);
+    println("B: 2");
+    await Task.Delay(800);
+    println("B: 3");
+}
+
+async func CounterC() -> Task
+{
+    println("C: 1");
+    await Task.Delay(300);
+    println("C: 2");
+    await Task.Delay(300);
+    println("C: 3");
+}
+
+public static func Main() -> void
+{
+    t1: Task = CounterA();
+    t2: Task = CounterB();
+    t3: Task = CounterC();
+
+    Task.Wait(t1);
+    Task.Wait(t2);
+    Task.Wait(t3);
+
+    println("All counters finished");
+}`}
+  language="csharp"
+  filename="interleaved_counters.shard"
+/>
+
+<Prose>
+  <strong>Blocking wait from synchronous code.</strong> This is the normal entry pattern: start the async operation, then pump the loop until it finishes.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+async func DelayedHello() -> Task
+{
+    println("before");
+    await Task.Delay(100);
+    println("after");
+}
+
+public static func Main() -> void
+{
+    task: Task = DelayedHello();
+    Task.Wait(task);
+    println("done");
+}`}
+  language="csharp"
+  filename="blocking_wait.shard"
+/>
+
+<Prose>
+  <strong>Fire-and-forget.</strong> The background task starts without blocking <InlineCode>Main</InlineCode>. The runtime keeps it alive until the delay fires and the method completes.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class Program
+{
+    public static async func Background() -> Task
+    {
+        println("background start");
+        await Task.Delay(100);
+        println("background end");
+    }
+
+    public static func Main() -> void
+    {
+        // Start the operation and intentionally do not wait.
+        Background();
+        println("main end");
+    }
+}`}
+  language="csharp"
+  filename="fire_and_forget.shard"
+/>
+
+<Callout tone="blue">
+  To make fire-and-forget intent explicit, call <InlineCode>Task.Shoot(task)</InlineCode>. <InlineCode>Task.Shoot</InlineCode> marks the task as detached and is useful when a linter or reader needs to know the result is intentionally ignored.
+</Callout>
+
+<Prose>
+  <strong>Custom awaitable.</strong> Any type implementing <InlineCode>IAwaitable</InlineCode> and returning an <InlineCode>IAwaiter</InlineCode> can be awaited. This is how native shards surface libuv handles to ShardScript code.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class MyAwaiter : IAwaiter
+{
+    public func IsCompleted() -> bool
+    {
+        return true;
+    }
+
+    public func OnCompleted(continuation: IAsyncState) -> void
+    {
+    }
+
+    public func GetResult() -> int
+    {
+        return 123;
+    }
+}
+
+public class MyAwaitable : IAwaitable
+{
+    public func GetAwaiter() -> MyAwaiter
+    {
+        return new MyAwaiter();
+    }
+}
+
+public class Program
+{
+    public static async func Test() -> Task
+    {
+        a: MyAwaitable = new MyAwaitable();
+        x: int = await a;
+        println(x);
+    }
+
+    public static func Main() -> void
+    {
+        Task.Wait(Test());
+    }
+}`}
+  language="csharp"
+  filename="custom_awaitable.shard"
+/>
+
+<Prose>
+  <strong>Offloading CPU-bound work from a native shard.</strong> The <InlineCode>RunOnThreadPool</InlineCode> helper is not exposed directly to ShardScript; it is the pattern native libraries use when they need to perform blocking or CPU-heavy work without freezing the loop. The work lambda runs on a background thread, and the completion lambda runs on the loop thread through a <InlineCode>uv_async_t</InlineCode> handle.
+</Prose>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+// Inside a native shard callback.
+static ObjectInstance* HeavySumAsync(const CallState& context) noexcept
+{
+    std::int64_t count = context.Args[0]->AsInteger();
+
+    return shard::DoAsync(context, [count](shard::AsyncScope async)
+    {
+        async.RunOnThreadPool(
+            [count]()
+            {
+                // This executes on a background std::thread.
+                std::int64_t sum = 0;
+                for (std::int64_t i = 0; i < count; i = i + 1)
+                {
+                    sum = sum + i;
+                }
+            },
+            [async]() mutable
+            {
+                // This continuation runs back on the libuv loop thread.
+                async.Complete();
+            }
+        );
+    });
+}`}
+  language="cpp"
+  filename="thread_pool_offload.cpp"
+/>
+
+<Prose>
+  <strong>Common mistakes.</strong>
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Blocking the loop.</strong> Avoid synchronous sleeps or long loops inside async methods. Use <InlineCode>Task.Delay</InlineCode> for delays and <InlineCode>RunOnThreadPool</InlineCode> for heavy work.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Waiting inside async code.</strong> <InlineCode>Task.Wait</InlineCode> inside an <InlineCode>async func</InlineCode> deadlocks the single-threaded loop. Always <InlineCode>await</InlineCode> instead.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Forgetting the task lifetime.</strong> A task is rooted while pending, but the root is released when it completes. If you need the result later, keep a variable referencing it so the GC does not collect the completed object before you read it.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Awaiting outside async.</strong> <InlineCode>await</InlineCode> is only valid inside an <InlineCode>async func</InlineCode> or async lambda. Using it in an ordinary method is a compile-time error.
+  </Bullet>
+</ul>

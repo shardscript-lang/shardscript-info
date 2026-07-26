@@ -7,7 +7,7 @@ const pillars = [
     number: '01',
     title: 'C-Style, Refined',
     description:
-      'ShardScript takes the best of C-style languages — a familiar syntax of curly braces, arrow types, and semicolons — and enriches it with modern features: type inference, lambdas, defer, extension methods, and async/await. It compiles to bytecode for a virtual machine.',
+      'ShardScript keeps the clarity of C-style languages — curly braces, arrow types, and semicolons — and adds type inference, lambdas, defer, extension methods, and async/await. It compiles to bytecode for a virtual machine.',
   },
   {
     number: '02',
@@ -119,7 +119,7 @@ export default function About() {
               },
               {
                 title: 'Refined C-Style',
-                desc: 'Curly braces, semicolons, and arrow types — everything C/C++/C#/Java developers already know. Plus type inference, lambdas, defer, extension methods, and async/await.',
+                desc: 'Curly braces, semicolons, and arrow types — familiar constructs for C/C++/C#/Java developers. Plus type inference, lambdas, defer, extension methods, and async/await.',
               },
               {
                 title: 'Functional + OOP',
@@ -131,7 +131,7 @@ export default function About() {
               },
               {
                 title: 'defer for Resources',
-                desc: 'Like Go, but C-style. Defer resource cleanup until scope exit. LIFO execution guarantees the right order, and it cooperates with IDisposable.',
+                desc: 'Like Go, but C-style. Defer resource cleanup until scope exit. LIFO execution ensures the right order, and it cooperates with IDisposable.',
               },
               {
                 title: 'Namespaces as Modules',

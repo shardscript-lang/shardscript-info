@@ -1,0 +1,423 @@
+---
+title: Operators
+group: Fundamentals
+order: 4
+slug: operators
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript provides built-in operators for arithmetic, bitwise, logical, comparison,
+  assignment, and exponentiation. The compiler resolves expressions according to a fixed
+  precedence table and falls back to user-defined <InlineCode>operator</InlineCode> methods
+  when the left-hand type does not support an operator natively.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Operators are written infix, prefix, or postfix depending on the operator. The following
+  table groups every operator by purpose.
+</Prose>
+
+<DocsTable
+  headers={['Category', 'Operators', 'Description']}
+  rows={[
+    ['Arithmetic', <InlineCode>+ - * / % ^</InlineCode>, 'Add, subtract, multiply, divide, modulo, exponentiate'],
+    ['Bitwise', <InlineCode>&amp; | &lt;&lt; &gt;&gt;</InlineCode>, 'AND, OR, left shift, right shift on integral types'],
+    ['Logical', <InlineCode>! &amp; | and or not</InlineCode>, 'NOT, AND, OR on bool values'],
+    ['Comparison', <InlineCode>== != &lt; &gt; &lt;= &gt;=</InlineCode>, 'Equality and ordering'],
+    ['Assignment', <InlineCode>= += -= *= /= %= ^= &= |=</InlineCode>, 'Simple and compound assignment'],
+  ]}
+/>
+
+<Prose>
+  The precedence table below is taken directly from the parser. Higher numbers bind tighter.
+  Range (<InlineCode>..</InlineCode>, <InlineCode>..&amp;</InlineCode>), null-coalescing
+  (<InlineCode>??</InlineCode>), and the conditional operator (<InlineCode>? :</InlineCode>)
+  are shown for context even though they are covered on other pages.
+</Prose>
+
+<DocsTable
+  headers={['Precedence', 'Operators', 'Notes']}
+  rows={[
+    ['11', <InlineCode>++ -- ! +x -x await</InlineCode>, 'Postfix/prefix increment, decrement, unary plus/minus, logical NOT'],
+    ['10', <InlineCode>^</InlineCode>, 'Exponentiation (not bitwise XOR)'],
+    ['9', <InlineCode>* / %</InlineCode>, 'Multiplication, division, modulo'],
+    ['8', <InlineCode>+ -</InlineCode>, 'Addition and subtraction; + also concatenates strings'],
+    ['7', <InlineCode>&lt;&lt; &gt;&gt; .. ..&amp;</InlineCode>, 'Bit shifts and range operators'],
+    ['6', <InlineCode>&lt; &lt;= &gt; &gt;=</InlineCode>, 'Ordering comparisons'],
+    ['5', <InlineCode>== != is as</InlineCode>, 'Equality and type tests'],
+    ['4', <InlineCode>&amp; and &amp;&amp;</InlineCode>, 'Bitwise AND or logical AND'],
+    ['3', <InlineCode>| or ||</InlineCode>, 'Bitwise OR or logical OR'],
+    ['2', <InlineCode>?? ? :</InlineCode>, 'Null-coalescing and conditional'],
+    ['1', <InlineCode>= += -= *= /= %= ^= &= |=</InlineCode>, 'Assignment and compound assignment'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Binary operators take a left and a right operand. Unary operators take a single operand.
+  The compiler checks the operand types during semantic analysis.
+</Prose>
+
+<DocsTable
+  headers={['Operator', 'Left Operand', 'Right Operand', 'Type Rules']}
+  rows={[
+    [<InlineCode>+</InlineCode>, 'numeric or string', 'numeric or string', 'If either side is string, concatenates; if either side is double, result is double; otherwise int.'],
+    [<InlineCode>- *</InlineCode>, 'numeric', 'numeric', 'double if any operand is double, otherwise int.'],
+    [<InlineCode>/</InlineCode>, 'numeric', 'numeric', 'double if any operand is double; otherwise int division truncates toward zero.'],
+    [<InlineCode>%</InlineCode>, 'numeric', 'numeric', 'int remainder for int operands; std::fmod for double operands.'],
+    [<InlineCode>^</InlineCode>, 'numeric', 'numeric', 'Raises left to the power of right using std::pow; int result truncates.'],
+    [<InlineCode>&amp; |</InlineCode>, 'bool or integral', 'bool or integral', 'bool operands yield logical AND/OR; integral operands yield bitwise AND/OR.'],
+    [<InlineCode>&lt;&lt; &gt;&gt;</InlineCode>, 'integral', 'integral', 'Shifts the left operand by the right operand.'],
+    [<InlineCode>== !=</InlineCode>, 'primitive, string, or reference', 'primitive, string, or reference', 'Compares value for primitives/strings; reference identity for reference types.'],
+    [<InlineCode>&lt; &lt;= &gt; &gt;=</InlineCode>, 'numeric, string, or bool', 'numeric, string, or bool', 'Ordering comparison; both operands must be the same comparable kind.'],
+    [<InlineCode>=</InlineCode>, 'lvalue', 'expression', 'Right-hand type must be assignable to the left-hand type.'],
+  ]}
+/>
+
+<Prose>The unary operators take a single operand:</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>!value</InlineCode> / <InlineCode>not value</InlineCode> — operand must be{' '}
+    <InlineCode>bool</InlineCode>; returns <InlineCode>bool</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>+value</InlineCode> / <InlineCode>-value</InlineCode> — operand must be numeric;{' '}
+    <InlineCode>-</InlineCode> negates, <InlineCode>+</InlineCode> is a no-op for sign clarity.
+  </Bullet>
+  <Bullet>
+    <InlineCode>++value</InlineCode> / <InlineCode>--value</InlineCode> / <InlineCode>value++</InlineCode>{' '}
+    / <InlineCode>value--</InlineCode> — operand must be a numeric lvalue; mutates the variable.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Operator', 'Return Type']}
+  rows={[
+    [<InlineCode>+ - * / %</InlineCode>, <><InlineCode>int</InlineCode> if both operands are integral; otherwise <InlineCode>double</InlineCode>. <InlineCode>+</InlineCode> returns <InlineCode>string</InlineCode> when either operand is <InlineCode>string</InlineCode>.</>],
+    [<InlineCode>^</InlineCode>, <><InlineCode>double</InlineCode> if either operand is <InlineCode>double</InlineCode>; otherwise <InlineCode>int</InlineCode> (truncated).</>],
+    [<InlineCode>&amp; |</InlineCode>, <><InlineCode>bool</InlineCode> for bool operands; <InlineCode>int</InlineCode> for integral operands.</>],
+    [<InlineCode>&lt;&lt; &gt;&gt;</InlineCode>, 'int.'],
+    [<InlineCode>== != &lt; &lt;= &gt; &gt;=</InlineCode>, 'bool.'],
+    [<InlineCode>= += -= *= /= %= ^= &= |=</InlineCode>, 'The type of the left-hand lvalue.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compile-time type mismatch</strong> — Adding a{' '}
+    <InlineCode>string</InlineCode> to a <InlineCode>bool</InlineCode>, shifting a{' '}
+    <InlineCode>double</InlineCode>, or applying a numeric operator to a non-numeric type fails
+    semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Operator not defined</strong> — Applying an operator to a
+    user-defined type that has no matching <InlineCode>operator</InlineCode> overload produces a
+    compile error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid assignment target</strong> — The left side of{' '}
+    <InlineCode>=</InlineCode> must be a variable, field, property, or indexer expression.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Division by zero</strong> — Both integer and floating-point{' '}
+    <InlineCode>/</InlineCode> throw when the divisor is zero.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Modulo by zero</strong> — <InlineCode>%</InlineCode>{' '}
+    throws when the divisor is zero.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null operand</strong> — Performing a primitive operation on
+    a <InlineCode>null</InlineCode> reference throws at runtime.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Integer versus double division.</strong> When both operands of <InlineCode>/</InlineCode>{' '}
+  are <InlineCode>int</InlineCode>, <InlineCode>char</InlineCode>, <InlineCode>byte</InlineCode>, or{' '}
+  <InlineCode>nint</InlineCode>, the result is an <InlineCode>int</InlineCode> and the fractional part
+  is discarded. The truncation follows C++ integer division semantics (toward zero). If either
+  operand is a <InlineCode>double</InlineCode>, the operation is performed in floating point and the
+  full result is kept.
+</Prose>
+
+<Prose>
+  <strong>Bitwise and logical sharing.</strong> <InlineCode>&amp;</InlineCode> and{' '}
+  <InlineCode>|</InlineCode> serve double duty: with <InlineCode>bool</InlineCode> operands they act as
+  logical AND/OR, and with integral operands they act as bitwise AND/OR. The keyword forms{' '}
+  <InlineCode>and</InlineCode>, <InlineCode>or</InlineCode>, and <InlineCode>not</InlineCode> produce the
+  same tokens as <InlineCode>&amp;</InlineCode>, <InlineCode>|</InlineCode>, and <InlineCode>!</InlineCode>.
+  ShardScript does not have separate short-circuiting <InlineCode>&amp;&amp;</InlineCode> /{' '}
+  <InlineCode>||</InlineCode> operators; even when you type <InlineCode>&amp;&amp;</InlineCode> or{' '}
+  <InlineCode>||</InlineCode>, both operands are always evaluated.
+</Prose>
+
+<Prose>
+  <strong>Exponentiation.</strong> <InlineCode>^</InlineCode> raises the left operand to the right
+  operand. It is <em>not</em> bitwise XOR. The VM uses <InlineCode>std::pow</InlineCode> internally.
+  When both operands are integral, the floating-point result is truncated to <InlineCode>int64</InlineCode>,
+  so negative bases with fractional exponents produce implementation-defined values.
+</Prose>
+
+<Prose>
+  <strong>String concatenation.</strong> When either operand of <InlineCode>+</InlineCode> is a{' '}
+  <InlineCode>string</InlineCode>, the other operand is converted to a string and the two are
+  concatenated. This is a convenience for small, ad-hoc output; prefer{' '}
+  <InlineCode>strings.Format</InlineCode> for templates.
+</Prose>
+
+<Prose>
+  <strong>Operator overloading.</strong> You can define operators on your own classes and structs
+  by declaring a static <InlineCode>operator</InlineCode> method whose parameter types match the
+  operands. Resolution is based on the left-hand type and requires an exact parameter-type match.
+  Binary overloads take two parameters; unary overloads take one.
+</Prose>
+
+<Callout tone="blue">
+  Overloadable operators include <InlineCode>+ - * / % ^</InlineCode>,{' '}
+  <InlineCode>&amp; | &lt;&lt; &gt;&gt;</InlineCode>, <InlineCode>== != &lt; &lt;= &gt; &gt;=</InlineCode>,
+  and the unary operators <InlineCode>! ++ --</InlineCode>. Conversion-style operators use{' '}
+  <InlineCode>operator as</InlineCode> and member access uses <InlineCode>operator .</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Increment and decrement.</strong> Prefix form (<InlineCode>++x</InlineCode>,{' '}
+  <InlineCode>--x</InlineCode>) mutates the variable and yields the new value. Postfix form
+  (<InlineCode>x++</InlineCode>, <InlineCode>x--</InlineCode>) yields the original value and then
+  mutates the variable. The operand must be a numeric lvalue.
+</Prose>
+
+<Prose>
+  <strong>Evaluation order.</strong> Operands are evaluated left to right. Use parentheses to make
+  precedence explicit and to avoid subtle ordering bugs with mixed arithmetic and comparison
+  operators.
+</Prose>
+
+<Callout tone="amber" title="Compound assignment status">
+  Compound assignment operators (<InlineCode>+= -= *= /= %= ^= &= |=</InlineCode>) are recognized by
+  the lexer and parser, but the current VM emission lowers them as a plain assignment of the
+  right-hand side. Until this is fixed, expand them manually — for example, write{' '}
+  <InlineCode>x = x + 1</InlineCode> instead of <InlineCode>x += 1</InlineCode>.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Arithmetic and integer-vs-double division.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: int = 7;
+    b: int = 2;
+
+    println(a + b);          // 9
+    println(a - b);          // 5
+    println(a * b);          // 14
+    println(a / b);          // 3  (integer division truncates toward zero)
+    println(a % b);          // 1
+    println(2 ^ 10);         // 1024
+
+    // A double operand forces floating-point division.
+    println(7.0 / 2);        // 3.5
+
+    // Negation with unary minus.
+    println(-a);             // -7
+}`}
+  language="csharp"
+  filename="arithmetic.shard"
+/>
+
+<Prose>
+  <strong>Bitwise and logical operators.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Bitwise on integers.
+    println(12 & 10);        // 8   (1100 & 1010)
+    println(12 | 10);        // 14  (1100 | 1010)
+    println(1 << 4);         // 16
+    println(256 >> 2);       // 64
+
+    // Logical on booleans.
+    a: bool = true;
+    b: bool = false;
+
+    println(!a);             // false
+    println(a and b);        // false
+    println(a or b);         // true
+
+    // Both sides are always evaluated: no short-circuit.
+    // Guarding against side effects requires an explicit if statement.
+    if (a)
+    {
+        println("a is true");
+    }
+}`}
+  language="csharp"
+  filename="bitwise_logical.shard"
+/>
+
+<Prose>
+  <strong>Comparisons and string equality.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    x: int = 5;
+    y: int = 10;
+
+    println(x < y);          // true
+    println(x == y);         // false
+    println(x >= 5);         // true
+
+    // String comparison uses value equality.
+    left: string  = "shard";
+    right: string = "shard";
+    println(left == right);  // true
+
+    // Reference types compare by identity unless an operator is overloaded.
+    a: object = new object();
+    b: object = a;
+    println(a == b);         // true
+}`}
+  language="csharp"
+  filename="comparison.shard"
+/>
+
+<Prose>
+  <strong>Assignment and compound assignment.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    count: int = 10;
+
+    // Simple assignment.
+    count = 20;
+    println(count);          // 20
+
+    // Compound assignment syntax is recognized, but the VM currently emits
+    // only a plain assignment. Use explicit expansion for correct behavior.
+    count = count + 5;
+    println(count);          // 25
+
+    count = count * 2;
+    println(count);          // 50
+
+    // Bitwise compound assignment is also written the same way.
+    flags: int = 1;
+    flags = flags | 4;       // set the third bit
+    println(flags);          // 5
+}`}
+  language="csharp"
+  filename="assignment.shard"
+/>
+
+<Prose>
+  <strong>Operator overloading.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Vector2
+{
+    public X: double;
+    public Y: double;
+
+    public init(x: double, y: double)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    // Overload + so two Vector2 values add component-wise.
+    public static operator +(a: Vector2, b: Vector2) -> Vector2
+    {
+        return new Vector2(a.X + b.X, a.Y + b.Y);
+    }
+}
+
+public static func Main() -> void
+{
+    v1: Vector2 = new Vector2(1.0, 2.0);
+    v2: Vector2 = new Vector2(3.0, 4.0);
+    sum: Vector2 = v1 + v2;
+
+    println(sum.X);          // 4.0
+    println(sum.Y);          // 6.0
+}`}
+  language="csharp"
+  filename="operator_overload.shard"
+/>
+
+<Prose>
+  <strong>Precedence, parentheses, and edge cases.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Without parentheses, multiplication binds tighter than addition.
+    println(2 + 3 * 4);      // 14, not 20
+
+    // Use parentheses to make intent explicit.
+    println((2 + 3) * 4);    // 20
+
+    // Comparison has lower precedence than arithmetic.
+    result: bool = 1 + 2 < 4;
+    println(result);         // true
+
+    // Power binds tighter than multiplication.
+    println(2 * 3 ^ 2);      // 18 (3^2 == 9, then *2)
+
+    // Integer division truncates toward zero for negatives too.
+    println(-7 / 2);         // -3
+
+    // Modulo follows the dividend's sign in this implementation.
+    println(-7 % 3);         // -1
+}`}
+  language="csharp"
+  filename="precedence.shard"
+/>

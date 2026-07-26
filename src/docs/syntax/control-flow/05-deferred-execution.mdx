@@ -1,0 +1,488 @@
+---
+title: Deferred Execution
+group: Control Flow
+order: 5
+slug: deferred-execution
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>defer</InlineCode> statement schedules a deferred action that runs when control
+  leaves the enclosing scope. The compiler maintains a per-call-frame <strong>defer stack</strong>;
+  defers are registered first-in, last-out and drain at scope exit, <InlineCode>return</InlineCode>,
+  <InlineCode>break</InlineCode>, and during exception unwinding.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A defer statement begins with the <InlineCode>defer</InlineCode> keyword followed by any statement.
+  The most common forms are an expression statement or a variable declaration of an{' '}
+  <InlineCode>IDisposable</InlineCode> resource.
+</Prose>
+
+<CodeBlock
+  code={`// Expression defer: evaluate the expression when the scope exits.
+defer <expression>;
+
+// Resource defer: declare a variable and call Dispose when the scope exits.
+defer <identifier>: <type> = <expression>;`}
+  language="csharp"
+  filename="defer_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Form', 'Argument', 'Description']}
+  rows={[
+    [<InlineCode>defer expr;</InlineCode>, 'expr', 'Any expression statement evaluated at scope exit.'],
+    [<InlineCode>defer v: T = expr;</InlineCode>, 'v: T = expr', 'A variable declaration where T implements IDisposable; Dispose() is called at scope exit.'],
+  ]}
+/>
+
+<Prose>
+  The deferred statement is captured at the point <InlineCode>defer</InlineCode> is written, not at
+  the point it runs. For resource defers, the initializer executes immediately so the object exists,
+  but its <InlineCode>Dispose</InlineCode> method is delayed until scope exit.
+</Prose>
+
+<H2>Returns</H2>
+
+<Prose>
+  A <InlineCode>defer</InlineCode> statement itself has no value and returns no result. If the
+  deferred expression is a function call, that function's return value is evaluated and discarded
+  unless it is assigned inside the deferred statement.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Empty defer</strong> — <InlineCode>defer;</InlineCode>{' '}
+    with no statement is a parse error: "defer statement cannot be empty".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Defer outside a block</strong> — The emitter reports an
+    error if <InlineCode>defer</InlineCode> is not inside a statements block, because there is no
+    scope boundary to drain it.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Non-disposable resource defer</strong> — A variable
+    declaration in <InlineCode>defer</InlineCode> requires the type to implement{' '}
+    <InlineCode>IDisposable</InlineCode>; otherwise semantic analysis fails.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing Dispose implementation</strong> — The type must
+    provide an implementation for <InlineCode>IDisposable.Dispose()</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Exception inside a defer</strong> — If a deferred
+    expression throws, the exception propagates normally. Any defers that have not yet run are still
+    drained during unwinding.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Defer stack and LIFO order.</strong> Every call frame owns a defer stack. Each{' '}
+  <InlineCode>defer</InlineCode> statement emits a <InlineCode>DEFER</InlineCode> opcode that pushes
+  the bytecode offset of the deferred expression onto that stack. When the scope exits, the runtime
+  emits <InlineCode>DEFER_DRAIN</InlineCode> with the number of defers to run; the VM pops them from
+  the back and executes them last-in, first-out.
+</Prose>
+
+<Prose>
+  <strong>Scope boundaries.</strong> A scope is a block delimited by braces. The compiler drains the
+  defers registered in that block when execution reaches the closing brace. Nested blocks drain
+  their own defers first; outer blocks drain afterward.
+</Prose>
+
+<Prose>
+  <strong>Interaction with return.</strong> The return expression is evaluated before defers run,
+  then <InlineCode>DEFER_DRAIN</InlineCode> clears every defer in the method, and finally the frame
+  returns. This guarantees cleanup runs before the caller receives the result.
+</Prose>
+
+<Prose>
+  <strong>Interaction with break.</strong> <InlineCode>break</InlineCode> drains defers from the
+  innermost scope up to and including the enclosing loop scope, then jumps to the loop end. Defers
+  declared outside the loop remain scheduled.
+</Prose>
+
+<Prose>
+  <strong>Interaction with exceptions.</strong> When an exception is thrown, the VM does not emit a
+  compile-time <InlineCode>DEFER_DRAIN</InlineCode>. Instead, exception dispatch records the defer
+  stack size at each <InlineCode>try</InlineCode> boundary and drains only the defers registered
+  since that boundary before entering the matching <InlineCode>catch</InlineCode>. If no handler is
+  found in the frame, all remaining defers run before the exception propagates to the caller.
+</Prose>
+
+<Prose>
+  <strong>Async methods.</strong> Async state-machine lowering re-registers active defers at every{' '}
+  <InlineCode>await</InlineCode> resume point so that cleanup still executes correctly across
+  suspension boundaries. Resource defers emit the variable declaration into the{' '}
+  <InlineCode>MoveNext</InlineCode> method and schedule <InlineCode>Dispose</InlineCode> exactly as
+  in synchronous code.
+</Prose>
+
+<Prose>
+  <strong>VM opcodes.</strong> Three opcodes implement deferred execution:
+</Prose>
+
+<DocsTable
+  headers={['Opcode', 'Description']}
+  rows={[
+    [<InlineCode>DEFER</InlineCode>, 'Pushes the bytecode offset of a deferred expression onto the frame defer stack.'],
+    [<InlineCode>DEFER_BREAK</InlineCode>, 'Returns from a deferred expression back to the DEFER_DRAIN loop.'],
+    [<InlineCode>DEFER_DRAIN</InlineCode>, 'Pops the top N deferred offsets and executes them LIFO.'],
+  ]}
+/>
+
+<Callout tone="amber" title="Deferred expressions and control flow">
+  You cannot <InlineCode>return</InlineCode> or <InlineCode>break</InlineCode> out of a deferred
+  expression in a meaningful way; the deferred code is emitted as a standalone fragment that ends
+  with <InlineCode>DEFER_BREAK</InlineCode>. Keep deferred statements simple and free of explicit
+  exit statements.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic expression defer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println("starting work");
+
+    defer println("cleanup after work");
+
+    println("doing work");
+}`}
+  language="csharp"
+  filename="defer_basic.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`starting work
+doing work
+cleanup after work`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Resource defer with IDisposable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Resource : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("Resource disposed");
+    }
+}
+
+public static func Main() -> void
+{
+    defer resource: Resource = new Resource();
+
+    println("using resource");
+}`}
+  language="csharp"
+  filename="defer_resource.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`using resource
+Resource disposed`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Nested scopes and LIFO order.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer println("outer defer");
+
+    println("enter outer");
+
+    {
+        defer println("inner-2");
+        defer println("inner-1");
+
+        println("inside inner");
+    }
+
+    println("back in outer");
+}`}
+  language="csharp"
+  filename="defer_nested.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`enter outer
+inside inner
+inner-1
+inner-2
+back in outer
+outer defer`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Defer inside a loop.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    for (i in 0..3)
+    {
+        defer println("cleanup iteration " + i);
+        println("start iteration " + i);
+    }
+}`}
+  language="csharp"
+  filename="defer_loop.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`start iteration 0
+cleanup iteration 0
+start iteration 1
+cleanup iteration 1
+start iteration 2
+cleanup iteration 2`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Defer with early return.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func MaybeReturn(takeEarlyPath: bool) -> void
+{
+    defer println("always cleanup");
+
+    println("before check");
+
+    if (takeEarlyPath)
+    {
+        println("early return");
+        return;
+    }
+
+    println("normal path");
+}
+
+public static func Main() -> void
+{
+    MaybeReturn(true);
+    println("---");
+    MaybeReturn(false);
+}`}
+  language="csharp"
+  filename="defer_return.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`before check
+early return
+always cleanup
+---
+before check
+normal path
+always cleanup`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Defer during exception unwinding.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Inner() -> void
+{
+    defer println("inner cleanup");
+    println("inner throwing");
+    throw new RuntimeException();
+}
+
+public static func Outer() -> void
+{
+    defer println("outer cleanup");
+    Inner();
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        Outer();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught");
+    }
+}`}
+  language="csharp"
+  filename="defer_exception.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`inner throwing
+inner cleanup
+outer cleanup
+caught`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Defer with break.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    for (i in 0..10)
+    {
+        defer println("defer for " + i);
+        println("iteration " + i);
+
+        if (i == 2)
+        {
+            println("breaking");
+            break;
+        }
+    }
+
+    println("after loop");
+}`}
+  language="csharp"
+  filename="defer_break.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`iteration 0
+defer for 0
+iteration 1
+defer for 1
+iteration 2
+breaking
+defer for 2
+after loop`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Common mistake: depending on mutated state inside a defer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    i: int = 0;
+
+    defer println("deferred i = " + i);
+
+    i = 42;
+    println("before exit, i = " + i);
+}`}
+  language="csharp"
+  filename="defer_state.shard"
+/>
+
+<Prose>
+  Expected output. The deferred expression reads <InlineCode>i</InlineCode> when it executes, after
+  the assignment:
+</Prose>
+
+<CodeBlock
+  code={`before exit, i = 42
+deferred i = 42`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Callout tone="blue">
+  This behavior is useful for cleanup that needs final values, but it can be surprising if you
+  expected the value at the point <InlineCode>defer</InlineCode> was written. Capture values into
+  local variables before deferring if you need snapshot semantics.
+</Callout>

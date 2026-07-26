@@ -1,0 +1,345 @@
+---
+title: Functions and Delegates
+group: Functional Programming
+order: 1
+slug: functions-and-delegates
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  In ShardScript, functions are <strong>first-class values</strong>: a method or lambda can be stored in a
+  variable, passed as an argument, returned from another function, and invoked later through a
+  delegate type. A <InlineCode>delegate</InlineCode> is a named or inline function type that describes the
+  parameter and return signature of a callable value.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  There are two ways to express a delegate type and two ways to create a function value.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Syntax', 'Usage']}
+  rows={[
+    ['Named delegate declaration', <code>public delegate Name(params) -&gt; ReturnType;</code>, 'Defines a reusable, named callable type.'],
+    ['Inline delegate type', <code>delegate ReturnType(ParamType, ...)</code>, 'A fabricated type written directly where a type is needed.'],
+    ['Lambda expression (explicit return)', <code>{'lambda (params) -> Type { body }'}</code>, 'Anonymous function with an explicit return type.'],
+    ['Lambda expression (inferred return)', <code>{'lambda (params) => { body }'}</code>, 'Anonymous function whose return type is inferred from the body.'],
+    ['Method-to-delegate conversion', <code>dlg: DelegateType = MethodName;</code>, 'Binds an existing named method to a delegate variable.'],
+  ]}
+/>
+
+<Prose>
+  A named delegate is declared at namespace or type scope just like a class. An inline delegate type
+  is written wherever a type appears: variable declarations, parameters, fields, and return types. The
+  inline form lists only parameter <em>types</em>, not parameter names.
+</Prose>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Element', 'Required', 'Description']}
+  rows={[
+    ['Return type', 'Yes', 'The type the delegate evaluates to when invoked. Use <InlineCode>void</InlineCode> for actions.'],
+    ['Parameter list', 'Yes', 'A parenthesized, comma-separated list of typed parameters. Empty parentheses mean no parameters.'],
+    ['Generic type parameters', 'Optional', 'Named delegates may declare generic parameters, e.g. <InlineCode>delegate Transform&lt;T, U&gt;(value: T) -&gt; U;</InlineCode>.'],
+    ['Access modifier', 'Optional', 'Named delegates support access modifiers such as <InlineCode>public</InlineCode> and <InlineCode>internal</InlineCode>.'],
+  ]}
+/>
+
+<Prose>
+  When a named method is bound to a delegate, every parameter type and the return type must match
+  exactly. The parameter <em>names</em> in the delegate declaration are not part of the signature for
+  matching purposes, but they serve as documentation.
+</Prose>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Construct', 'Result']}
+  rows={[
+    ['Delegate declaration', 'Defines a new callable type; it does not produce a runtime value.'],
+    ['Lambda expression', 'Evaluates to a delegate value that captures the anonymous method.'],
+    ['Method group conversion', 'Evaluates to a delegate value that targets the named method.'],
+    ['Delegate invocation', 'Evaluates to the return type declared by the delegate.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Signature mismatch</strong> — Assigning a lambda or method to a
+    delegate whose parameter or return types differ produces a compile-time error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing <InlineCode>lambda</InlineCode> keyword</strong> — A bare
+    expression such as <InlineCode>(x) =&gt; x + 1</InlineCode> does not parse; the{' '}
+    <InlineCode>lambda</InlineCode> keyword is mandatory.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Async lambda without explicit return type</strong> — An{' '}
+    <InlineCode>async lambda</InlineCode> must declare an explicit return type such as{' '}
+    <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>; the{' '}
+    <InlineCode>=&gt;</InlineCode> inferred form is not allowed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null invocation</strong> — Calling a delegate variable whose value
+    is <InlineCode>null</InlineCode> throws a runtime null-reference exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument count mismatch</strong> — Invoking a delegate with too many
+    or too few arguments fails at compile time.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Named versus inline delegate types.</strong> A named delegate is useful when the same signature
+  appears in many places or when you want a self-documenting type name. An inline delegate type is
+  convenient for one-off callbacks and local variables. Both are functionally equivalent: a value of
+  type <InlineCode>GetIntegerDelegate</InlineCode> can be assigned to a variable of type{' '}
+  <InlineCode>delegate int(int)</InlineCode> only if the signatures match, and the compiler treats both
+  as instances of the same underlying delegate machinery.
+</Prose>
+
+<Prose>
+  <strong>First-class functions.</strong> Because delegates are values, you can pass them into methods,
+  return them from methods, store them in fields, and place them in collections. The VM represents a
+  delegate as a small object that holds a reference to the target method and, for instance methods, a
+  receiver object. Static methods and lambdas produce delegates with no receiver.
+</Prose>
+
+<Prose>
+  <strong>Method group conversion.</strong> When a method name appears in a context that expects a delegate
+  type, the compiler creates a delegate that wraps the method directly. No explicit lambda wrapper is
+  required. The conversion works for both static and instance methods, provided the signature matches.
+</Prose>
+
+<Prose>
+  <strong>Invocation syntax.</strong> A delegate variable is invoked with ordinary call syntax:{' '}
+  <InlineCode>myDelegate(arg1, arg2)</InlineCode>. The compiler rewrites the call to invoke the delegate's
+  underlying <InlineCode>Invoke</InlineCode> method, which the runtime dispatches through the{' '}
+  <InlineCode>CALLDELEGATE</InlineCode> opcode.
+</Prose>
+
+<Callout tone="blue">
+  ShardScript delegates currently hold a <strong>single target</strong>. Combining delegates with{' '}
+  <InlineCode>+</InlineCode> or <InlineCode>+=</InlineCode> to create multicast delegates is not supported.
+  If you need to call several handlers in sequence, iterate over a collection of delegates or invoke
+  them explicitly.
+</Callout>
+
+<Callout tone="amber" title="Async lambdas need an explicit return type">
+  Prefix a lambda with <InlineCode>async</InlineCode> to create a closure that can <InlineCode>await</InlineCode>.
+  Because the async state machine must know the result type up front, you must write{' '}
+  <InlineCode>{'async lambda (params) -> Task { ... }'}</InlineCode> or{' '}
+  <InlineCode>{'async lambda (params) -> ValueTask<T> { ... }'}</InlineCode>. The inferred{' '}
+  <InlineCode>=&gt;</InlineCode> form is rejected for async lambdas.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Named delegate, lambda, and method conversion.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+// A named delegate type, reusable across the codebase.
+public delegate IntFunc(a: int) -> int;
+
+static func Triple(x: int) -> int
+{
+    return x * 3;
+}
+
+public static func Main() -> void
+{
+    // Bind a lambda to the named delegate type.
+    inc: IntFunc = lambda (a: int) -> int
+    {
+        return a + 1;
+    };
+
+    // Bind a named method directly -- no wrapper lambda needed.
+    mult: IntFunc = Triple;
+
+    println(inc(5));       // 6
+    println(mult(4));      // 12
+}`}
+  language="csharp"
+  filename="named_delegate.shard"
+/>
+
+<Prose>
+  <strong>Inline fabricated delegate type.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+static func Add(a: int, b: int) -> int
+{
+    return a + b;
+}
+
+public static func Main() -> void
+{
+    // An inline delegate type lists only parameter types, no names.
+    op: delegate int(int, int) = Add;
+
+    // A lambda also fits the inline type as long as signatures match.
+    scale: delegate int(int) = lambda (x: int) -> int
+    {
+        return x * 10;
+    };
+
+    println(op(2, 3));      // 5
+    println(scale(7));      // 70
+}`}
+  language="csharp"
+  filename="inline_delegate.shard"
+/>
+
+<Prose>
+  <strong>Higher-order functions: passing and returning delegates.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate IntFunc(a: int) -> int;
+
+// A function that takes a delegate argument.
+static func Apply(f: IntFunc, x: int) -> int
+{
+    return f(x);
+}
+
+// A function that returns a delegate.
+static func Choose(op: int) -> IntFunc
+{
+    if (op == 0)
+    {
+        return lambda (a: int) -> int
+        {
+            return a + 1;
+        };
+    }
+
+    return lambda (a: int) -> int
+    {
+        return a - 1;
+    };
+}
+
+public static func Main() -> void
+{
+    // Pass a lambda directly where a delegate is expected.
+    result: int = Apply(lambda (a: int) -> int { return a * a; }, 5);
+    println(result);        // 25
+
+    step: IntFunc = Choose(0);
+    println(step(10));      // 11
+}`}
+  language="csharp"
+  filename="higher_order.shard"
+/>
+
+<Prose>
+  <strong>Generic delegates.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate Transform<T, U>(value: T) -> U;
+
+static func Make<T, U>(action: Transform<T, U>) -> Transform<T, U>
+{
+    return action;
+}
+
+public static func Main() -> void
+{
+    f: Transform<int, int> = Make<int, int>(lambda (a: int) -> int
+    {
+        return a + 10;
+    });
+
+    println(f(5));      // 15
+}`}
+  language="csharp"
+  filename="generic_delegate.shard"
+/>
+
+<Prose>
+  <strong>Edge cases and common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate Predicate(x: int) -> bool;
+
+static func CountWhere(items: int[], matches: Predicate) -> int
+{
+    count: int = 0;
+
+    foreach (n: int in items)
+    {
+        if (matches(n))
+        {
+            count = count + 1;
+        }
+    }
+
+    return count;
+}
+
+public static func Main() -> void
+{
+    threshold: int = 5;
+    nums: int[] = [1, 6, 3, 9, 4];
+
+    // A lambda captures 'threshold' from the enclosing scope.
+    big: int = CountWhere(nums, lambda (n: int) -> bool
+    {
+        return n > threshold;
+    });
+
+    println(big);       // 2
+
+    // Empty parameter list: both parentheses are required.
+    greeter: delegate string() = lambda () -> string
+    {
+        return "hello";
+    };
+
+    println(greeter());     // hello
+}`}
+  language="csharp"
+  filename="delegate_edge_cases.shard"
+/>
+
+<Callout tone="amber" title="Mismatched signatures are caught early">
+  The compiler checks delegate compatibility at the assignment site. For example, assigning a
+  <InlineCode>lambda (a: int) -&gt; string</InlineCode> to a <InlineCode>delegate int(int)</InlineCode>
+  fails with a type error before the program ever runs.
+</Callout>

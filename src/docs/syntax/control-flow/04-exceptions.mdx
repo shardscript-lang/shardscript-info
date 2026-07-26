@@ -1,0 +1,570 @@
+---
+title: Exceptions and Error Handling
+group: Control Flow
+order: 4
+slug: exceptions
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript exceptions transfer control from the point of failure to the nearest enclosing{' '}
+  <InlineCode>catch</InlineCode> clause that can handle the thrown object. The language provides{' '}
+  <InlineCode>try</InlineCode>/<InlineCode>catch</InlineCode> blocks, the <InlineCode>throw</InlineCode>{' '}
+  statement, typed and catch-all filters, bare <InlineCode>throw;</InlineCode> rethrow, and automatic
+  defer unwinding during stack traversal.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>Statement form — every <InlineCode>try</InlineCode> must have at least one{' '}
+<InlineCode>catch</InlineCode> clause:</Prose>
+
+<CodeBlock
+  code={`try
+{
+    // guarded statements
+}
+catch (variable: ExceptionType)
+{
+    // handler for ExceptionType and subtypes
+}
+catch (variable: any)
+{
+    // catch-all handler
+}
+
+// Throw a new exception.
+throw new RuntimeException();
+
+// Rethrow the exception currently being handled.
+throw;`}
+  language="csharp"
+  filename="exceptions_syntax.shard"
+/>
+
+<Prose>
+  <InlineCode>throw</InlineCode> is also accepted as a prefix expression inside another expression,
+  but the statement form is the idiomatic way to raise an error.
+</Prose>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Element', 'Required', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>try</InlineCode>, 'yes', 'keyword', 'Opens the guarded block whose exceptions are eligible for the attached catches.'],
+    [<InlineCode>catch</InlineCode>, 'yes (one or more)', 'keyword', 'Opens a handler clause. A try without at least one catch is a parser error.'],
+    [<InlineCode>variable</InlineCode>, 'yes (per clause)', 'identifier', 'The local name bound to the caught object inside the handler body.'],
+    [<InlineCode>ExceptionType</InlineCode>, 'no', 'type', 'The type filter. If omitted the clause defaults to <InlineCode>any</InlineCode>. Must implement <InlineCode>IThrowable</InlineCode> unless it is <InlineCode>any</InlineCode>.'],
+    [<InlineCode>throw expression</InlineCode>, 'yes (statement)', 'IThrowable', 'An object implementing <InlineCode>IThrowable</InlineCode> to raise.'],
+    [<InlineCode>throw;</InlineCode>, 'yes (rethrow)', 'none', 'Re-raises the active exception from inside a catch body.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Catch clause matching order:</strong>
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Clauses are evaluated in source order; the first clause whose type filter matches the thrown
+    object wins.
+  </Bullet>
+  <Bullet>
+    A typed catch matches the declared type and any subtype that implements the same interface or
+    inherits from the declared class.
+  </Bullet>
+  <Bullet>
+    A catch with no explicit type (or with <InlineCode>any</InlineCode>) matches every object and
+    must be placed last, after all typed clauses.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  A <InlineCode>try</InlineCode>/<InlineCode>catch</InlineCode> statement has no value. If the{' '}
+  <InlineCode>try</InlineCode> block completes normally, execution continues after the last{' '}
+  <InlineCode>catch</InlineCode>. If an exception is thrown and caught, execution continues after the
+  matching <InlineCode>catch</InlineCode> body. If an exception is thrown and not caught, it propagates
+  to the caller.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Try without catch</strong> — A{' '}
+    <InlineCode>try</InlineCode> block with no following <InlineCode>catch</InlineCode> clause produces
+    a parser error: "'try' statement must have at least one 'catch' clause".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Catch without variable or type</strong> — Every catch must
+    declare an exception variable, a type, or both. A bare <InlineCode>catch {}</InlineCode> is
+    rejected.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Non-throwable catch type</strong> — A typed catch filter
+    must name a type that implements <InlineCode>IThrowable</InlineCode>. Catching{' '}
+    <InlineCode>int</InlineCode>, <InlineCode>string</InlineCode>, or other unrelated reference types
+    fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Throwing a non-throwable</strong> — The expression supplied to
+    a <InlineCode>throw</InlineCode> statement must evaluate to an object implementing{' '}
+    <InlineCode>IThrowable</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Rethrow outside catch</strong> — A bare{' '}
+    <InlineCode>throw;</InlineCode> compiles only inside a <InlineCode>catch</InlineCode> body where an
+    active exception exists.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unhandled exception</strong> — If an exception reaches the
+    entry point without being caught, the VM terminates and prints the stack trace captured at the
+    throw site.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>The <InlineCode>IThrowable</InlineCode> interface.</strong> ShardScript defines a built-in
+  interface <InlineCode>IThrowable</InlineCode> in the global namespace. It declares two read-only
+  instance properties:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>message: string</InlineCode> — A human-readable description of the error.
+  </Bullet>
+  <Bullet>
+    <InlineCode>stack_trace: string</InlineCode> — The call-stack snapshot captured when the exception
+    was thrown.
+  </Bullet>
+</ul>
+
+<Prose>
+  Any class or struct that implements <InlineCode>IThrowable</InlineCode> can be thrown and caught.
+  The built-in <InlineCode>RuntimeException</InlineCode> class implements the interface and is the
+  conventional base for ad-hoc failures. Its default constructor takes no arguments; the{' '}
+  <InlineCode>message</InlineCode> and <InlineCode>stack_trace</InlineCode> properties are populated by
+  the runtime when the object is thrown.
+</Prose>
+
+<Prose>
+  <strong>Typed versus catch-all clauses.</strong> Use typed catches for code paths that need to
+  inspect a specific failure. Use <InlineCode>catch (ex: any)</InlineCode> or{' '}
+  <InlineCode>catch (ex)</InlineCode> as a final safety net. Because matching is sequential, always
+  place the most specific types first and the catch-all last.
+</Prose>
+
+<Prose>
+  <strong>Rethrow semantics.</strong> Inside a catch body, <InlineCode>throw;</InlineCode> re-raises
+  the exception currently being handled, preserving the original stack trace. This is different from
+  <InlineCode>throw ex;</InlineCode>, which would create a new throw point and overwrite the trace.
+  Use <InlineCode>throw;</InlineCode> when you only want to log or partially handle an error before
+  passing it up the stack.
+</Prose>
+
+<Prose>
+  <strong>Stack unwinding and <InlineCode>defer</InlineCode>.</strong> When an exception is thrown, the
+  VM walks the call stack looking for a handler. Before entering each candidate{' '}
+  <InlineCode>catch</InlineCode>, it drains every <InlineCode>defer</InlineCode> registered in the
+  scopes being unwound, in last-in, first-out order. If no handler exists in the current frame, all
+  remaining defers in that frame run before the exception propagates to the caller. See the{' '}
+  <InlineCode>defer</InlineCode> reference page for full details on scope boundaries and resource
+  cleanup.
+</Prose>
+
+<Prose>
+  <strong>Async methods.</strong> Exceptions thrown inside an <InlineCode>async</InlineCode> method are
+  captured by the returned <InlineCode>Task</InlineCode> or <InlineCode>ValueTask</InlineCode> and
+  re-thrown when the task is awaited or when <InlineCode>Wait()</InlineCode> is called.{' '}
+  <InlineCode>try</InlineCode>/<InlineCode>catch</InlineCode> works around <InlineCode>await</InlineCode>{' '}
+  because the async state-machine lowering preserves exception-handler offsets across suspension
+  points.
+</Prose>
+
+<Prose>
+  <strong>VM lowering.</strong> The compiler emits <InlineCode>ENTER_TRY</InlineCode> to register a
+  handler, <InlineCode>LEAVE_TRY</InlineCode> when the guarded block exits normally, and{' '}
+  <InlineCode>END_CATCH</InlineCode> at the end of the handler region. Each typed catch emits an
+  <InlineCode>IS_INSTANCE</InlineCode> check followed by a conditional jump; if no clause matches, the
+  runtime falls through to <InlineCode>THROW</InlineCode> to continue propagation.
+</Prose>
+
+<Callout tone="amber" title="finally blocks are not implemented">
+  ShardScript does not yet support <InlineCode>finally</InlineCode> blocks. Use{' '}
+  <InlineCode>defer</InlineCode> inside the <InlineCode>try</InlineCode> block for deterministic
+  cleanup that runs on both normal exit and exception unwinding.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic try/catch with RuntimeException.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    try
+    {
+        println("before throw");
+        throw new RuntimeException();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught RuntimeException");
+    }
+
+    println("after catch");
+}`}
+  language="csharp"
+  filename="basic_try_catch.shard"
+/>
+
+<Prose>Expected output:</Prose>
+
+<CodeBlock
+  code={`before throw
+caught RuntimeException
+after catch`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Typed catches, IThrowable, and catch-all.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class NetworkException : RuntimeException
+{
+}
+
+public class TimeoutException : NetworkException
+{
+}
+
+public static func Simulate(code: int) -> void
+{
+    if (code == 1)
+    {
+        throw new TimeoutException();
+    }
+    else if (code == 2)
+    {
+        throw new NetworkException();
+    }
+    else
+    {
+        throw new RuntimeException();
+    }
+}
+
+public static func Main() -> void
+{
+    for (code: int in 1..4)
+    {
+        try
+        {
+            Simulate(code);
+        }
+        catch (ex: TimeoutException)
+        {
+            println("timeout");
+        }
+        catch (ex: NetworkException)
+        {
+            println("network error");
+        }
+        catch (ex: IThrowable)
+        {
+            println("generic throwable");
+        }
+    }
+}`}
+  language="csharp"
+  filename="typed_catches.shard"
+/>
+
+<Prose>Expected output:</Prose>
+
+<CodeBlock
+  code={`timeout
+network error
+generic throwable`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Rethrow to preserve the original failure.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func LogAndForward() -> void
+{
+    try
+    {
+        throw new RuntimeException();
+    }
+    catch (ex: RuntimeException)
+    {
+        // Log locally, then continue propagating the same exception.
+        println("logged");
+        throw;
+    }
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        LogAndForward();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught after rethrow");
+    }
+}`}
+  language="csharp"
+  filename="rethrow.shard"
+/>
+
+<Prose>Expected output:</Prose>
+
+<CodeBlock
+  code={`logged
+caught after rethrow`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Catch-all and inspecting the message.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    try
+    {
+        throw new RuntimeException();
+    }
+    catch (ex: any)
+    {
+        // The catch variable is typed as any, but it is still an IThrowable
+        // instance at runtime, so the message property is accessible.
+        println("caught: " + ex.message);
+    }
+}`}
+  language="csharp"
+  filename="catch_all.shard"
+/>
+
+<Prose>Expected output (message content may be empty for a bare RuntimeException):</Prose>
+
+<CodeBlock
+  code={`caught: `}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Stack unwinding with defer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func LevelThree() -> void
+{
+    defer println("level-three cleanup");
+    println("level-three throwing");
+    throw new RuntimeException();
+}
+
+public static func LevelTwo() -> void
+{
+    defer println("level-two cleanup");
+    LevelThree();
+}
+
+public static func LevelOne() -> void
+{
+    defer println("level-one cleanup");
+    LevelTwo();
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        LevelOne();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught in Main");
+    }
+}`}
+  language="csharp"
+  filename="defer_unwind.shard"
+/>
+
+<Prose>Expected output:</Prose>
+
+<CodeBlock
+  code={`level-three throwing
+level-three cleanup
+level-two cleanup
+level-one cleanup
+caught in Main`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Async exception propagation.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public static async func Faulty() -> Task
+{
+    await Task.Delay(10);
+    throw new RuntimeException();
+}
+
+public static func Main() -> void
+{
+    task: Task = Faulty();
+
+    try
+    {
+        task.Wait();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("async failure observed");
+    }
+}`}
+  language="csharp"
+  filename="async_exception.shard"
+/>
+
+<Prose>Expected output:</Prose>
+
+<CodeBlock
+  code={`async failure observed`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Common mistake: catching a base type before a derived type.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class BaseException : RuntimeException
+{
+}
+
+public class DerivedException : BaseException
+{
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        throw new DerivedException();
+    }
+    // WRONG ORDER: BaseException matches first, so the more specific
+    // DerivedException handler below is unreachable.
+    catch (ex: BaseException)
+    {
+        println("base");
+    }
+    // catch (ex: DerivedException)
+    // {
+    //     println("derived");
+    // }
+}`}
+  language="csharp"
+  filename="catch_order_mistake.shard"
+/>
+
+<Callout tone="blue">
+  The commented-out <InlineCode>DerivedException</InlineCode> handler is unreachable because the
+  preceding <InlineCode>BaseException</InlineCode> clause already catches the object. Always order
+  catches from most derived to least derived, and put the catch-all last.
+</Callout>
+
+<Prose>
+  <strong>Common mistake: using throw ex instead of throw.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Wrapper() -> void
+{
+    try
+    {
+        throw new RuntimeException();
+    }
+    catch (ex: RuntimeException)
+    {
+        // This compiles, but it resets the throw point and stack trace.
+        // Prefer the bare 'throw;' rethrow shown earlier.
+        throw ex;
+    }
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        Wrapper();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught wrapper exception");
+    }
+}`}
+  language="csharp"
+  filename="throw_ex_mistake.shard"
+/>

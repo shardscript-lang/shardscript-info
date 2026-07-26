@@ -1,0 +1,407 @@
+---
+title: Conditionals
+group: Control Flow
+order: 1
+slug: conditionals
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript conditional statements branch execution based on a boolean condition.
+  The language provides <InlineCode>if</InlineCode>, <InlineCode>else if</InlineCode>,
+  <InlineCode>else</InlineCode>, and <InlineCode>unless</InlineCode> statement forms,
+  plus an expression-oriented <InlineCode>if</InlineCode> form for value selection.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>Statement form — condition must be parenthesized:</Prose>
+
+<CodeBlock
+  code={`if (condition)
+    statement;
+
+if (condition)
+{
+    statement;
+    statement;
+}
+
+if (condition)
+    statement;
+else if (condition)
+    statement;
+else
+    statement;
+
+unless (condition)
+    statement;
+
+unless (condition)
+    statement;
+else
+    statement;`}
+  language="csharp"
+  filename="conditionals_syntax.shard"
+/>
+
+<Prose>Expression form — parentheses around the condition are optional:</Prose>
+
+<CodeBlock
+  code={`value := if (condition) thenExpression else elseExpression;
+value := if condition thenExpression else elseExpression;`}
+  language="csharp"
+  filename="if_expression_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Element', 'Required', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>condition</InlineCode>, 'yes', 'bool', 'The boolean expression that selects which branch runs.'],
+    [<InlineCode>statement</InlineCode>, 'yes (per branch)', 'statement or block', 'The body executed when the clause matches.'],
+    [<InlineCode>thenExpression</InlineCode>, 'yes (expression form)', 'expression', 'Value produced when the condition is true.'],
+    [<InlineCode>elseExpression</InlineCode>, 'yes (expression form)', 'expression', 'Value produced when the condition is false.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Clause behavior:</strong>
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>if</InlineCode> runs its body when the condition evaluates to <InlineCode>true</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>unless</InlineCode> runs its body when the condition evaluates to <InlineCode>false</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>else if</InlineCode> and <InlineCode>else unless</InlineCode> are evaluated in order
+    only when every preceding clause failed to match.
+  </Bullet>
+  <Bullet>
+    A trailing <InlineCode>else</InlineCode> runs only when no previous clause matched.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Form', 'Returns']}
+  rows={[
+    ['Statement form', 'Nothing. Control flow continues after the conditional.'],
+    ['Expression form', 'The value of the selected branch expression. Both branches must produce compatible types.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Non-boolean condition</strong> — The condition of{' '}
+    <InlineCode>if</InlineCode> and <InlineCode>unless</InlineCode> must be <InlineCode>bool</InlineCode>.
+    Passing an <InlineCode>int</InlineCode>, <InlineCode>string</InlineCode>, or other type fails
+    semantic analysis with a type-mismatch error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing parentheses (statement form)</strong> — Writing{' '}
+    <InlineCode>if true</InlineCode> instead of <InlineCode>if (true)</InlineCode> in a statement
+    produces a parser error; the statement form requires parentheses.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Empty body</strong> — A bare semicolon after the condition
+    (<InlineCode>if (true);</InlineCode>) is rejected. Use an empty block <InlineCode>{}</InlineCode>{' '}
+    if a no-op branch is intentional.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dangling else</strong> — Each <InlineCode>else</InlineCode>{' '}
+    binds to the nearest preceding <InlineCode>if</InlineCode> or <InlineCode>unless</InlineCode> in
+    the same block. Use explicit braces to override the default binding.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch (expression form)</strong> — The then and else
+    branches of an <InlineCode>if</InlineCode> expression must yield the same type.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Statement bodies.</strong> A conditional clause accepts either a single statement or a
+  braced block. ShardScript does not require braces for a single statement, but braces are mandatory
+  for more than one statement. The documentation style used in this project recommends explicit
+  braces in all production code for clarity and to reduce dangling-else mistakes.
+</Prose>
+
+<Prose>
+  <strong>Unless semantics.</strong> <InlineCode>unless (condition)</InlineCode> is equivalent to{' '}
+  <InlineCode>if (!condition)</InlineCode>. The keyword form reads naturally for guard clauses and
+  early-exit checks. An <InlineCode>else</InlineCode> after <InlineCode>unless</InlineCode> runs when
+  the condition is <InlineCode>true</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Chaining clauses.</strong> After <InlineCode>else</InlineCode> the parser accepts another
+  <InlineCode>if</InlineCode>, another <InlineCode>unless</InlineCode>, or a final block. This allows
+  mixed chains such as <InlineCode>if ... else unless ... else</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Boolean-only conditions.</strong> There is no truthy/falsy coercion. Numeric zero, empty
+  strings, and <InlineCode>null</InlineCode> references do <em>not</em> act as false. The condition
+  must be an expression that the compiler resolves to <InlineCode>bool</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>VM lowering.</strong> A statement conditional compiles to a <InlineCode>jmpf</InlineCode>{' '}
+  (jump-if-false) for <InlineCode>if</InlineCode> or <InlineCode>jmpt</InlineCode> (jump-if-true) for
+  <InlineCode>unless</InlineCode>, followed by unconditional <InlineCode>jmp</InlineCode> instructions
+  that skip the remaining clauses once a branch is taken. The condition value is popped from the
+  evaluation stack before the branch body executes.
+</Prose>
+
+<Callout tone="amber" title="Expression form status">
+  The parser and semantic binder recognize <InlineCode>if</InlineCode> as an expression, but the
+  synchronous bytecode emitter does not yet implement it. Until that work is complete, use the
+  ternary conditional operator (<InlineCode>condition ? thenValue : elseValue</InlineCode>) for
+  value selection in synchronous code, or fall back to an <InlineCode>if</InlineCode> statement with
+  a pre-declared variable.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic if/else if/else chain.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    score: int = 85;
+
+    if (score >= 90)
+    {
+        println("A");
+    }
+    else if (score >= 80)
+    {
+        println("B");
+    }
+    else if (score >= 70)
+    {
+        println("C");
+    }
+    else
+    {
+        println("F");
+    }
+}`}
+  language="csharp"
+  filename="grade_conditionals.shard"
+/>
+
+<Prose>
+  <strong>unless for inverted logic.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ready: bool = false;
+
+    unless (ready)
+    {
+        println("still loading");
+    }
+    else
+    {
+        println("ready");
+    }
+}`}
+  language="csharp"
+  filename="unless_inverted.shard"
+/>
+
+<Prose>
+  <strong>Single-statement bodies.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    value: int = 7;
+
+    if (value > 0)
+        println("positive");
+    else if (value < 0)
+        println("negative");
+    else
+        println("zero");
+}`}
+  language="csharp"
+  filename="single_statement.shard"
+/>
+
+<Prose>
+  <strong>Boolean-only condition enforcement.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    count: int = 5;
+
+    // Correct: the comparison produces bool.
+    if (count > 0)
+    {
+        println("has items");
+    }
+
+    // Incorrect and will not compile:
+    // if (count) { println("has items"); }
+    // Error: condition must be boolean, got 'int'
+}`}
+  language="csharp"
+  filename="boolean_condition.shard"
+/>
+
+<Prose>
+  <strong>Value selection with the ternary operator.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    value: int = -4;
+
+    // Ternary ? : is fully emitted and works today.
+    sign: int = value >= 0 ? 1 : -1;
+    label: string = value > 10 ? "big" : "small";
+
+    println(sign);    // -1
+    println(label);   // small
+}`}
+  language="csharp"
+  filename="ternary_value_selection.shard"
+/>
+
+<Prose>
+  <strong>Equivalent logic without the expression form.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    value: int = 7;
+    sign: int = 0;
+
+    // Use a statement and a pre-declared variable when the expression
+    // form is unavailable or when both branches are too large for a
+    // single expression.
+    if (value >= 0)
+    {
+        sign = 1;
+    }
+    else
+    {
+        sign = -1;
+    }
+
+    println(sign);    // 1
+}`}
+  language="csharp"
+  filename="statement_equivalent.shard"
+/>
+
+<Prose>
+  <strong>Nested conditionals and explicit braces.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: bool = true;
+    b: bool = false;
+
+    if (a)
+    {
+        if (b)
+        {
+            println("a and b");
+        }
+        else
+        {
+            println("a only");
+        }
+    }
+    else
+    {
+        println("neither");
+    }
+}`}
+  language="csharp"
+  filename="nested_conditionals.shard"
+/>
+
+<Prose>
+  <strong>Mixed else-if / else-unless chain.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    mode: string = "silent";
+    enabled: bool = true;
+
+    if (mode == "verbose")
+    {
+        println("full output");
+    }
+    else unless (enabled)
+    {
+        println("disabled");
+    }
+    else
+    {
+        println("normal");
+    }
+}`}
+  language="csharp"
+  filename="mixed_chain.shard"
+/>

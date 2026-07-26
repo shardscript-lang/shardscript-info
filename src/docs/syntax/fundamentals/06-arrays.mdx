@@ -1,0 +1,326 @@
+---
+title: Arrays
+group: Fundamentals
+order: 6
+slug: arrays
+type: Reference
+---
+
+<Prose>
+  A <strong>ShardScript array</strong> is a fixed-size, homogeneous, indexed
+  sequence allocated on the GC heap. Arrays are written with square-bracket
+  literals, support element read and write through an indexer, expose their size
+  through the <InlineCode>Length</InlineCode> property, implement{' '}
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode>, and can be iterated with{' '}
+  <InlineCode>foreach</InlineCode>.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  Arrays store a fixed number of elements of a single type <InlineCode>T</InlineCode>,
+  accessed by a zero-based <InlineCode>int</InlineCode> index. They are created with
+  literals such as <InlineCode>[1, 2, 3]</InlineCode> or by assigning a range such as{' '}
+  <InlineCode>1..5</InlineCode>. The element type, length, index, and enumerable
+  behavior are all verified by the compiler; out-of-bounds access produces a
+  runtime exception.
+</Prose>
+
+<H2>Syntax</H2>
+
+<DocsTable
+  headers={['Construct', 'Syntax', 'Description']}
+  rows={[
+    ['Array type', <code>T[]</code>, 'A fixed-size array whose element type is T.'],
+    ['Array literal', <code>[expr1, expr2, ...]</code>, 'Creates a new array containing the given elements.'],
+    ['Empty literal', <code>[]</code>, 'An array literal with no elements (requires a target type for inference).'],
+    ['Range-to-array', <code>lower..upper</code>, 'Produces an int[] from lower (inclusive) to upper (exclusive).'],
+    ['Inclusive range', <code>lower..&upper</code>, 'Produces an int[] from lower (inclusive) to upper (inclusive).'],
+    ['Indexer get', <code>array[index]</code>, 'Reads the element at the zero-based index.'],
+    ['Indexer set', <code>array[index] = value</code>, 'Replaces the element at the zero-based index.'],
+    ['Length', <code>array.Length</code>, 'Returns the number of elements as int.'],
+    ['Iteration', <code>foreach (item in array) { }</code>, 'Iterates every element of the array.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>T</InlineCode> — the element type. Must be a known ShardScript type
+    such as <InlineCode>int</InlineCode>, <InlineCode>double</InlineCode>,{' '}
+    <InlineCode>byte</InlineCode>, <InlineCode>string</InlineCode>, <InlineCode>char</InlineCode>,
+    or a class/struct type.
+  </Bullet>
+  <Bullet>
+    <InlineCode>exprN</InlineCode> — an expression whose type matches{' '}
+    <InlineCode>T</InlineCode>. Every element in a literal must have the same type.
+  </Bullet>
+  <Bullet>
+    <InlineCode>index</InlineCode> — an <InlineCode>int</InlineCode> expression giving
+    the zero-based position to read or write.
+  </Bullet>
+  <Bullet>
+    <InlineCode>value</InlineCode> — an expression assignable to the array's element type.
+  </Bullet>
+  <Bullet>
+    <InlineCode>lower</InlineCode>, <InlineCode>upper</InlineCode> —{' '}
+    <InlineCode>int</InlineCode> expressions defining the bounds of a range. Non-integer
+    bounds are rejected at compile time.
+  </Bullet>
+  <Bullet>
+    <InlineCode>item</InlineCode> — the loop variable introduced by{' '}
+    <InlineCode>foreach</InlineCode>. Its type is inferred from the array's element type.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  An array literal or range expression evaluates to an object of type{' '}
+  <InlineCode>T[]</InlineCode>. The <InlineCode>Length</InlineCode> property evaluates
+  to <InlineCode>int</InlineCode>. An indexer get expression evaluates to the element
+  type <InlineCode>T</InlineCode>. An indexer set expression evaluates to{' '}
+  <InlineCode>void</InlineCode>.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong>Compile error — type mismatch:</strong>{' '}
+    <InlineCode>[1, "two"]</InlineCode> is rejected because the elements do not share
+    a single type.
+  </Bullet>
+  <Bullet>
+    <strong>Compile error — untyped empty literal:</strong>{' '}
+    <InlineCode>[]</InlineCode> cannot infer an element type on its own. An explicit
+    target type such as <InlineCode>int[] empty = [];</InlineCode> is accepted by the
+    grammar but is not yet implemented in the current compiler.
+  </Bullet>
+  <Bullet>
+    <strong>Compile error — non-int index:</strong> indexing with{' '}
+    <InlineCode>double</InlineCode>, <InlineCode>string</InlineCode>, or another
+    non-integer type is rejected.
+  </Bullet>
+  <Bullet>
+    <strong>Compile error — non-enumerable foreach:</strong>{' '}
+    <InlineCode>foreach</InlineCode> requires an expression implementing{' '}
+    <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong>Runtime error — index out of range:</strong> reading or writing with an
+    index outside <InlineCode>0 .. Length - 1</InlineCode> throws.
+  </Bullet>
+  <Bullet>
+    <strong>Runtime error — null array access:</strong> indexing or reading{' '}
+    <InlineCode>Length</InlineCode> on a <InlineCode>null</InlineCode> array reference
+    throws a null-reference exception.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  Arrays in ShardScript are <strong>fixed-size</strong>. Once created, the length
+  cannot change. For a dynamically sized sequence, use{' '}
+  <InlineCode>List&lt;T&gt;</InlineCode> from the <InlineCode>collections</InlineCode>{' '}
+  shard.
+</Prose>
+
+<Prose>
+  Every array type implicitly implements{' '}
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode>, where <InlineCode>T</InlineCode> is
+  the element type. This allows the same <InlineCode>foreach</InlineCode> loop to
+  iterate arrays, lists, dictionaries, queues, stacks, and ranges.
+</Prose>
+
+<Prose>
+  Ranges are a compact way to produce an <InlineCode>int[]</InlineCode>. The expression{' '}
+  <InlineCode>1..5</InlineCode> creates the array <InlineCode>[1, 2, 3, 4]</InlineCode>;
+  <InlineCode>1..&5</InlineCode> creates <InlineCode>[1, 2, 3, 4, 5]</InlineCode>. A
+  bracketed range literal such as <InlineCode>[1..5]</InlineCode> is <em>not</em> a
+  single-element array of ranges — it is parsed as the range value itself.
+</Prose>
+
+<Callout tone="amber" title="Ranges count upward only">
+  Range expressions always count upward with a step of <InlineCode>1</InlineCode>.
+  Descending sequences, custom steps, or empty descending ranges require a C-style{' '}
+  <InlineCode>for</InlineCode> loop or another explicit construction.
+</Callout>
+
+<Prose>
+  The VM stores reference-type elements as object references and value-type elements
+  inline. Setting a reference-type element updates reference counts for garbage
+  collection; setting a value-type element copies the value into the array's backing
+  storage.
+</Prose>
+
+<Prose>
+  Array bounds are checked at runtime. Negative indices are not supported and, because
+  the runtime casts the index to <InlineCode>std::size_t</InlineCode>, they are treated
+  as very large positive values and will immediately fail the bounds check.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic literals, indexing, and Length</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Explicitly typed array literal.
+    numbers: int[] = [10, 20, 30];
+
+    println(numbers.Length);    // 3
+    println(numbers[0]);        // 10
+    println(numbers[2]);        // 30
+
+    // Mutate an element by index.
+    numbers[1] = 25;
+    println(numbers[1]);        // 25
+
+    // Element access can be used in expressions.
+    sum: int = numbers[0] + numbers[1] + numbers[2];
+    println(sum);               // 65
+}`}
+  language="csharp"
+  filename="arrays_basic.shard"
+/>
+
+<Prose>
+  <strong>Reference-type elements and member access</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Item
+{
+    public Value: int;
+}
+
+public static func Main() -> void
+{
+    items: Item[] = [new Item(), new Item()];
+
+    // Member access on an indexed element.
+    items[0].Value = 7;
+    items[1].Value = 14;
+
+    println(items[0].Value);    // 7
+    println(items[1].Value);    // 14
+}`}
+  language="csharp"
+  filename="arrays_objects.shard"
+/>
+
+<Prose>
+  <strong>Arrays from ranges</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Half-open range: includes 1, excludes 5.
+    halfOpen: int[] = 1..5;
+    println(halfOpen.Length);   // 4
+
+    // Inclusive range: includes both bounds.
+    inclusive: int[] = 1..&5;
+    println(inclusive.Length);  // 5
+
+    // A single range inside brackets is still a range, not a nested array.
+    alsoRange: int[] = [1..5];
+    println(alsoRange.Length);  // 4
+
+    foreach (n in halfOpen)
+    {
+        print(n);               // 1234
+    }
+    println("");
+}`}
+  language="csharp"
+  filename="arrays_ranges.shard"
+/>
+
+<Prose>
+  <strong>Iteration with foreach</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    names: string[] = ["alpha", "beta", "gamma"];
+
+    foreach (name in names)
+    {
+        println(name);
+    }
+
+    // Arrays implement IEnumerable<T>, so they can be assigned to an interface variable.
+    enumerable: IEnumerable<string> = names;
+    foreach (item in enumerable)
+    {
+        println(item);
+    }
+}`}
+  language="csharp"
+  filename="arrays_foreach.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes and edge cases</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    values: int[] = [10, 20, 30];
+
+    // Bounds-checked access: this index is valid.
+    lastIndex: int = values.Length - 1;
+    println(values[lastIndex]);     // 30
+
+    // The following would fail at runtime:
+    // println(values[3]);          // IndexOutOfRangeException
+    // println(values[-1]);         // Negative index is treated as huge size_t, also fails
+
+    // Type mismatch is caught at compile time:
+    // values[0] = "wrong";         // ERROR: string is not assignable to int
+
+    // Mixed literals are rejected:
+    // mixed: object[] = [1, "two"]; // ERROR: elements must share one type
+}`}
+  language="csharp"
+  filename="arrays_edge_cases.shard"
+/>
+
+<Callout tone="amber" title="Empty array literals">
+  Writing <InlineCode>[]</InlineCode> on its own is ambiguous because the compiler has
+  no element type to infer. An explicitly typed declaration such as{' '}
+  <InlineCode>int[] empty = [];</InlineCode> is the intended syntax, but it is not yet
+  accepted by the current compiler. Today you can obtain a zero-length{' '}
+  <InlineCode>int[]</InlineCode> with <InlineCode>0..0</InlineCode> or assign{' '}
+  <InlineCode>null</InlineCode> for reference-element arrays.
+</Callout>

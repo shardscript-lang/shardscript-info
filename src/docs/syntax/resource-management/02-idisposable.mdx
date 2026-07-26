@@ -1,0 +1,472 @@
+---
+title: Deterministic Disposal
+group: Resource Management
+order: 2
+slug: idisposable
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript provides deterministic resource cleanup through the built-in{' '}
+  <InlineCode>IDisposable</InlineCode> interface and the resource form of the{' '}
+  <InlineCode>defer</InlineCode> statement. The compiler verifies that a deferred
+  variable implements <InlineCode>IDisposable</InlineCode>, resolves the concrete{' '}
+  <InlineCode>Dispose()</InlineCode> implementation at compile time, and guarantees
+  that disposal runs when the enclosing scope exits — whether by normal flow, early
+  return, or exception unwinding.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  <InlineCode>IDisposable</InlineCode> is a compiler-provided interface with a single
+  parameterless method. A type participates in deterministic disposal by implementing
+  it, and a variable is bound to automatic disposal with the resource-defer form.
+</Prose>
+
+<DocsTable
+  headers={['Construct', 'Syntax', 'Description']}
+  rows={[
+    [<InlineCode>IDisposable</InlineCode>, <><InlineCode>public interface IDisposable</InlineCode><br /><InlineCode>{'{'} func Dispose() -&gt; void; {'}'}</InlineCode></>, 'Contract that defines a single cleanup method.'],
+    [<InlineCode>Resource defer</InlineCode>, <><InlineCode>defer name: Type = expression;</InlineCode></>, 'Declares a variable and schedules <InlineCode>name.Dispose()</InlineCode> at scope exit.'],
+    [<InlineCode>Inferred resource defer</InlineCode>, <><InlineCode>defer name := expression;</InlineCode></>, 'Same behavior; the type is inferred from the initializer.'],
+  ]}
+/>
+
+<Prose>
+  The statement-defer form (<InlineCode>defer expression;</InlineCode>) also exists, but it
+  is unrelated to <InlineCode>IDisposable</InlineCode>; it defers arbitrary statements rather
+  than calling <InlineCode>Dispose()</InlineCode> automatically.
+</Prose>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  <InlineCode>IDisposable.Dispose()</InlineCode> takes no arguments and returns nothing.
+  The resource-defer form accepts the same initializer as a normal variable declaration.
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Variable type</strong> — must be assignable to{' '}
+    <InlineCode>IDisposable</InlineCode>. The compiler rejects the declaration if it is not.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Initializer</strong> — any expression whose type is
+    assignable to the variable type. Evaluation happens immediately, before the defer is
+    registered.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dispose implementation</strong> — the compiler
+    locates the concrete implementation through interface-implementation lookup and stores it
+    directly in the defer AST node.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member / Form', 'Return type']}
+  rows={[
+    [<InlineCode>IDisposable.Dispose()</InlineCode>, <><InlineCode>void</InlineCode> — the method exists only for side effects.</>],
+    [<InlineCode>defer name: Type = expression;</InlineCode>, 'No value. The statement produces a registered cleanup action.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Type does not implement IDisposable</strong> — the
+    binder emits <em>&quot;Type &apos;X&apos; declared in defer statement must implement IDisposable&quot;</em>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">IDisposable not defined</strong> — if the standard
+    interface has been removed or is unreachable, the binder reports <em>&quot;IDisposable interface is not defined&quot;</em>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing Dispose implementation</strong> — a type that
+    claims to implement <InlineCode>IDisposable</InlineCode> but provides no matching{' '}
+    <InlineCode>Dispose()</InlineCode> method produces <em>&quot;Type &apos;X&apos; does not provide an implementation for IDisposable.Dispose()&quot;</em>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">defer outside a block</strong> — the emitter reports
+    <em>&quot;defer statement must be inside a block&quot;</em> because defers are scoped to brace-enclosed statement blocks.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Empty defer</strong> — <InlineCode>defer;</InlineCode> is
+    rejected by the parser with <em>&quot;defer statement cannot be empty&quot;</em>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Double dispose</strong> — manually calling{' '}
+    <InlineCode>Dispose()</InlineCode> on a resource-deferred instance can invoke the method twice.
+    Implementations should guard against this with a disposed flag.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Compile-time binding.</strong> The resource-defer form is not duck typing. The
+  binder resolves <InlineCode>FindInterfaceImplementation</InlineCode> for the concrete{' '}
+  <InlineCode>Dispose()</InlineCode> method and stores it in the defer node. At bytecode level,
+  the deferred expression is a direct <InlineCode>LOADVARIABLE</InlineCode> followed by{' '}
+  <InlineCode>CALLMETHODSYMBOL</InlineCode> on that concrete method. There is no interface
+  dispatch at runtime.
+</Prose>
+
+<Prose>
+  <strong>LIFO execution order.</strong> Multiple defers in the same scope execute in
+  reverse declaration order (last in, first out). Nested scopes drain their defers before the
+  outer scope drains its own, so inner resources are released before resources that own them.
+</Prose>
+
+<Prose>
+  <strong>Disposal chains.</strong> A class that owns another disposable object should call
+  the owned object&apos;s <InlineCode>Dispose()</InlineCode> inside its own. This composes into
+  chains where the outer object triggers cleanup of everything it wraps. Because defers run
+  LIFO, the outermost resource is disposed last, which is the safe order for nested ownership.
+</Prose>
+
+<Prose>
+  <strong>Exception safety.</strong> Resource defers are drained during exception unwinding.
+  When a <InlineCode>try</InlineCode> block is entered, the VM records the current defer-stack
+  baseline. If an exception propagates, <InlineCode>DrainDefersTo(baseline)</InlineCode> runs
+  every defer registered inside the <InlineCode>try</InlineCode> before control reaches the
+  matching <InlineCode>catch</InlineCode>. Unhandled exceptions drain the entire frame before
+  propagating to the caller.
+</Prose>
+
+<Prose>
+  <strong>Async functions.</strong> Resource defers work across <InlineCode>await</InlineCode>{' '}
+  suspension points. The async emission pass re-emits active <InlineCode>DEFER</InlineCode>{' '}
+  instructions on every resume path so the defer stack is reconstructed when the state machine
+  continues. The resource is disposed when the async method completes, faults, or is cancelled,
+  even if it never reached the first <InlineCode>await</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Runtime mechanism.</strong> The VM stores each defer as a bytecode offset in the
+  frame&apos;s <InlineCode>DeferStack</InlineCode>. A <InlineCode>DEFER_DRAIN</InlineCode>{' '}
+  opcode pops the requested count and executes each deferred body through a sub-interpreter loop
+  until <InlineCode>DEFER_BREAK</InlineCode> is reached. The runtime does not distinguish a
+  resource defer from a statement defer; the difference was resolved at compile time.
+</Prose>
+
+<Prose>
+  <strong>No <InlineCode>using</InlineCode> statement.</strong> ShardScript does not have a
+  C#-style <InlineCode>using</InlineCode> block. The resource-defer form is the only built-in
+  deterministic disposal syntax.
+</Prose>
+
+<Callout tone="blue">
+  Because the concrete <InlineCode>Dispose()</InlineCode> method is resolved at compile time,
+  the resource-defer form is effectively zero-overhead relative to writing the call manually at
+  every exit point. The compiler emits the same direct method call you would write yourself.
+</Callout>
+
+<Callout tone="amber">
+  Implement <InlineCode>Dispose()</InlineCode> defensively. If user code or another dispose
+  chain calls it a second time, the method should silently return rather than throw or close an
+  already-released handle. Track this with a private <InlineCode>disposed</InlineCode> bool field.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic IDisposable implementation.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Resource : IDisposable
+{
+    private name: string;
+
+    public init(name: string)
+    {
+        this.name = name;
+        println("acquired: " + name);
+    }
+
+    public func Dispose() -> void
+    {
+        // Release whatever the resource owns; here we just trace.
+        println("disposed: " + this.name);
+    }
+}
+
+public static func Main() -> void
+{
+    defer r: Resource = new Resource("alpha");
+    println("using alpha");
+
+    // Output:
+    //   acquired: alpha
+    //   using alpha
+    //   disposed: alpha
+}`}
+  language="csharp"
+  filename="disposable_basic.shard"
+/>
+
+<Prose>
+  <strong>Idempotent Dispose with a disposed flag.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class FileHandle : IDisposable
+{
+    private path: string;
+    private opened: bool;
+
+    public init(path: string)
+    {
+        this.path = path;
+        this.opened = true;
+        println("opened " + path);
+    }
+
+    public func Dispose() -> void
+    {
+        // Guard against repeated disposal from defer + manual call.
+        if (this.opened)
+        {
+            this.opened = false;
+            println("closed " + this.path);
+        }
+    }
+}
+
+public static func Main() -> void
+{
+    defer handle: FileHandle = new FileHandle("data.txt");
+    println("working with data.txt");
+
+    // Output:
+    //   opened data.txt
+    //   working with data.txt
+    //   closed data.txt
+}`}
+  language="csharp"
+  filename="disposable_idempotent.shard"
+/>
+
+<Prose>
+  <strong>Multiple resources dispose in LIFO order.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Database : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("database disposed");
+    }
+}
+
+public class Logger : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("logger disposed");
+    }
+}
+
+public static func Main() -> void
+{
+    defer db: Database = new Database();
+    defer log: Logger = new Logger();
+    println("working...");
+
+    // Output:
+    //   working...
+    //   logger disposed   // registered second, disposed first
+    //   database disposed
+}`}
+  language="csharp"
+  filename="disposable_lifo.shard"
+/>
+
+<Prose>
+  <strong>Disposal chain: an outer object owns an inner disposable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class BufferedLogger : IDisposable
+{
+    private inner: FileHandle;
+
+    public init(path: string)
+    {
+        this.inner = new FileHandle(path);
+    }
+
+    public func Dispose() -> void
+    {
+        // Forward disposal down the ownership chain.
+        this.inner.Dispose();
+        println("buffered logger disposed");
+    }
+}
+
+public static func Main() -> void
+{
+    defer logger: BufferedLogger = new BufferedLogger("app.log");
+    println("writing logs...");
+
+    // Output:
+    //   opened app.log
+    //   writing logs...
+    //   closed app.log
+    //   buffered logger disposed
+}`}
+  language="csharp"
+  filename="disposable_chain.shard"
+/>
+
+<Prose>
+  <strong>Disposal during exception unwinding.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class CriticalResource : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("critical resource cleaned up");
+    }
+}
+
+public static func Work() -> void
+{
+    defer r: CriticalResource = new CriticalResource();
+    println("about to throw");
+    throw new RuntimeException();
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        Work();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught exception");
+    }
+
+    // Output:
+    //   about to throw
+    //   critical resource cleaned up
+    //   caught exception
+}`}
+  language="csharp"
+  filename="disposable_exception.shard"
+/>
+
+<Prose>
+  <strong>Resource defer in an async method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class Connection : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("connection closed");
+    }
+}
+
+public class Program
+{
+    public static async func WorkAsync() -> Task
+    {
+        defer conn: Connection = new Connection();
+        println("before await");
+        await Task.Delay(10);
+        println("after await");
+    }
+
+    public static func Main() -> void
+    {
+        Task.Wait(WorkAsync());
+        println("done");
+    }
+}
+
+// Output:
+//   before await
+//   after await
+//   connection closed
+//   done`}
+  language="csharp"
+  filename="disposable_async.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: deferring a non-disposable type.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class PlainBox
+{
+    public Value: int;
+}
+
+public static func Main() -> void
+{
+    // Compile-time error:
+    // Type 'PlainBox' declared in defer statement must implement IDisposable.
+    defer box: PlainBox = new PlainBox();
+    box.Value = 42;
+}`}
+  language="csharp"
+  filename="disposable_error.shard"
+/>
+
+<Prose>
+  <strong>Standard-library types that implement <InlineCode>IDisposable</InlineCode>.</strong>
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Namespace', 'What Dispose() releases']}
+  rows={[
+    [<InlineCode>FileStream</InlineCode>, 'filesystem', 'Closes the underlying OS file handle.'],
+    [<InlineCode>MemoryStream</InlineCode>, 'io', 'Marks the internal buffer as closed.'],
+    [<InlineCode>SocketStream</InlineCode>, 'net', 'Disassociates from the socket handle.'],
+    [<InlineCode>Socket</InlineCode>, 'net', 'Closes the OS socket descriptor.'],
+    [<InlineCode>StreamReader</InlineCode>, 'io', 'Releases the wrapped stream reference and disposed flag.'],
+    [<InlineCode>StreamWriter</InlineCode>, 'io', 'Flushes pending data and releases the wrapped stream.'],
+  ]}
+/>

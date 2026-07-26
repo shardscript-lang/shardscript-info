@@ -1,0 +1,645 @@
+---
+title: Interfaces and Abstractions
+group: Object-Oriented Programming
+order: 5
+slug: interfaces
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  An <InlineCode>interface</InlineCode> in ShardScript declares a named contract of methods and
+  properties that a class or struct must provide. Interfaces enable polymorphic programming:
+  code can be written against the abstraction rather than a concrete type, and the virtual
+  machine resolves the right implementation at runtime through <InlineCode>CALLINTERFACE</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Declare an interface with the <InlineCode>interface</InlineCode> keyword, then implement it by
+  listing it after the class base clause.
+</Prose>
+
+<CodeBlock
+  code={`// Interface declaration
+public interface IName
+{
+    // Method contract — no body required.
+    func MethodName(parameter: Type) -> ReturnType;
+
+    // Property contract — accessor requirements only.
+    PropertyName: Type { get; }
+    ReadWriteProperty: Type { get; set; }
+}
+
+// Interface extension
+public interface IDerived : IBase
+{
+    func Extra() -> void;
+}
+
+// Implementation
+public class Example : IName, IDisposable
+{
+    public func MethodName(parameter: Type) -> ReturnType
+    {
+        // implementation
+    }
+
+    public PropertyName: Type
+    {
+        get { return value; }
+    }
+
+    public ReadWriteProperty: Type
+    {
+        get { return value; }
+        set { value = value; }
+    }
+
+    public func Dispose() -> void
+    {
+        // cleanup
+    }
+}`}
+  language="csharp"
+  filename="interface_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Construct', 'Required', 'Description']}
+  rows={[
+    [<InlineCode>interface name</InlineCode>, 'Yes', 'The declared contract name, conventionally prefixed with I.'],
+    [<InlineCode>base interfaces</InlineCode>, 'No', 'One or more interfaces that this interface extends, separated by commas.'],
+    [<InlineCode>method signatures</InlineCode>, 'No*', 'Methods without bodies define required behavior. *At least one member is typical.'],
+    [<InlineCode>property signatures</InlineCode>, 'No', 'Properties declare required getters and/or setters.'],
+    [<InlineCode>class : interfaces</InlineCode>, 'No', 'A class or struct lists every interface it implements after a colon.'],
+  ]}
+/>
+
+<Prose>
+  Interface members are matched by <strong>name and signature</strong>. A class member is an
+  implementation candidate when its name, parameter types, and return type match the interface
+  member exactly. Access modifiers on the implementing member must make it callable through the
+  interface, which usually means <InlineCode>public</InlineCode>.
+</Prose>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Expression', 'Result']}
+  rows={[
+    [<InlineCode>value is Type</InlineCode>, <><InlineCode>bool</InlineCode> — <InlineCode>true</InlineCode> if the runtime type of <InlineCode>value</InlineCode> is assignable to <InlineCode>Type</InlineCode>; otherwise <InlineCode>false</InlineCode>.</>],
+    [<InlineCode>value as Type</InlineCode>, <><InlineCode>Type</InlineCode> on success, or <InlineCode>null</InlineCode> if the conversion is not valid. For primitives this performs a numeric cast.</>],
+    [<InlineCode>interfaceMember()</InlineCode>, 'The return type declared by the interface member, dispatched to the concrete implementation at runtime.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing implementation</strong> — A class claims to implement
+    an interface but does not provide a matching public member for every method and property.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Signature mismatch</strong> — The implementing member differs
+    in parameter count, parameter types, or return type from the interface member.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid base type</strong> — Only interfaces may appear in the
+    base list of an interface declaration. Classes and structs are not valid base interfaces.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Fields in interfaces</strong> — Interfaces cannot contain
+    fields; they may only declare methods, properties, indexers, and events.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null dispatch</strong> — Calling an interface method through a
+    <InlineCode>null</InlineCode> reference throws at runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid cast result</strong> — Using a failed <InlineCode>as</InlineCode>{' '}
+    result without a <InlineCode>null</InlineCode> check throws when the member is invoked on
+    <InlineCode>null</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Implicit interface implementation.</strong> ShardScript resolves interface members by
+  matching name and signature. If a class declares <InlineCode>public func Area() -> double</InlineCode>{' '}
+  and implements <InlineCode>IShape</InlineCode> with the same <InlineCode>Area()</InlineCode>{' '}
+  signature, the compiler records the mapping automatically. There is currently no syntax for
+  explicit interface implementation (such as <InlineCode>func IShape.Area()</InlineCode>); all
+  implementations are name-based.
+</Prose>
+
+<Prose>
+  <strong>Interface inheritance.</strong> An interface can extend other interfaces, and a class that
+  implements the derived interface must satisfy every member from the entire inheritance chain.
+  Interface extension is linearized during binding, so diamond-shaped interface hierarchies are
+  resolved by member name; if two unrelated base interfaces declare the same member name with
+  different signatures, the implementing class must provide a member that matches each interface
+  independently, which is not possible without explicit implementation syntax.
+</Prose>
+
+<Prose>
+  <strong>Virtual dispatch.</strong> Calls through an interface are emitted as{' '}
+  <InlineCode>CALLINTERFACE</InlineCode>, not a direct call. The VM pops the <InlineCode>this</InlineCode>{' '}
+  reference, looks up the concrete type, finds the implementation via the type's interface method
+  map, and invokes it. This is how two different classes implementing the same interface produce
+  different behavior from the same call site.
+</Prose>
+
+<Prose>
+  <strong>Type tests and safe casts.</strong> The <InlineCode>is</InlineCode> operator compiles to{' '}
+  <InlineCode>ISINSTANCE</InlineCode>, which checks assignability using the semantic model's type
+  table. The <InlineCode>as</InlineCode> operator compiles to <InlineCode>CASTINTERFACE</InlineCode>{' '}
+  for reference/interface casts; on failure it pushes <InlineCode>null</InlineCode> instead of
+  throwing. For primitive conversions (for example <InlineCode>7 as double</InlineCode>),{' '}
+  <InlineCode>as</InlineCode> performs a value cast rather than a reference cast.
+</Prose>
+
+<Callout tone="blue">
+  Prefer <InlineCode>is</InlineCode> followed by <InlineCode>as</InlineCode> (or a guarded cast and
+  null check) over direct member access on an <InlineCode>as</InlineCode> result. This mirrors the
+  defensive pattern used for host callbacks and library-returned references.
+</Callout>
+
+<Prose>
+  <strong>Abstract classes.</strong> The parser and semantic model reserve space for the{' '}
+  <InlineCode>abstract</InlineCode> modifier, but it is not currently enabled. You cannot mark a
+  class or method <InlineCode>abstract</InlineCode>; use an interface to express a pure contract
+  and a concrete base class with stub implementations as a temporary substitute.
+</Prose>
+
+<Callout tone="amber" title="Abstract classes not yet implemented">
+  Abstract classes and abstract methods are planned but not available in the current compiler. The
+  workaround is to declare a base class with default method bodies and override the behavior in
+  derived classes, or to use an interface when no shared implementation is needed.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic interface declaration and implementation.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+// A simple geometric contract.
+public interface IShape
+{
+    func Area() -> double;
+    Name: string { get; }
+}
+
+public class Circle : IShape
+{
+    private radius: double;
+    private label: string;
+
+    public init(radius: double, name: string)
+    {
+        this.radius = radius;
+        this.label = name;
+    }
+
+    public func Area() -> double
+    {
+        return 3.14159 * this.radius * this.radius;
+    }
+
+    public Name: string
+    {
+        get { return this.label; }
+    }
+}
+
+public static func Main() -> void
+{
+    c: Circle = new Circle(5.0, "unit circle");
+    println(c.Name + " area: " + c.Area());   // unit circle area: 78.53975
+}`}
+  language="csharp"
+  filename="interface_basic.shard"
+/>
+
+<Prose>
+  <strong>Polymorphic dispatch through an interface.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface IGreeter
+{
+    func Greet() -> string;
+}
+
+public class Human : IGreeter
+{
+    private name: string;
+
+    public init(name: string)
+    {
+        this.name = name;
+    }
+
+    public func Greet() -> string
+    {
+        return "Hello, I'm " + this.name;
+    }
+}
+
+public class Robot : IGreeter
+{
+    private id: int;
+
+    public init(id: int)
+    {
+        this.id = id;
+    }
+
+    public func Greet() -> string
+    {
+        return "Beep-boop #" + this.id;
+    }
+}
+
+// Accept any IGreeter; the VM resolves the right implementation.
+public static func Announce(greeter: IGreeter) -> void
+{
+    println(greeter.Greet());
+}
+
+public static func Main() -> void
+{
+    alice: IGreeter = new Human("Alice");
+    r2: IGreeter = new Robot(42);
+
+    Announce(alice);   // Hello, I'm Alice
+    Announce(r2);      // Beep-boop #42
+}`}
+  language="csharp"
+  filename="interface_dispatch.shard"
+/>
+
+<Prose>
+  <strong>Implementing multiple interfaces.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface INameable
+{
+    Name: string { get; }
+}
+
+public interface ICountable
+{
+    func Count() -> int;
+}
+
+public class Tag : INameable, ICountable
+{
+    private label: string;
+    private clicks: int;
+
+    public init(label: string)
+    {
+        this.label = label;
+        this.clicks = 0;
+    }
+
+    public func Click() -> void
+    {
+        this.clicks = this.clicks + 1;
+    }
+
+    public Name: string
+    {
+        get { return this.label; }
+    }
+
+    public func Count() -> int
+    {
+        return this.clicks;
+    }
+}
+
+public static func PrintName(item: INameable) -> void
+{
+    println(item.Name);
+}
+
+public static func PrintCount(item: ICountable) -> void
+{
+    println(item.Count());
+}
+
+public static func Main() -> void
+{
+    tag: Tag = new Tag("urgent");
+    tag.Click();
+    tag.Click();
+
+    PrintName(tag);    // urgent
+    PrintCount(tag);   // 2
+}`}
+  language="csharp"
+  filename="interface_multiple.shard"
+/>
+
+<Prose>
+  <strong>Interface extension.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface IReadable
+{
+    func Read() -> string;
+}
+
+public interface IReadWrite : IReadable
+{
+    func Write(data: string) -> void;
+}
+
+public class Buffer : IReadWrite
+{
+    private data: string;
+
+    public init()
+    {
+        this.data = "";
+    }
+
+    public func Read() -> string
+    {
+        return this.data;
+    }
+
+    public func Write(data: string) -> void
+    {
+        this.data = data;
+    }
+}
+
+public static func Main() -> void
+{
+    buffer: Buffer = new Buffer();
+    rw: IReadWrite = buffer;
+
+    rw.Write("hello");
+    println(rw.Read());   // hello
+
+    // Upcast to the base interface.
+    r: IReadable = rw;
+    println(r.Read());    // hello
+}`}
+  language="csharp"
+  filename="interface_extension.shard"
+/>
+
+<Prose>
+  <strong>Using <InlineCode>is</InlineCode> and <InlineCode>as</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface IShape
+{
+    func Area() -> double;
+}
+
+public class Circle : IShape
+{
+    public Radius: double;
+
+    public init(radius: double)
+    {
+        this.Radius = radius;
+    }
+
+    public func Area() -> double
+    {
+        return 3.14159 * this.Radius * this.Radius;
+    }
+}
+
+public class Square : IShape
+{
+    public Side: double;
+
+    public init(side: double)
+    {
+        this.Side = side;
+    }
+
+    public func Area() -> double
+    {
+        return this.Side * this.Side;
+    }
+}
+
+public static func Describe(shape: IShape) -> void
+{
+    if (shape is Circle)
+    {
+        c: Circle = shape as Circle;
+        println("circle radius " + c.Radius + ", area " + c.Area());
+    }
+    else if (shape is Square)
+    {
+        s: Square = shape as Square;
+        println("square side " + s.Side + ", area " + s.Area());
+    }
+    else
+    {
+        println("unknown shape, area " + shape.Area());
+    }
+}
+
+public static func TryBox(shape: IShape) -> void
+{
+    // Safe cast returns null when the conversion is invalid.
+    box: Square = shape as Square;
+
+    if (box != null)
+    {
+        println("cast succeeded: side " + box.Side);
+    }
+    else
+    {
+        println("cast failed");
+    }
+}
+
+public static func Main() -> void
+{
+    Describe(new Circle(2.0));   // circle radius 2, area 12.56636
+    Describe(new Square(3.0));   // square side 3, area 9
+
+    TryBox(new Circle(1.0));     // cast failed
+    TryBox(new Square(4.0));     // cast succeeded: side 4
+
+    // Primitive cast with 'as'.
+    whole: int = 9.5 as int;
+    println(whole);              // 9
+}`}
+  language="csharp"
+  filename="interface_is_as.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: non-public implementation.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface ILogger
+{
+    func Log(message: string) -> void;
+}
+
+public class QuietLogger : ILogger
+{
+    // ERROR: this must be public to satisfy ILogger.
+    // private func Log(message: string) -> void
+    // {
+    //     println(message);
+    // }
+
+    public func Log(message: string) -> void
+    {
+        println(message);
+    }
+}
+
+public static func Main() -> void
+{
+    logger: ILogger = new QuietLogger();
+    logger.Log("visible");   // visible
+}`}
+  language="csharp"
+  filename="interface_accessibility.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: assigning without a null check after <InlineCode>as</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface IShape
+{
+    func Area() -> double;
+}
+
+public class Circle : IShape
+{
+    public Radius: double;
+
+    public init(radius: double)
+    {
+        this.Radius = radius;
+    }
+
+    public func Area() -> double
+    {
+        return 3.14159 * this.Radius * this.Radius;
+    }
+}
+
+public static func Main() -> void
+{
+    shape: IShape = new Circle(1.0);
+
+    // Safe, because the guard prevents null dereference.
+    if (shape is Circle)
+    {
+        c: Circle = shape as Circle;
+        println(c.Radius);
+    }
+
+    // UNSAFE: this would compile but throw at runtime if shape were not a Circle.
+    // bad: Circle = shape as Circle;
+    // println(bad.Radius);
+}`}
+  language="csharp"
+  filename="interface_null_check.shard"
+/>
+
+<Prose>
+  <strong>Standard-library interface example: <InlineCode>IDisposable</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class FileHandle : IDisposable
+{
+    private path: string;
+    private opened: bool;
+
+    public init(path: string)
+    {
+        this.path = path;
+        this.opened = true;
+        println("opened " + path);
+    }
+
+    public func Dispose() -> void
+    {
+        if (this.opened)
+        {
+            this.opened = false;
+            println("closed " + this.path);
+        }
+    }
+}
+
+public static func Main() -> void
+{
+    // defer calls Dispose when the scope exits.
+    defer handle: FileHandle = new FileHandle("data.txt");
+    println("working...");
+
+    // Output:
+    //   opened data.txt
+    //   working...
+    //   closed data.txt
+}`}
+  language="csharp"
+  filename="interface_disposable.shard"
+/>

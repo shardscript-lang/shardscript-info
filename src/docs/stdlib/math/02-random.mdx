@@ -1,0 +1,49 @@
+---
+title: Random Number Generation
+group: SHARD.MATH
+order: 3
+slug: random-number-generation
+---
+
+<Prose>
+  The <InlineCode>math.random</InlineCode> shard adds a static <InlineCode>Random</InlineCode> class
+  to the <InlineCode>math</InlineCode> namespace. It wraps a Mersenne Twister engine seeded from{' '}
+  <InlineCode>std::random_device</InlineCode> and provides overloads for both integer and floating-point
+  ranges.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using math;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println(Random.Integer(1, 6));      // roll a die
+    println(Random.Double());           // 0.0 .. 1.0
+    println(Random.Propably(50.0));     // coin flip
+}`}
+  language="csharp"
+  filename="random_basic.shard"
+/>
+
+<H2>API Reference</H2>
+
+<DocsTable
+  headers={['Member', 'Return', 'Description']}
+  rows={[
+    [<code>Integer()</code>, 'int', 'Returns a random 64-bit integer across the full signed range.'],
+    [<code>Integer(top)</code>, 'int', 'Returns a random integer in [0, top).'],
+    [<code>Integer(bottom, top)</code>, 'int', 'Returns a random integer in [bottom, top].'],
+    [<code>Double()</code>, 'double', 'Returns a random double in [0.0, 1.0).'],
+    [<code>Double(top)</code>, 'double', 'Returns a random double in [0.0, top).'],
+    [<code>Double(bottom, top)</code>, 'double', 'Returns a random double in [bottom, top).'],
+    [<code>Propably(chance)</code>, 'bool', 'Returns true with the given percentage chance (0..100).'],
+  ]}
+/>
+
+<Callout tone="blue">
+  Every call creates a fresh <InlineCode>std::mt19937</InlineCode> generator. For reproducible
+  sequences (e.g., deterministic game seeds), a seedable API is not yet exposed.
+</Callout>

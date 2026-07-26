@@ -1,0 +1,510 @@
+---
+title: Methods
+group: Object-Oriented Programming
+order: 3
+slug: methods
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <strong>method</strong> is a named block of code declared inside a class, struct, or interface
+  that defines the behaviour of a type. Methods may receive parameters, return values, be overloaded,
+  and be marked as instance, static, generic, asynchronous, or operator implementations.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A method declaration consists of optional modifiers, the <InlineCode>func</InlineCode> keyword,
+  an identifier, a parenthesized parameter list, an arrow return type, and a braced body.
+</Prose>
+
+<CodeBlock
+  code={`[access] [static|async|extern|export] func Name<T>(parameters) -> ReturnType
+{
+    // body
+}`}
+  language="csharp"
+  filename="method_syntax.shard"
+/>
+
+<Prose>
+  The grammar also supports constructor declarations using the <InlineCode>init</InlineCode> keyword
+  instead of <InlineCode>func</InlineCode>. Constructors follow the same parameter and overload rules
+  as ordinary methods, but have no return type annotation.
+</Prose>
+
+<CodeBlock
+  code={`[access] init(parameters)
+{
+    // body
+}`}
+  language="csharp"
+  filename="constructor_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Modifier', 'Position', 'Effect']}
+  rows={[
+    [<InlineCode>public</InlineCode>, 'before func/init', 'Member is visible outside the declaring type.'],
+    [<InlineCode>private</InlineCode>, 'before func/init', 'Member is visible only inside the declaring type (default).'],
+    [<InlineCode>static</InlineCode>, 'after access modifier', 'Method belongs to the type itself; no this reference is passed.'],
+    [<InlineCode>async</InlineCode>, 'after access modifier', 'Method is lowered into a state machine and must return Task or ValueTask<T>.'],
+    [<InlineCode>extern</InlineCode>, 'after access modifier', 'Method body is supplied by a native host callback instead of bytecode.'],
+    [<InlineCode>export</InlineCode>, 'after access modifier', 'Marks the member for external visibility across shard boundaries.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Parameters are declared positionally with an explicit type annotation. The compiler checks every
+  argument at the call site for type compatibility. Instance methods have an implicit leading
+  parameter named <InlineCode>this</InlineCode> that holds the receiver object.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Example', 'Meaning']}
+  rows={[
+    ['Named typed parameter', <InlineCode>name: string</InlineCode>, 'A parameter called name of type string.'],
+    ['Multiple parameters', <InlineCode>a: int, b: int</InlineCode>, 'Two independent parameters.'],
+    ['Generic parameter list', <InlineCode>func Swap&lt;T&gt;(a: T, b: T)</InlineCode>, 'Type parameter T is bound at call time.'],
+    ['No parameters', <InlineCode>()</InlineCode>, 'Empty parameter list.'],
+  ]}
+/>
+
+<Prose>
+  Methods are resolved by <strong>signature</strong>: the combination of the declaring type, method
+  name, and parameter types. Return type alone does not distinguish overloads.
+</Prose>
+
+<H2>Returns</H2>
+
+<Prose>
+  Every method must declare a return type after <InlineCode>-&gt;</InlineCode>. Use{' '}
+  <InlineCode>void</InlineCode> when the method does not produce a value. The compiler verifies that
+  every control path returns a value of the declared type for non-void methods.
+</Prose>
+
+<DocsTable
+  headers={['Return Type', 'Usage']}
+  rows={[
+    [<InlineCode>void</InlineCode>, 'The method performs work but returns nothing.'],
+    [<InlineCode>int</InlineCode>, 'Returns a 64-bit signed integer.'],
+    [<InlineCode>double</InlineCode>, 'Returns a 64-bit IEEE 754 floating-point value.'],
+    [<InlineCode>bool</InlineCode>, 'Returns a Boolean value.'],
+    [<InlineCode>string</InlineCode>, 'Returns an immutable Unicode string.'],
+    [<InlineCode>T</InlineCode>, 'Returns a value of generic type T.'],
+    [<InlineCode>Task / ValueTask&lt;T&gt;</InlineCode>, 'Returned by async methods.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing return type</strong> — Every method except{' '}
+    <InlineCode>init</InlineCode> must specify <InlineCode>-&gt; ReturnType</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Return type mismatch</strong> — Returning an{' '}
+    <InlineCode>int</InlineCode> from a method declared <InlineCode>-&gt; string</InlineCode> fails
+    semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unreachable end of non-void method</strong> — If a
+    non-void method can complete without a <InlineCode>return</InlineCode> statement, the compiler
+    reports an error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Ambiguous overload</strong> — Two methods in the same
+    type with the same name and identical parameter lists produce a duplicate-symbol error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">This in static context</strong> — Using{' '}
+    <InlineCode>this</InlineCode> inside a <InlineCode>static</InlineCode> method is a compile-time
+    error because there is no receiver instance.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Access violation</strong> — Calling a{' '}
+    <InlineCode>private</InlineCode> method from outside the declaring type fails at compile time.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Instance versus static.</strong> An instance method receives the receiver object as the
+  first argument on the new frame's evaluation stack (slot 0). The body accesses it through the{' '}
+  <InlineCode>this</InlineCode> keyword. A static method has no implicit receiver, so its first
+  declared parameter occupies slot 0. Static methods are invoked through the type name, while
+  instance methods are invoked through an object reference.
+</Prose>
+
+<Prose>
+  <strong>Overloading.</strong> Multiple methods may share the same name as long as their parameter
+  lists differ in arity or type. Constructors (<InlineCode>init</InlineCode>) may also be overloaded,
+  which is the primary way to provide several initialization patterns for a class. Overload
+  resolution is performed at compile time and prefers exact type matches.
+</Prose>
+
+<Prose>
+  <strong>Generic methods.</strong> A method can declare its own type parameters independent of any
+  enclosing type. The type arguments may be specified explicitly at the call site
+  (<InlineCode>obj.Method&lt;int&gt;(value)</InlineCode>) or, in many cases, inferred from the
+  argument types.
+</Prose>
+
+<Prose>
+  <strong>Operator methods.</strong> Operator overloading is implemented with a static method whose
+  name is an operator symbol. Binary operators take two parameters; unary operators take one. Only
+  a fixed set of operators can be overloaded; see the Operators reference page for the complete
+  table.
+</Prose>
+
+<Prose>
+  <strong>Async methods.</strong> Marking a method with <InlineCode>async</InlineCode> causes the
+  compiler to rewrite it into a state machine. The method must return <InlineCode>Task</InlineCode>{' '}
+  when it produces no value, or <InlineCode>ValueTask&lt;T&gt;</InlineCode> when it produces a value.
+  Inside an async method, <InlineCode>await</InlineCode> yields control until the awaited operation
+  completes.
+</Prose>
+
+<Prose>
+  <strong>Extern methods.</strong> An <InlineCode>extern</InlineCode> method declares a signature
+  without a body. The implementation is provided by the host runtime through a native callback.
+  Extern methods are used for interop with the standard library shards and with custom native
+  plugins.
+</Prose>
+
+<Callout tone="amber" title="Virtual and override not yet implemented">
+  ShardScript recognizes the access modifiers <InlineCode>public</InlineCode> and{' '}
+  <InlineCode>private</InlineCode>, and reserves the keywords <InlineCode>protected</InlineCode> and{' '}
+  <InlineCode>internal</InlineCode> at the lexer level. However, class inheritance with{' '}
+  <InlineCode>virtual</InlineCode>, <InlineCode>override</InlineCode>, <InlineCode>abstract</InlineCode>,
+  or <InlineCode>sealed</InlineCode> modifiers is not implemented in the current compiler. Use
+  interfaces for polymorphic dispatch today.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic instance method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Counter
+{
+    public Count: int;
+
+    public init()
+    {
+        this.Count = 0;
+    }
+
+    public func Step() -> void
+    {
+        this.Count = this.Count + 1;
+    }
+
+    public func GetCount() -> int
+    {
+        return this.Count;
+    }
+}
+
+public static func Main() -> void
+{
+    c: Counter = new Counter();
+
+    c.Step();
+    c.Step();
+    c.Step();
+
+    println(c.GetCount());   // 3
+}`}
+  language="csharp"
+  filename="instance_method.shard"
+/>
+
+<Prose>
+  <strong>Static methods and type-level state.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class IdGenerator
+{
+    private static NextId: int;
+
+    public static func Generate() -> int
+    {
+        id: int = IdGenerator.NextId;
+        IdGenerator.NextId = IdGenerator.NextId + 1;
+        return id;
+    }
+
+    public static func Reset() -> void
+    {
+        IdGenerator.NextId = 0;
+    }
+}
+
+public static func Main() -> void
+{
+    println(IdGenerator.Generate());   // 0
+    println(IdGenerator.Generate());   // 1
+    println(IdGenerator.Generate());   // 2
+
+    IdGenerator.Reset();
+    println(IdGenerator.Generate());   // 0
+}`}
+  language="csharp"
+  filename="static_methods.shard"
+/>
+
+<Prose>
+  <strong>Method and constructor overloading.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Point
+{
+    public X: double;
+    public Y: double;
+
+    // Parameterless constructor.
+    public init()
+    {
+        this.X = 0.0;
+        this.Y = 0.0;
+    }
+
+    // Overloaded constructor with coordinates.
+    public init(x: double, y: double)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    public func Move(dx: double, dy: double) -> void
+    {
+        this.X = this.X + dx;
+        this.Y = this.Y + dy;
+    }
+
+    // Overloaded Move that accepts a single offset applied to both axes.
+    public func Move(offset: double) -> void
+    {
+        this.Move(offset, offset);
+    }
+
+    public func ToString() -> string
+    {
+        return "(" + this.X + ", " + this.Y + ")";
+    }
+}
+
+public static func Main() -> void
+{
+    a: Point = new Point();
+    b: Point = new Point(3.0, 4.0);
+
+    a.Move(1.0);
+    b.Move(0.5, -0.5);
+
+    println(a.ToString());   // (1, 1)
+    println(b.ToString());   // (3.5, 3.5)
+}`}
+  language="csharp"
+  filename="overloading.shard"
+/>
+
+<Prose>
+  <strong>Generic method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+
+    // Wrap a value of a different type in a new container.
+    public func As<U>() -> Container<U>
+    {
+        result: Container<U> = new Container<U>();
+        return result;
+    }
+}
+
+public static func Swap<T>(a: T, b: T) -> T[]
+{
+    pair: T[] = new T[2];
+    pair[0] = b;
+    pair[1] = a;
+    return pair;
+}
+
+public static func Main() -> void
+{
+    c: Container<int> = new Container<int>();
+    c.Value = 7;
+
+    wrapped: Container<string> = c.As<string>();
+    wrapped.Value = "seven";
+    println(wrapped.Value);
+
+    swapped: int[] = Swap<int>(1, 2);
+    println(swapped[0]);   // 2
+    println(swapped[1]);   // 1
+}`}
+  language="csharp"
+  filename="generic_method.shard"
+/>
+
+<Prose>
+  <strong>Operator overloading as a static method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Vector2
+{
+    public X: double;
+    public Y: double;
+
+    public init(x: double, y: double)
+    {
+        this.X = x;
+        this.Y = y;
+    }
+
+    // Binary + adds two Vector2 values component-wise.
+    public static operator +(a: Vector2, b: Vector2) -> Vector2
+    {
+        return new Vector2(a.X + b.X, a.Y + b.Y);
+    }
+
+    // Unary - negates both components.
+    public static operator -(v: Vector2) -> Vector2
+    {
+        return new Vector2(-v.X, -v.Y);
+    }
+}
+
+public static func Main() -> void
+{
+    u: Vector2 = new Vector2(1.0, 2.0);
+    v: Vector2 = new Vector2(3.0, 4.0);
+
+    sum: Vector2 = u + v;
+    neg: Vector2 = -sum;
+
+    println("sum: " + sum.X + ", " + sum.Y);     // sum: 4, 6
+    println("neg: " + neg.X + ", " + neg.Y);     // neg: -4, -6
+}`}
+  language="csharp"
+  filename="operator_method.shard"
+/>
+
+<Prose>
+  <strong>Async method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class DelayedGreeter
+{
+    public Message: string;
+
+    public init(message: string)
+    {
+        this.Message = message;
+    }
+
+    public async func GreetAfter(ms: int) -> Task
+    {
+        await Task.Delay(ms);
+        println(this.Message);
+    }
+}
+
+public static func Main() -> void
+{
+    greeter: DelayedGreeter = new DelayedGreeter("hello after delay");
+    task: Task = greeter.GreetAfter(50);
+    task.Wait();
+}`}
+  language="csharp"
+  filename="async_method.shard"
+/>
+
+<Prose>
+  <strong>Access modifiers and common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Vault
+{
+    // Public getter, private backing storage.
+    public func Balance() -> int
+    {
+        return this._balance;
+    }
+
+    public func Deposit(amount: int) -> void
+    {
+        if (amount > 0)
+        {
+            this._balance = this._balance + amount;
+        }
+    }
+
+    private _balance: int;
+}
+
+public static func Main() -> void
+{
+    vault: Vault = new Vault();
+
+    vault.Deposit(100);
+    println(vault.Balance());   // 100
+
+    // vault._balance = 0;      // ERROR: _balance is private
+}`}
+  language="csharp"
+  filename="access_modifiers.shard"
+/>
+
+<Callout tone="blue">
+  The default accessibility for methods is <InlineCode>private</InlineCode>. Mark methods that form
+  the public API of a type with <InlineCode>public</InlineCode> explicitly.
+</Callout>

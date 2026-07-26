@@ -1,0 +1,475 @@
+---
+title: Classes
+group: Object-Oriented Programming
+order: 1
+slug: classes
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <strong>class</strong> in ShardScript is a reference type that groups fields,
+  properties, methods, constructors, operators, and indexers under a single named
+  type. Classes are allocated on the managed heap, support explicit access
+  modifiers, and can implement one or more interfaces.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A class is declared at namespace scope with optional modifiers, an identifier,
+  optional generic type parameters, optional interface implementations, and a body.
+</Prose>
+
+<CodeBlock
+  code={`// Non-generic class.
+[access] [static] class ClassName : IInterface
+{
+    // fields, properties, methods, constructors, operators, indexers
+}
+
+// Generic class.
+[access] [static] class ClassName<T> : IInterface
+{
+    // members may use T
+}`}
+  language="csharp"
+  filename="class_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Modifier', 'Applies to', 'Meaning']}
+  rows={[
+    [<InlineCode>public</InlineCode>, 'class, member', 'Accessible from any code that can see the containing namespace.'],
+    [<InlineCode>private</InlineCode>, 'member', 'Accessible only inside the declaring class.'],
+    [<InlineCode>protected</InlineCode>, 'member', 'Accessible inside the declaring class and derived types (reserved for future inheritance support).'],
+    [<InlineCode>internal</InlineCode>, 'class, member', 'Accessible only within the same compilation unit or assembly boundary (reserved for multi-module builds).'],
+    [<InlineCode>export</InlineCode>, 'class, member', 'Makes the symbol visible across shard boundaries when used in native/host bindings.'],
+    [<InlineCode>static</InlineCode>, 'class, member', 'Declares a class or member that belongs to the type itself rather than to any instance.'],
+    [<InlineCode>async</InlineCode>, 'method', 'Marks a method as asynchronously lowerable to a state machine.'],
+    [<InlineCode>extern</InlineCode>, 'method', 'Declares a method whose implementation is supplied by the host runtime.'],
+  ]}
+/>
+
+<Callout tone="amber" title="Class inheritance is not yet implemented">
+  ShardScript classes can only implement <strong>interfaces</strong> after the
+  colon. Extending another class, virtual dispatch, method overriding, and the{' '}
+  <InlineCode>base</InlineCode> keyword are planned but not available in the
+  current compiler. Use interface-based abstractions and composition until
+  inheritance lands.
+</Callout>
+
+<Callout tone="amber" title="abstract, sealed, and partial are planned">
+  The lexer and parser reserve grammar space for <InlineCode>abstract</InlineCode>,{' '}
+  <InlineCode>sealed</InlineCode>, and <InlineCode>partial</InlineCode>, but they
+  are currently commented out of the modifier parser. Writing them today produces
+  a compile error.
+</Callout>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  A class declaration accepts the following grammatical elements:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Modifiers</strong> — One or more of{' '}
+    <InlineCode>public</InlineCode>, <InlineCode>private</InlineCode>,{' '}
+    <InlineCode>protected</InlineCode>, <InlineCode>internal</InlineCode>,{' '}
+    <InlineCode>export</InlineCode>, <InlineCode>static</InlineCode>. The parser
+    enforces a fixed order: access, then <InlineCode>static</InlineCode>, then
+    (when implemented) <InlineCode>abstract</InlineCode> /{' '}
+    <InlineCode>sealed</InlineCode> / <InlineCode>partial</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Identifier</strong> — The type name.
+    Must be unique within its namespace and may not collide with imported names.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type parameters</strong> — Optional
+    generic parameters in angle brackets, e.g. <InlineCode>Container&lt;T&gt;</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Base interfaces</strong> — Optional
+    comma-separated list of interfaces after the colon. Every listed interface
+    must be fully implemented by the class.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Body</strong> — A pair of braces
+    containing member declarations.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  A class declaration does not return a value. Evaluating <InlineCode>new ClassName(...)</InlineCode>{' '}
+  returns a reference to a newly allocated instance of the class.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Duplicate type name</strong> — Declaring
+    two classes, structs, interfaces, or enums with the same fully qualified name
+    in the same scope fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Base type must be an interface</strong>{' '}
+    — Writing <InlineCode>class B : A</InlineCode> where <InlineCode>A</InlineCode>{' '}
+    is a class produces a compile error because class inheritance is not supported.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Interface not implemented</strong> — A
+    class that claims to implement an interface must provide every method,
+    property, indexer, and accessor declared by that interface with matching
+    signatures.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid modifier combination</strong>{' '}
+    — <InlineCode>static</InlineCode> cannot be combined with instance members in
+    the same class; static classes cannot declare instance fields, methods,
+    properties, or constructors.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Instance member in static context</strong>{' '}
+    — Accessing an instance field or method through the type name, or accessing
+    <InlineCode>this</InlineCode> inside a static method, produces a compile error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Out-of-order modifiers</strong> —{' '}
+    Modifiers must appear in the order expected by the parser; reordering them
+    reports a modifier-out-of-order error.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Reference semantics.</strong> Classes are reference types. Assigning a
+  class variable to another copies the reference, not the object. Mutations made
+  through either reference are visible through the other. Value semantics are
+  provided by <InlineCode>struct</InlineCode>, which is documented separately.
+</Prose>
+
+<Prose>
+  <strong>Static classes.</strong> A class marked <InlineCode>static</InlineCode>{' '}
+  cannot be instantiated and cannot contain instance members. It is useful for
+  utility methods and constants, such as the standard <InlineCode>Math</InlineCode>{' '}
+  class. The compiler emits a static-class flag and resolves calls with{' '}
+  <InlineCode>CALLSTATICMETHODSYMBOL</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>The <InlineCode>this</InlineCode> parameter.</strong> Inside every
+  instance constructor, method, property accessor, indexer accessor, and operator,
+  the compiler injects an implicit <InlineCode>this</InlineCode> parameter whose
+  type is the enclosing class. It is used to access instance state and to
+  disambiguate parameters from fields of the same name.
+</Prose>
+
+<Prose>
+  <strong>Access modifier resolution.</strong> The compiler distinguishes public
+  and private today. <InlineCode>protected</InlineCode> and{' '}
+  <InlineCode>internal</InlineCode> are accepted by the parser and treated
+  permissively in the current semantic model; their exact cross-assembly behavior
+  will tighten once modules and inheritance are fully implemented.
+</Prose>
+
+<Prose>
+  <strong>Generic classes.</strong> Type parameters can appear in field types,
+  method signatures, property types, and indexer types. Generic methods may also
+  introduce their own type parameters, distinct from the class-level parameters.
+</Prose>
+
+<Callout tone="blue">
+  Use explicit <InlineCode>public</InlineCode> on every class and member you intend
+  to call from outside its namespace. Unmarked top-level classes are public by
+  default, but unmarked members are private by default, matching C-family
+  conventions.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic class with fields, constructor, and method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Counter
+{
+    public Name: string;
+    public Count: int;
+
+    public init(name: string)
+    {
+        this.Name = name;
+        this.Count = 0;
+    }
+
+    public func Increment() -> void
+    {
+        this.Count = this.Count + 1;
+        println(this.Name + ": " + this.Count);
+    }
+}
+
+public static func Main() -> void
+{
+    c: Counter = new Counter("clicks");
+    c.Increment();   // clicks: 1
+    c.Increment();   // clicks: 2
+}`}
+  language="csharp"
+  filename="class_basic.shard"
+/>
+
+<Prose>
+  <strong>Access modifiers: public and private.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Person
+{
+    public Name: string;      // accessible from anywhere
+    private Age: int;         // accessible only within Person
+
+    public init(name: string, age: int)
+    {
+        this.Name = name;
+        this.Age = age;
+    }
+
+    public func Birthday() -> void
+    {
+        // Private state can be mutated by instance methods of the same class.
+        this.Age = this.Age + 1;
+    }
+
+    public func Describe() -> string
+    {
+        return this.Name + " is " + this.Age;
+    }
+}
+
+public static func Main() -> void
+{
+    p: Person = new Person("Alice", 30);
+    println(p.Name);            // Alice
+    println(p.Describe());      // Alice is 30
+    p.Birthday();
+    println(p.Describe());      // Alice is 31
+    // p.Age = 31;              // ERROR: Age is private
+}`}
+  language="csharp"
+  filename="class_access_modifiers.shard"
+/>
+
+<Prose>
+  <strong>Static members and static classes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static class Config
+{
+    public static AppName: string = "MyApp";
+    public static Version: double = 1.0;
+
+    public static func PrintInfo() -> void
+    {
+        println(Config.AppName + " v" + Config.Version);
+    }
+}
+
+public class Session
+{
+    public InstanceId: int;
+
+    public init(id: int)
+    {
+        this.InstanceId = id;
+    }
+
+    public func Describe() -> void
+    {
+        // Static fields are reached through the type name even from instances.
+        println("Instance " + this.InstanceId + " of " + Config.AppName);
+    }
+}
+
+public static func Main() -> void
+{
+    println(Config.AppName);    // MyApp
+    Config.PrintInfo();         // MyApp v1
+
+    s: Session = new Session(42);
+    s.Describe();               // Instance 42 of MyApp
+}`}
+  language="csharp"
+  filename="class_static.shard"
+/>
+
+<Prose>
+  <strong>Implementing an interface.</strong> Classes support interface
+  implementation, not class inheritance.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface IShape
+{
+    func Area() -> double;
+}
+
+public class Rectangle : IShape
+{
+    public Width: double;
+    public Height: double;
+
+    public init(w: double, h: double)
+    {
+        this.Width = w;
+        this.Height = h;
+    }
+
+    public func Area() -> double
+    {
+        return this.Width * this.Height;
+    }
+}
+
+public static func Main() -> void
+{
+    shape: IShape = new Rectangle(5.0, 4.0);
+    println(shape.Area());      // 20
+}`}
+  language="csharp"
+  filename="class_interface.shard"
+/>
+
+<Prose>
+  <strong>Generic class.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Container<T>
+{
+    public Value: T;
+
+    public func Set(v: T) -> void
+    {
+        this.Value = v;
+    }
+
+    public func Get() -> T
+    {
+        return this.Value;
+    }
+
+    public static func Create<U>(v: U) -> Container<U>
+    {
+        c: Container<U> = new Container<U>();
+        c.Value = v;
+        return c;
+    }
+}
+
+public static func Main() -> void
+{
+    c: Container<int> = new Container<int>();
+    c.Set(42);
+    println(c.Get());           // 42
+
+    d: Container<string> = Container<string>.Create<string>("hello");
+    println(d.Get());           // hello
+}`}
+  language="csharp"
+  filename="class_generic.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes and edge cases.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Example
+{
+    public Value: int;
+
+    public init(value: int)
+    {
+        // 'this' disambiguates the parameter from the field.
+        this.Value = value;
+    }
+
+    public static func StaticWork() -> void
+    {
+        // Static methods have no 'this'.
+        // println(this.Value);    // ERROR: no 'this' in static context
+    }
+}
+
+public static func Main() -> void
+{
+    a: Example = new Example(10);
+    b: Example = a;            // b references the same object as a
+    b.Value = 20;
+
+    // Because classes are reference types, a.Value has changed too.
+    println(a.Value);          // 20
+    println(b.Value);          // 20
+}`}
+  language="csharp"
+  filename="class_edge_cases.shard"
+/>
+
+<Callout tone="amber" title="What is not yet available">
+  <ul className="space-y-2 text-text-secondary">
+    <Bullet>
+      Class inheritance (<InlineCode>class Derived : Base</InlineCode>) — use
+      interfaces and composition instead.
+    </Bullet>
+    <Bullet>
+      Method overriding, <InlineCode>virtual</InlineCode>, and{' '}
+      <InlineCode>override</InlineCode> keywords.
+    </Bullet>
+    <Bullet>
+      The <InlineCode>base</InlineCode> keyword for calling base-class members.
+    </Bullet>
+    <Bullet>
+      <InlineCode>abstract</InlineCode> classes and methods.
+    </Bullet>
+    <Bullet>
+      <InlineCode>sealed</InlineCode> classes and methods.
+    </Bullet>
+    <Bullet>
+      <InlineCode>partial</InlineCode> class definitions.
+    </Bullet>
+  </ul>
+</Callout>

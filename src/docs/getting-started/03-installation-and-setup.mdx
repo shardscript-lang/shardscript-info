@@ -1,0 +1,384 @@
+---
+title: Installation & Setup
+group: Getting Started
+order: 3
+slug: installation-and-setup
+---
+
+<Prose>
+  Getting ShardScript running is a three-piece affair: the <InlineCode>shard</InlineCode> interpreter
+  (which includes the compiler, the virtual machine, and the event loop), the{' '}
+  <strong>Standard Shards Collection</strong> of dynamic libraries, and — for dependency management —
+  the <InlineCode>geode</InlineCode> package manager (in development). This section walks through
+  building and using the interpreter and shards, configuring library paths, and wiring editors to the
+  language server.
+</Prose>
+
+<H2>Building the Interpreter</H2>
+
+<Prose>
+  ShardScript is written in C++20 and built with CMake (the repository is set up for MSVC and Ninja on
+  Windows). A single build produces the <InlineCode>shard</InlineCode> executable together with every
+  standard shard DLL.
+</Prose>
+
+<CodeBlock
+  code={`# Clone the compiler, VM, and framework
+git clone https://github.com/Rikitav/ShardScript.git
+cd ShardScript
+
+# Configure (Ninja generator, MSVC, C++20)
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# Build the interpreter and every standard shard
+cmake --build build --parallel
+
+# Result:
+#   build/bin/shard            (shard.exe on Windows)
+#   build/bin/system/*.dll     (the standard shards)`}
+  language="bash"
+  filename="build.sh"
+/>
+
+<Prose>
+  After the build, <InlineCode>shard</InlineCode> (or <InlineCode>shard.exe</InlineCode>) sits in the
+  build output directory next to a <InlineCode>system/</InlineCode> folder containing the shard DLLs —
+  which is exactly where the interpreter looks for them at startup.
+</Prose>
+
+<Callout tone="amber" title="Build from source">
+  There are no prebuilt binaries, installers, or system package-manager recipes published yet. Build
+  from source with the commands above. On Windows the repository also ships{' '}
+  <InlineCode>build_release.bat</InlineCode> and <InlineCode>build_debug.bat</InlineCode> helper scripts.
+</Callout>
+
+<H2>The shard Command Line</H2>
+
+<Prose>
+  The <InlineCode>shard</InlineCode> binary is the friendly front-end for the{' '}
+  <InlineCode>ShardScript.Interpreter</InlineCode>. It compiles one or more source files, loads the
+  standard shards, and either runs the program, decompiles it, or drops into a REPL. Source and library
+  arguments both accept glob patterns.
+</Prose>
+
+<DocsTable
+  headers={['Flag', 'Description']}
+  rows={[
+    ['-h, --help', 'Show the help screen.'],
+    ['-i, --interactive', 'Start the interactive REPL console. (Also -r, --repl.)'],
+    ['-d, --decompiled', 'Decompile the entry point and print its bytecode instead of running.'],
+    ['--no-std', 'Do not load the standard shards from the system directory. (Alias: --exclude-std.)'],
+    ['-l, --library <pattern>', 'Load an extra shard DLL; glob patterns are supported.'],
+    ['<file>', 'A source file to compile and run (positional). Globs are supported.'],
+  ]}
+/>
+
+<CodeBlock
+  code={`# Run a script (positional argument; globs allowed)
+shard hello.shard
+
+# Decompile the entry point to bytecode instead of running
+shard -d hello.shard
+
+# Start the interactive REPL
+shard -i            # equivalents: --interactive, -r, --repl
+
+# Load extra shards in addition to the standard set (globs supported)
+shard app.shard -l path/to/mylib.dll
+shard app.shard -l "libs/*.dll"
+
+# Run with no standard shards at all (a clean sandbox)
+shard app.shard --no-std`}
+  language="bash"
+  filename="cli.sh"
+/>
+
+<H2>The Standard Shards Collection</H2>
+
+<Prose>
+  ShardScript has no monolithic standard library. Instead the <strong>Standard Shards Collection</strong>{' '}
+  ships each subsystem as its own DLL — a <em>shard</em>. At startup the interpreter auto-loads every
+  shard from its <InlineCode>system/</InlineCode> directory, so a script can simply{' '}
+  <InlineCode>using</InlineCode> the ones it needs. The collection currently includes:
+</Prose>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">stdio</code>
+    <p className="text-sm text-text-secondary mt-1">Console I/O: print, println, input, cursor control</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">collections</code>
+    <p className="text-sm text-text-secondary mt-1">List&lt;T&gt;, Dictionary&lt;K,V&gt;, Stack&lt;T&gt;, Queue&lt;T&gt;</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">strings</code>
+    <p className="text-sm text-text-secondary mt-1">String manipulation and formatting</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">math</code>
+    <p className="text-sm text-text-secondary mt-1">Math functions; math.random for RNG</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">json</code>
+    <p className="text-sm text-text-secondary mt-1">JSON parsing and serialization</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">http</code>
+    <p className="text-sm text-text-secondary mt-1">HTTP client and server</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">socket</code>
+    <p className="text-sm text-text-secondary mt-1">TCP socket operations</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">async</code>
+    <p className="text-sm text-text-secondary mt-1">Task, TaskCompletionSource, cancellation</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">streams</code>
+    <p className="text-sm text-text-secondary mt-1">Stream-based I/O</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">filesystem</code>
+    <p className="text-sm text-text-secondary mt-1">File, directory, and path operations</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">environment</code>
+    <p className="text-sm text-text-secondary mt-1">Environment variable access</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">interop</code>
+    <p className="text-sm text-text-secondary mt-1">Native library calls and marshalling (cinterop.dll)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">debug</code>
+    <p className="text-sm text-text-secondary mt-1">typeof, sizeof, PrintGcInfo</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">reflection</code>
+    <p className="text-sm text-text-secondary mt-1">Type, method, and field inspection</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">subprocess</code>
+    <p className="text-sm text-text-secondary mt-1">Spawn and manage child processes</p>
+  </div>
+</div>
+
+<Callout tone="green" title="Scope control">
+  Pass <InlineCode>--no-std</InlineCode> to skip auto-loading the <InlineCode>system/</InlineCode>{' '}
+  directory entirely, then add only the shards you trust with <InlineCode>-l</InlineCode>. Combined with
+  the symbol-injection model, this lets the host control exactly which APIs a script can reach.
+</Callout>
+
+<H2>Optional Third-Party Shards</H2>
+
+<Prose>
+  The framework repository also builds several optional shards in{' '}
+  <InlineCode>third_party/</InlineCode>. These are not loaded by default and must be referenced explicitly
+  with <InlineCode>-l</InlineCode> or copied into the host&apos;s shard search path.
+</Prose>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">raylib</code>
+    <p className="text-sm text-text-secondary mt-1">2D/3D graphics, windowing, input, audio (optional third-party shard)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">Database</code>
+    <p className="text-sm text-text-secondary mt-1">SQLite3 connection and command execution (optional third-party shard)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">terminality</code>
+    <p className="text-sm text-text-secondary mt-1">Terminal UI host and controls (optional third-party shard)</p>
+  </div>
+</div>
+
+<H2>Library Paths and the system Directory</H2>
+
+<Prose>
+  Today the interpreter resolves standard shards by looking for a <InlineCode>system/</InlineCode> folder
+  next to its own executable (<InlineCode>ExecutableDirectory() / system</InlineCode>). Because the build
+  emits the shard DLLs straight into <InlineCode>bin/system</InlineCode>, a freshly built tree is already
+  laid out correctly — no path configuration required.
+</Prose>
+
+<CodeBlock
+  code={`# Current (implemented): shards live in a system/ folder beside the executable
+<install>/
+|-- shard              (shard.exe on Windows)
+\`-- system/            <- auto-discovered at startup
+    |-- stdio.dll
+    |-- collections.dll
+    |-- math.dll
+    \`-- ...`}
+  language="text"
+  filename="layout-current.txt"
+/>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">The intended %SHARDSCRIPT% layout</h3>
+
+<Prose>
+  The intended design introduces a <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable pointing at
+  an install root, with standard shards living under <InlineCode>%SHARDSCRIPT%/system_libs</InlineCode>.
+  Both the interpreter and Geode will consult this root, giving every tool on the machine one canonical
+  place to find the executable and its libraries.
+</Prose>
+
+<CodeBlock
+  code={`# Intended layout (planned -- not yet read by the interpreter)
+%SHARDSCRIPT%/
+|-- shard.exe
+\`-- system_libs/
+    |-- stdio.dll
+    |-- collections.dll
+    |-- math.dll
+    \`-- ...`}
+  language="text"
+  filename="layout-planned.txt"
+/>
+
+<Callout tone="amber" title="Intended direction, not yet active">
+  The interpreter does not currently read <InlineCode>%SHARDSCRIPT%</InlineCode> or{' '}
+  <InlineCode>system_libs</InlineCode> — the <InlineCode>system/</InlineCode>-beside-the-executable mechanism
+  above is what ships today. The environment-variable layout is the intended direction and will be
+  implemented in a future release.
+</Callout>
+
+<H2>The Geode Package Manager</H2>
+
+<Callout tone="amber" title="In development">
+  Geode is the planned package manager for ShardScript. It is under active development and is not yet
+  available for general use. The design described here is the target shape, not the shipping
+  implementation.
+</Callout>
+
+<Prose>
+  <InlineCode>geode</InlineCode> is intended to be a NuGet-style tool for resolving, fetching, and
+  publishing shards. A project will be described by a <InlineCode>geode.env</InlineCode> manifest; Geode
+  will resolve dependencies (with SemVer constraints), cache them under{' '}
+  <InlineCode>~/.geode/cache</InlineCode>, and restore them into a local <InlineCode>./libs</InlineCode>{' '}
+  directory for the interpreter to load.
+</Prose>
+
+<Prose>
+  Geode is being built as a .NET solution: build it, then run the backend registry and use the{' '}
+  <InlineCode>geode</InlineCode> CLI.
+</Prose>
+
+<CodeBlock
+  code={`# Build the Geode solution (.NET)
+cd Geode
+dotnet build
+
+# In another terminal, start the package registry backend
+# (defaults to http://localhost:5000)
+cd src/Geode.Backend.Api
+dotnet run`}
+  language="bash"
+  filename="geode-setup.sh"
+/>
+
+<Prose>A project manifest (<InlineCode>geode.env</InlineCode>) is planned to look like this:</Prose>
+
+<CodeBlock
+  code={`# geode.env -- a project manifest (TOML-like)
+[project]
+name = "my-app"
+version = "1.0.0"
+authors = []
+
+[dependencies]
+# shard.collections = "1.0.0"
+
+[environment]
+SHARDSCRIPT_ENV = "development"`}
+  language="toml"
+  filename="geode.env"
+/>
+
+<Prose>The planned CLI verbs:</Prose>
+
+<DocsTable
+  headers={['Command', 'Description']}
+  rows={[
+    ['geode init [name]', 'Create a new Geode project (writes geode.env) in the current directory.'],
+    ['geode restore', 'Resolve dependencies from geode.env into the local cache and ./libs.'],
+    ['geode fetch <pkg> [-v <ver>] [-g]', 'Download a package into the local (or --global) library directory.'],
+    ['geode run [script]', 'Run a ShardScript file using Geode-managed library paths.'],
+    ['geode pack <src> [-o] [-r] [-l]', 'Build a .shardpkg archive from a source directory.'],
+    ['geode publish <pkg>', 'Publish a .shardpkg file to the Geode registry.'],
+    ['geode auth register | login | logout', 'Manage credentials for the Geode registry.'],
+  ]}
+/>
+
+<Prose>
+  Packages will be distributed as <InlineCode>.shardpkg</InlineCode> archives (
+  <InlineCode>pack</InlineCode> builds one, <InlineCode>publish</InlineCode> uploads it) and may target a
+  specific runtime identifier so platform-specific native shards resolve correctly.
+</Prose>
+
+<Callout tone="amber" title="Self-hosted registry">
+  Geode&apos;s registry is planned to default to <InlineCode>http://localhost:5000</InlineCode> — you run
+  the backend yourself. There is no public package index yet; Geode will first be useful for managing
+  shards across your own projects and machines.
+</Callout>
+
+<H2>Editor Integration</H2>
+
+<Prose>
+  ShardScript includes a Language Server (the <InlineCode>lsp</InlineCode> binary, built from{' '}
+  <InlineCode>ShardScript.LspServer</InlineCode>) that speaks the Language Server Protocol over stdio.
+  Editors connect to it like any other LSP server.
+</Prose>
+
+<Callout tone="amber" title="In development and Win32-only">
+  The language server builds and runs on Windows today. Linux/Unix support is not yet implemented, and
+  the server is still rough — expect missing diagnostics and incomplete completions.
+</Callout>
+
+<Callout tone="blue" title="No first-party extensions yet">
+  There are no packaged Zed, VS Code, or Neovim extensions published today. Each editor is wired to the{' '}
+  <InlineCode>lsp</InlineCode> binary manually as a generic LSP server; some editors may also need a small
+  file-type association for <InlineCode>.shard</InlineCode> files.
+</Callout>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Neovim</h3>
+
+<Prose>
+  With <InlineCode>nvim-lspconfig</InlineCode>, register a custom server pointing at the binary:
+</Prose>
+
+<CodeBlock
+  code={`-- Neovim: register the ShardScript language server via lspconfig
+local configs = require('lspconfig.configs')
+local util    = require('lspconfig.util')
+
+configs.shardscript = {
+  default_config = {
+    cmd = { '/absolute/path/to/lsp' },
+    filetypes = { 'shard' },
+    root_dir = util.find_git_ancestor,
+  },
+}
+
+require('lspconfig').shardscript.setup({})`}
+  language="lua"
+  filename="init.lua"
+/>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">VS Code and Zed</h3>
+
+<Prose>
+  VS Code needs a client extension to launch an arbitrary server; use a generic LSP-client extension (or
+  a tiny generated extension) configured to spawn <InlineCode>lsp</InlineCode> for{' '}
+  <InlineCode>.shard</InlineCode> files. In Zed, register the binary under the{' '}
+  <InlineCode>lsp</InlineCode> key in your settings and associate it with the ShardScript language. In both
+  cases the server itself is the same <InlineCode>lsp</InlineCode> binary — only the hosting glue differs.
+</Prose>
+
+<Callout tone="green" title="You are set up">
+  With <InlineCode>shard</InlineCode> built, the standard shards in <InlineCode>system/</InlineCode>, and
+  your editor wired to the language server, you have the core toolchain. Geode and additional SDKs are in
+  development. Head to the language reference to start writing code.
+</Callout>

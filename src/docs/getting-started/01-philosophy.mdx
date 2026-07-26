@@ -1,0 +1,25 @@
+---
+title: ShardScript Philosophy
+group: Getting Started
+order: 1
+slug: shardscript-philosophy
+---
+
+<Prose>
+  ShardScript is an <strong>embeddable, compiled scripting language with strict static typing</strong>,
+  implemented in C++20. It is designed to bring the safety and structure of a statically-compiled language
+  into the role traditionally filled by dynamically-typed embeddable script engines.
+</Prose>
+
+<H2>Pragmatic by Design</H2>
+
+<Prose>
+  ShardScript prioritizes developer convenience and readability. Where a construct proves useful in
+  day-to-day code, the language adopts it — even if that means offering more than one way to express the
+  same intent.
+</Prose>
+
+<Callout tone="blue" title="Example">
+  <InlineCode>defer</InlineCode> releases resources on scope exit, while <InlineCode>IDisposable</InlineCode>{' '}
+  lets you hook custom cleanup logic into that same mechanism.
+</Callout>

@@ -1,0 +1,309 @@
+---
+title: switch Expressions
+group: Control Flow
+order: 3
+slug: switch-expressions
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <InlineCode>switch</InlineCode> expression evaluates a single <em>scrutinee</em>{' '}
+  expression and selects the first arm whose constant pattern equals the scrutinee value.
+  The discard pattern <InlineCode>{"_"}</InlineCode> acts as a catch-all default arm.
+  Unlike an imperative <InlineCode>switch</InlineCode> statement, every arm produces a value
+  and the whole expression evaluates to the chosen arm's value.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Write <InlineCode>switch</InlineCode> followed by the scrutinee, then a brace-delimited list
+  of arms. Each arm contains a pattern, the fat arrow <InlineCode>=&gt;</InlineCode>, and an
+  expression. Arms are separated by commas; the trailing comma after the last arm is optional.
+</Prose>
+
+<CodeBlock
+  code={`switchValue = switch scrutinee
+{
+    pattern1 => expression1,
+    pattern2 => expression2,
+    _        => defaultExpression,
+};`}
+  language="csharp"
+  filename="switch_expression_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Part', 'Required', 'Description']}
+  rows={[
+    ['scrutinee', 'Yes', 'The expression whose value is matched. It is evaluated exactly once.'],
+    ['pattern', 'Yes', 'A constant expression compared against the scrutinee using equality. The first matching arm wins.'],
+    ['arm expression', 'Yes', 'The expression that provides the value of the switch expression when its arm is selected.'],
+    ['_', 'No', 'The discard pattern. It matches any value and is conventionally written as the last arm.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  The switch expression returns the value of the expression from the selected arm. The type of
+  the switch expression is taken from the first arm, so every arm should produce the same type
+  for predictable results.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing braces or arrow</strong> — Omitting{' '}
+    <InlineCode>{'{'}</InlineCode>, <InlineCode>=&gt;</InlineCode>, or{' '}
+    <InlineCode>{'}'}</InlineCode> after an arm pattern produces a parser error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No matching arm without default</strong> — If the
+    scrutinee does not match any pattern and there is no <InlineCode>{"_"}</InlineCode> arm, the
+    result is undefined.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Mismatched arm expression types</strong> — The
+    current semantic binder does not reject arms with different expression types. The first
+    arm's type becomes the switch expression type, so mixed types can silently produce
+    unexpected behavior.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Pattern type mismatch</strong> — Patterns are not
+    required to match the scrutinee type, but comparing unrelated types (for example,{' '}
+    <InlineCode>string</InlineCode> against <InlineCode>int</InlineCode>) typically fails at
+    runtime.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Expression, not statement.</strong> A switch expression always yields a value, so it
+  can appear anywhere an expression is expected: on the right-hand side of an assignment, as a
+  function argument, in a return statement, or nested inside another switch expression.
+</Prose>
+
+<Prose>
+  <strong>Sequential matching.</strong> Arms are tested in source order and the first matching
+  arm is selected. There is no implicit fallthrough; once an arm is selected, its expression is
+  evaluated and the switch expression is complete.
+</Prose>
+
+<Prose>
+  <strong>Constant patterns.</strong> Patterns are intended to be constant expressions such as
+  integer literals, string literals, boolean literals, or enum member accesses. The parser
+  accepts arbitrary expressions, but only constant patterns are guaranteed to behave as a true
+  match.
+</Prose>
+
+<Prose>
+  <strong>Default arm placement.</strong> The discard pattern <InlineCode>{"_"}</InlineCode> can be
+  placed anywhere in the arm list, but conventionally it is written last so the preceding arms
+  can match first. If <InlineCode>{"_"}</InlineCode> appears before other arms, those arms are
+  unreachable.
+</Prose>
+
+<Prose>
+  <strong>Single evaluation.</strong> The scrutinee is evaluated exactly once. Store it in a
+  local variable first if evaluating it has side effects that you do not want to repeat.
+</Prose>
+
+<Prose>
+  <strong>Type of the switch expression.</strong> The binder currently uses the type of the
+  first arm as the switch expression type. It does not verify that later arms produce the same
+  type, so keep all arm expressions homogeneous to avoid subtle type errors.
+</Prose>
+
+<Callout tone="amber" title="switch statement status">
+  The imperative <InlineCode>switch</InlineCode> statement (with <InlineCode>case</InlineCode>{' '}
+  labels, block bodies, and fallthrough control) is planned but not yet implemented. Today, use
+  the <InlineCode>switch</InlineCode> expression form shown on this page for constant pattern
+  matching.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Matching an integer code.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    day: int = 2;
+
+    dayName: string = switch day
+    {
+        1 => "Monday",
+        2 => "Tuesday",
+        3 => "Wednesday",
+        4 => "Thursday",
+        5 => "Friday",
+        _ => "Weekend",
+    };
+
+    println(dayName);   // Tuesday
+}`}
+  language="csharp"
+  filename="switch_int.shard"
+/>
+
+<Prose>
+  <strong>Matching a string command.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    command: string = "quit";
+
+    response: string = switch command
+    {
+        "start" => "Starting engine",
+        "stop"  => "Stopping engine",
+        "quit"  => "Exiting application",
+        _       => "Unknown command",
+    };
+
+    println(response);   // Exiting application
+}`}
+  language="csharp"
+  filename="switch_string.shard"
+/>
+
+<Prose>
+  <strong>Matching a boolean flag.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    enabled: bool = false;
+
+    label: string = switch enabled
+    {
+        true  => "ON",
+        false => "OFF",
+        _     => "UNREACHABLE",   // keeps the expression total for bool
+    };
+
+    println(label);   // OFF
+}`}
+  language="csharp"
+  filename="switch_bool.shard"
+/>
+
+<Prose>
+  <strong>Returning a switch expression from a function.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Grade(score: int) -> string
+{
+    return switch score
+    {
+        100 => "perfect",
+        90  => "excellent",
+        80  => "good",
+        70  => "fair",
+        60  => "pass",
+        _   => "fail",
+    };
+}
+
+public static func Main() -> void
+{
+    result: string = Grade(85);
+    println(result);   // good
+}`}
+  language="csharp"
+  filename="switch_return.shard"
+/>
+
+<Prose>
+  <strong>Nested switch expressions.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    tier: int = 2;
+    region: int = 1;
+
+    label: string = switch tier
+    {
+        1 => "basic",
+        2 => switch region
+        {
+            1 => "premium-east",
+            2 => "premium-west",
+            _ => "premium-unknown",
+        },
+        3 => "enterprise",
+        _ => "free",
+    };
+
+    println(label);   // premium-east
+}`}
+  language="csharp"
+  filename="switch_nested.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes and edge cases.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    n: int = 1;
+
+    // The _ pattern is written first, so it catches every value and the
+    // later 1 => "one" arm is never reached.
+    result: string = switch n
+    {
+        _ => "default",
+        1 => "one",
+    };
+
+    println(result);   // default
+
+    // Without a _ default arm, a value that matches no pattern leaves the
+    // switch expression with an undefined result.
+    //
+    // bad: string = switch n { 1 => "one", 2 => "two" };   // undefined for n == 3
+}`}
+  language="csharp"
+  filename="switch_edge_cases.shard"
+/>

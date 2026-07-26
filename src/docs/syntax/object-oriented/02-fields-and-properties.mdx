@@ -1,0 +1,441 @@
+---
+title: Fields and Properties
+group: Object-Oriented Programming
+order: 2
+slug: fields-and-properties
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript classes and structs store data in <strong>fields</strong> and expose it
+  through <strong>properties</strong>. Fields are named typed slots; properties are
+  accessor methods that look like fields, letting you control read and write access
+  with <InlineCode>get</InlineCode> and <InlineCode>set</InlineCode> bodies. Both can
+  be instance-bound or <InlineCode>static</InlineCode>, and both support the
+  <InlineCode>public</InlineCode> and <InlineCode>private</InlineCode> access modifiers.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A field declares a typed slot. A property declares one or two accessors that wrap
+  access to a backing field or a computed value.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Syntax']}
+  rows={[
+    ['Field declaration', '[modifiers] Name: Type;'],
+    ['Field with initializer', '[modifiers] Name: Type = expression;'],
+    ['Explicit property', '[modifiers] Name: Type { get { ... } set { ... } }'],
+    ['Read-only property', '[modifiers] Name: Type { get { ... } }'],
+    ['Auto-property', '[modifiers] Name: Type { get; set; }'],
+    ['Read-only auto-property', '[modifiers] Name: Type { get; }'],
+  ]}
+/>
+
+<Prose>
+  Modifiers appear in this order: access modifier (<InlineCode>public</InlineCode> or
+  <InlineCode>private</InlineCode>), then <InlineCode>static</InlineCode>. If no access
+  modifier is given, the member is <InlineCode>private</InlineCode>.
+</Prose>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Field and property declarations do not take arguments, but the modifiers and
+  accessor bodies determine how the member behaves.
+</Prose>
+
+<DocsTable
+  headers={['Modifier / Accessor', 'Effect', 'Applies to']}
+  rows={[
+    ['public', 'Accessible from any code that can see the type.', 'Fields, properties, methods, constructors'],
+    ['private', 'Accessible only inside the declaring type (default).', 'Fields, properties, methods, constructors'],
+    ['static', 'Belongs to the type itself, not to an instance.', 'Fields, properties, methods'],
+    ['get { ... }', 'Defines a read accessor; must return the property type.', 'Properties'],
+    ['set { ... }', 'Defines a write accessor; the new value is named value.', 'Properties'],
+    ['get;', 'Auto-generated read accessor backed by a compiler field.', 'Auto-properties'],
+    ['set;', 'Auto-generated write accessor backed by a compiler field.', 'Auto-properties'],
+  ]}
+/>
+
+<Callout tone="blue">
+  Static members are accessed through the type name:{' '}
+  <InlineCode>Config.AppName</InlineCode>. Inside instance members you can also reach
+  static members through <InlineCode>this</InlineCode>, but the type-qualified form is
+  clearer.
+</Callout>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Access', 'Result']}
+  rows={[
+    ['Field read', 'The current value stored in the slot, with the field\'s declared type.'],
+    ['Property get', 'The value returned by the getter accessor, with the property\'s declared type.'],
+    ['Property set', 'No value; the setter stores or processes the supplied value.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Private member access</strong> — Reading or
+    writing a <InlineCode>private</InlineCode> field or property from outside its
+    declaring type fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing accessor</strong> — A property must
+    declare at least a getter or a setter. Writing to a read-only property, or reading
+    from a write-only property, produces an error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static versus instance mismatch</strong> —
+    Accessing an instance member through the type name, or a static member through an
+    instance reference, is not allowed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch</strong> — Assigning a value
+    of the wrong type to a field or property setter fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Uninitialized reference</strong> — Fields of
+    reference types are initialized to <InlineCode>null</InlineCode> by the runtime.
+    Reading one before assignment throws a null-reference error.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Default accessibility.</strong> When you omit an access modifier, the member
+  is <InlineCode>private</InlineCode>. ShardScript intentionally keeps the access model
+  small: only <InlineCode>public</InlineCode> and <InlineCode>private</InlineCode> affect
+  compiled output. The parser recognizes <InlineCode>protected</InlineCode> and{' '}
+  <InlineCode>internal</InlineCode> as modifiers, but they currently behave like{' '}
+  <InlineCode>private</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Instance versus static storage.</strong> Instance fields live inside each
+  object on the GC heap; the VM reads and writes them with{' '}
+  <InlineCode>LOADFIELD</InlineCode> and <InlineCode>STOREFIELD</InlineCode> using a slot
+  index computed at compile time. Static fields live in a single global static store
+  and use <InlineCode>LOADSTATICFIELD</InlineCode> and{' '}
+  <InlineCode>STORESTATICFIELD</InlineCode>. Static properties and methods receive no{' '}
+  <InlineCode>this</InlineCode> reference.
+</Prose>
+
+<Prose>
+  <strong>Auto-properties.</strong> When you write{' '}
+  <InlineCode>{'{ get; set; }'}</InlineCode> without explicit bodies, the compiler
+  creates a private backing field and generates trivial getter and setter methods that
+  read from and write to that field. A read-only auto-property ({' '}
+  <InlineCode>{'{ get; }'}</InlineCode>) omits the setter, but its backing field is
+  still writable inside the type\'s constructor because the constructor emits a direct
+  field store.
+</Prose>
+
+<Prose>
+  <strong>The <InlineCode>field</InlineCode> keyword.</strong> Inside an explicit
+  property accessor you can refer to the compiler-generated backing field with the bare
+  keyword <InlineCode>field</InlineCode>. This is useful when you want validation or
+  side effects around a stored value without declaring a separate private field by hand.
+  If the backing field does not yet exist, it is created on first use.
+</Prose>
+
+<Callout tone="amber" title="init-only setters are not implemented">
+  Some languages allow an <InlineCode>init</InlineCode> accessor that permits
+  assignment only during construction. ShardScript currently supports only{' '}
+  <InlineCode>get</InlineCode> and <InlineCode>set</InlineCode>. To achieve init-only
+  semantics, declare a read-only property ({<InlineCode>{'{ get; }'}</InlineCode>} or{' '}
+  <InlineCode>{'{ get { ... } }'}</InlineCode>) and assign its backing field inside
+  the constructor.
+</Callout>
+
+<Prose>
+  <strong>Property accessors are methods.</strong> A property read such as{' '}
+  <InlineCode>rect.Width</InlineCode> compiles to a call to the getter method; a write
+  such as <InlineCode>rect.Width = 10.0</InlineCode> compiles to a call to the setter
+  with <InlineCode>value</InlineCode> passed as the last argument. Property syntax is
+  purely a source-level convenience.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Fields with access modifiers.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Person
+{
+    public Name: string;
+    private Age: int;
+
+    public init(name: string, age: int)
+    {
+        this.Name = name;
+        this.Age = age;
+    }
+
+    public func Birthday() -> void
+    {
+        // Private field access is allowed inside the declaring type.
+        this.Age = this.Age + 1;
+    }
+
+    public func Describe() -> string
+    {
+        return this.Name + " is " + this.Age;
+    }
+}
+
+public static func Main() -> void
+{
+    p: Person = new Person("Alice", 30);
+    println(p.Name);          // Alice
+    println(p.Describe());    // Alice is 30
+
+    p.Birthday();
+    println(p.Describe());    // Alice is 31
+
+    // p.Age = 31;            // ERROR: Age is private
+}`}
+  language="csharp"
+  filename="fields_access_modifiers.shard"
+/>
+
+<Prose>
+  <strong>Static fields and properties.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Config
+{
+    public static AppName: string = "MyApp";
+    public static Version: double = 1.0;
+
+    public static func PrintInfo() -> void
+    {
+        println(Config.AppName + " v" + Config.Version);
+    }
+
+    public InstanceId: int;
+
+    public init(id: int)
+    {
+        this.InstanceId = id;
+    }
+
+    public func Describe() -> void
+    {
+        // Static fields are reached through the type name.
+        println("Instance " + this.InstanceId + " of " + Config.AppName);
+    }
+}
+
+public static func Main() -> void
+{
+    println(Config.AppName);    // MyApp
+    Config.PrintInfo();         // MyApp v1
+
+    obj: Config = new Config(42);
+    obj.Describe();             // Instance 42 of MyApp
+}`}
+  language="csharp"
+  filename="static_fields.shard"
+/>
+
+<Prose>
+  <strong>Explicit properties with getters and setters.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Rectangle
+{
+    private width: double;
+    private height: double;
+
+    public Width: double
+    {
+        get { return this.width; }
+        set { this.width = value; }
+    }
+
+    public Height: double
+    {
+        get { return this.height; }
+        set { this.height = value; }
+    }
+
+    // Read-only computed property: no setter, no backing storage.
+    public Area: double
+    {
+        get { return this.width * this.height; }
+    }
+
+    public init(w: double, h: double)
+    {
+        this.width = w;
+        this.height = h;
+    }
+}
+
+public static func Main() -> void
+{
+    r: Rectangle = new Rectangle(5.0, 4.0);
+    println(r.Area);     // 20
+
+    r.Width = 10.0;
+    println(r.Area);     // 40
+
+    // r.Area = 100.0;    // ERROR: Area has no setter
+}`}
+  language="csharp"
+  filename="explicit_properties.shard"
+/>
+
+<Prose>
+  <strong>Auto-properties and read-only auto-properties.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Point
+{
+    // The compiler generates a private backing field and trivial accessors.
+    public X: int { get; set; }
+
+    // Read-only auto-property: no setter, but writable inside init.
+    public Label: string { get; }
+
+    public init(x: int, label: string)
+    {
+        this.X = x;
+        this.Label = label;
+    }
+}
+
+public static func Main() -> void
+{
+    p: Point = new Point(3, "origin");
+    println(p.Label + ": " + p.X);    // origin: 3
+
+    p.X = 7;
+    println(p.Label + ": " + p.X);    // origin: 7
+
+    // p.Label = "new";                // ERROR: no setter
+}`}
+  language="csharp"
+  filename="auto_properties.shard"
+/>
+
+<Prose>
+  <strong>Using the <InlineCode>field</InlineCode> keyword.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Counter
+{
+    // Explicit bodies with the 'field' keyword avoid a hand-written backing field.
+    public Value: int
+    {
+        get { return field; }
+        set
+        {
+            // Reject negative values at the property boundary.
+            if (value < 0)
+            {
+                value = 0;
+            }
+
+            field = value;
+        }
+    }
+
+    public init(start: int)
+    {
+        this.Value = start;
+    }
+}
+
+public static func Main() -> void
+{
+    c: Counter = new Counter(5);
+    println(c.Value);    // 5
+
+    c.Value = -3;
+    println(c.Value);    // 0
+}`}
+  language="csharp"
+  filename="field_keyword.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes and edge cases.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class BankAccount
+{
+    // Instance field with a declaration-site initializer.
+    public Balance: double = 0.0;
+
+    // Reference-type field: initialized to null by the runtime before init runs.
+    public Owner: string;
+
+    public static DefaultLimit: double = 1000.0;
+
+    public init(owner: string, startingBalance: double)
+    {
+        this.Owner = owner;
+        this.Balance = startingBalance;
+    }
+}
+
+public static func Main() -> void
+{
+    a: BankAccount = new BankAccount("Bob", 100.0);
+    println(a.Owner + ": " + a.Balance);              // Bob: 100
+    println("Limit: " + BankAccount.DefaultLimit);     // Limit: 1000
+
+    // Reading Owner before init would compile, but would throw at runtime.
+    // Always initialize reference fields in a constructor.
+}`}
+  language="csharp"
+  filename="field_edge_cases.shard"
+/>
+
+<Callout tone="red" title="Do not access instance members from static context">
+  Static methods and static property accessors have no <InlineCode>this</InlineCode>.
+  Trying to read <InlineCode>this.InstanceField</InlineCode> inside a static member is a
+  compile-time error.
+</Callout>
