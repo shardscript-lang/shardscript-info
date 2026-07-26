@@ -54,6 +54,7 @@ public static func Main() -> void
   rows={[
     [<code>Parse(text)</code>, <><InlineCode>text</InlineCode>: <InlineCode>string</InlineCode></>, 'Parses a JSON text and returns the root JsonNode.'],
     [<code>Get(key)</code>, <><InlineCode>key</InlineCode>: <InlineCode>string</InlineCode></>, 'Returns the child node at the given object key.'],
+    [<code>node.key</code>, <><em>key</em>: identifier</>, 'Access-operator shortcut for Get("key"); returns the child node or null.'],
     [<code>Set(key, value)</code>, <><InlineCode>key</InlineCode>: <InlineCode>string</InlineCode>, <InlineCode>value</InlineCode>: <InlineCode>JsonNode</InlineCode></>, 'Sets or overwrites a key on an object node.'],
     [<code>Contains(key)</code>, <><InlineCode>key</InlineCode>: <InlineCode>string</InlineCode></>, 'True if the node is an object and contains the key.'],
     [<code>At(index)</code>, <><InlineCode>index</InlineCode>: <InlineCode>int</InlineCode></>, 'Returns the array element at the zero-based index.'],
@@ -76,6 +77,12 @@ public static func Main() -> void
     [<code>AsBool()</code>, 'bool', 'Boolean value; numbers test != 0, others return false.'],
     [<code>AsString()</code>, 'string', 'String value, or the JSON text for non-string nodes.'],
     [<code>Get(key)</code>, 'JsonNode', 'Child node, or null if missing or not an object.'],
+    [<code>node.key</code>, 'JsonNode', 'Same as Get("key"); returns null if the member is missing or the receiver is not an object.'],
+    [<code>node as int</code>, 'int', 'Casts the node to int using the same rules as AsInt().'],
+    [<code>node as double</code>, 'double', 'Casts the node to double using the same rules as AsDouble().'],
+    [<code>node as bool</code>, 'bool', 'Casts the node to bool using the same rules as AsBool().'],
+    [<code>node as string</code>, 'string', 'Casts the node to string using the same rules as AsString().'],
+    [<code>node as byte</code>, 'byte', 'Casts the numeric node to byte; non-numbers return 0.'],
     [<code>Set(key, value)</code>, 'void', 'No return value.'],
     [<code>Contains(key)</code>, 'bool', 'True if the object contains the key.'],
     [<code>Keys()</code>, 'string[]', 'All object keys, or an empty array for non-objects.'],
@@ -170,6 +177,26 @@ public static func Main() -> void
   node lives for the lifetime of the process. This is acceptable for configuration files and
   bounded API payloads, but avoid creating large numbers of intermediate nodes in long-running
   loops or stream processors.
+</Prose>
+
+<Prose>
+  <strong>Access operator.</strong> <InlineCode>JsonNode</InlineCode> overloads the delimiter operator
+  so object members can be read with dot syntax: <InlineCode>node.Name</InlineCode> is equivalent to{' '}
+  <InlineCode>node.Get("Name")</InlineCode>. The identifier after the dot is passed as the key name.
+  If the receiver is not an object or the key is missing, the expression returns a null node. This
+  works for any identifier that is a valid ShardScript token, including identifiers that would
+  otherwise collide with method names.
+</Prose>
+
+<Prose>
+  <strong>Cast operators.</strong> <InlineCode>JsonNode</InlineCode> provides static{' '}
+  <InlineCode>as</InlineCode> overloads for <InlineCode>int</InlineCode>,{' '}
+  <InlineCode>double</InlineCode>, <InlineCode>bool</InlineCode>, <InlineCode>string</InlineCode>, and{' '}
+  <InlineCode>byte</InlineCode>. <InlineCode>node as int</InlineCode> behaves like{' '}
+  <InlineCode>node.AsInt()</InlineCode>; the other casts mirror their corresponding{' '}
+  <InlineCode>As*</InlineCode> methods. These casts are convenient when extracting scalar values from
+  a dotted path, but they are forgiving and return zero-like defaults for mismatched or missing
+  values.
 </Prose>
 
 <Callout tone="amber" title="Planned features">
@@ -318,6 +345,41 @@ public static func Main() -> void
 }`}
   language="csharp"
   filename="jsonnode_defensive.shard"
+/>
+
+<Prose>
+  <strong>Dot-access and cast shortcuts.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using json;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    node: JsonNode = JsonNode.Parse("{\"Name\":\"Ada\",\"Age\":36,\"Height\":1.68,\"Active\":true,\"Missing\":null}");
+
+    // Dot access returns a JsonNode for the named member.
+    println(node.Name as string);      // Ada
+    println(node.Age as int);          // 36
+    println(node.Height as double);    // 1.68
+    println(node.Active as bool);      // true
+
+    // Missing members produce a null node rather than throwing.
+    println(node.Missing.IsNull());    // true
+    println(node.Missing as int);      // 0
+
+    // Array elements still use At(index).
+    arr: JsonNode = JsonNode.Parse("[10,20,30]");
+    println(arr.At(1).AsInt());        // 20
+
+    // Byte casts are also supported.
+    println(node.Age as byte);         // 36
+}`}
+  language="csharp"
+  filename="jsonnode_access_cast.shard"
 />
 
 <Prose>
