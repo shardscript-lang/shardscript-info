@@ -15,6 +15,47 @@ groupOrder: 1
   language server.
 </Prose>
 
+<H2>Install from a Release (Windows)</H2>
+
+<Prose>
+  The fastest way to get ShardScript on Windows is to run the installer PowerShell script from the
+  latest GitHub release. The script downloads the prebuilt Windows archive, extracts it into{' '}
+  <InlineCode>%ProgramFiles%\ShardScript</InlineCode>, and creates the{' '}
+  <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable pointing at that directory.
+</Prose>
+
+<CodeBlock
+  code={`# Option A: one-liner (run in an elevated PowerShell window)
+irm https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1 | iex
+
+# Option B: download the script first so you can inspect it
+Invoke-WebRequest -Uri "https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1" -OutFile "install-shardscript.ps1"
+.\install-shardscript.ps1
+
+# Optional: also add the install directory to your machine PATH
+.\install-shardscript.ps1 -AddToPath
+
+# One-liner with PATH registration
+& ([scriptblock]::Create((irm https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1))) -AddToPath`}
+  language="powershell"
+  filename="install.ps1"
+/>
+
+<Prose>
+  After the script finishes, open a new terminal so the updated environment variables take effect. The
+  interpreter will be located at <InlineCode>%ProgramFiles%\ShardScript\shard.exe</InlineCode> and the
+  standard shards will be in the <InlineCode>system</InlineCode> folder beside it.
+</Prose>
+
+<Callout tone="blue" title="What the script does">
+  The installer requires Administrator privileges because it writes to{' '}
+  <InlineCode>%ProgramFiles%</InlineCode> and updates machine-level environment variables. It downloads
+  <InlineCode>shardscript-0.4.0-windows.zip</InlineCode> from the{' '}
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.4.0" className="underline">0.4.0 release</a>,
+  expands the archive, sets <InlineCode>SHARDSCRIPT</InlineCode> to the install root, and optionally appends
+  that root to <InlineCode>PATH</InlineCode>.
+</Callout>
+
 <H2>Building the Interpreter</H2>
 
 <Prose>
@@ -48,8 +89,8 @@ cmake --build build --parallel
 </Prose>
 
 <Callout tone="amber" title="Build from source">
-  There are no prebuilt binaries, installers, or system package-manager recipes published yet. Build
-  from source with the commands above. On Windows the repository also ships{' '}
+  Prebuilt Windows binaries are available through the installer script above. For Linux, or when you need
+  a custom build, compile from source with the commands below. On Windows the repository also ships{' '}
   <InlineCode>build_release.bat</InlineCode> and <InlineCode>build_debug.bat</InlineCode> helper scripts.
 </Callout>
 
