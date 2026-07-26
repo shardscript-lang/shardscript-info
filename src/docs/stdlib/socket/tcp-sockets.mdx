@@ -1,0 +1,747 @@
+---
+title: TCP Sockets
+group: SHARD.SOCKET
+groupOrder: 12
+order: 1
+slug: tcp-sockets
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.socket</InlineCode> library exposes the <InlineCode>Socket</InlineCode> and{' '}
+  <InlineCode>SocketStream</InlineCode> classes in the <InlineCode>net</InlineCode> namespace for IPv4 TCP
+  networking. <InlineCode>Socket</InlineCode> provides low-level connect, listen, accept, and string-oriented
+  send/receive operations, while <InlineCode>SocketStream</InlineCode> wraps a connected socket in the{' '}
+  <InlineCode>io</InlineCode> stream interfaces for byte-oriented asynchronous I/O.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Import the namespace with <InlineCode>using net;</InlineCode>. Both classes are reference types that implement{' '}
+  <InlineCode>IDisposable</InlineCode> and should be disposed after use.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Low-level string-oriented socket.
+    client: Socket = new Socket();
+    defer client.Dispose();
+
+    // Byte-oriented stream wrapper.
+    stream: SocketStream = new SocketStream(client);
+    defer stream.Dispose();
+}`}
+  language="csharp"
+  filename="socket_import.shard"
+/>
+
+<DocsTable
+  headers={['Class', 'Member', 'Signature']}
+  rows={[
+    [
+      <code>Socket</code>,
+      <code>new Socket()</code>,
+      <>Creates an IPv4 TCP socket handle.</>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Connect(ip, port)</code>,
+      <><code>func Connect(ip: string, port: int) -&gt; bool</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Send(data)</code>,
+      <><code>func Send(data: string) -&gt; int</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Bind(ip, port)</code>,
+      <><code>func Bind(ip: string, port: int) -&gt; bool</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Listen(backlog)</code>,
+      <><code>func Listen(backlog: int) -&gt; bool</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Accept()</code>,
+      <><code>func Accept() -&gt; Socket</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>AcceptAsync()</code>,
+      <><code>func AcceptAsync() -&gt; ValueTask&lt;Socket&gt;</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Receive(bufferSize)</code>,
+      <><code>func Receive(bufferSize: int) -&gt; string</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Close()</code>,
+      <><code>func Close() -&gt; void</code></>,
+    ],
+    [
+      <code>Socket</code>,
+      <code>Dispose()</code>,
+      <><code>func Dispose() -&gt; void</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>new SocketStream()</code>,
+      <>Creates a new socket and wraps it as a stream.</>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>new SocketStream(socket)</code>,
+      <><code>new SocketStream(socket: Socket)</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Connect(ip, port)</code>,
+      <><code>func Connect(ip: string, port: int) -&gt; bool</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Read(buffer, offset, count)</code>,
+      <><code>func Read(buffer: byte[], offset: int, count: int) -&gt; int</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>ReadAsync(buffer, offset, count)</code>,
+      <><code>func ReadAsync(buffer: byte[], offset: int, count: int) -&gt; ValueTask&lt;int&gt;</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>ReadAsync(buffer, offset, count, cancellationToken)</code>,
+      <><code>func ReadAsync(buffer: byte[], offset: int, count: int, cancellationToken: CancellationToken) -&gt; ValueTask&lt;int&gt;</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Write(buffer, offset, count)</code>,
+      <><code>func Write(buffer: byte[], offset: int, count: int) -&gt; void</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>WriteAsync(buffer, offset, count)</code>,
+      <><code>func WriteAsync(buffer: byte[], offset: int, count: int) -&gt; Task</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>WriteAsync(buffer, offset, count, cancellationToken)</code>,
+      <><code>func WriteAsync(buffer: byte[], offset: int, count: int, cancellationToken: CancellationToken) -&gt; Task</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Flush()</code>,
+      <><code>func Flush() -&gt; void</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>FlushAsync()</code>,
+      <><code>func FlushAsync() -&gt; Task</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>FlushAsync(cancellationToken)</code>,
+      <><code>func FlushAsync(cancellationToken: CancellationToken) -&gt; Task</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Close()</code>,
+      <><code>func Close() -&gt; void</code></>,
+    ],
+    [
+      <code>SocketStream</code>,
+      <code>Dispose()</code>,
+      <><code>func Dispose() -&gt; void</code></>,
+    ],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  <strong>Socket parameters</strong>
+</Prose>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>ip</InlineCode>,
+      'string',
+      'An IPv4 address in dotted-quad notation, such as "127.0.0.1". For Bind, an empty string or "0.0.0.0" binds all local interfaces.',
+    ],
+    [
+      <InlineCode>port</InlineCode>,
+      'int',
+      'The TCP port number. Values outside the 0-65535 range are rejected by the underlying operating system.',
+    ],
+    [
+      <InlineCode>data</InlineCode>,
+      'string',
+      'The text payload to send. The implementation transmits the string as UTF-16 wide characters.',
+    ],
+    [
+      <InlineCode>bufferSize</InlineCode>,
+      'int',
+      'The maximum number of wide characters to receive. Must be greater than zero or Receive returns an empty string.',
+    ],
+    [
+      <InlineCode>backlog</InlineCode>,
+      'int',
+      'The maximum length of the pending connection queue. Passing -1 lets the platform choose a default.',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>SocketStream parameters</strong>
+</Prose>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>socket</InlineCode>,
+      'Socket',
+      'An existing connected or accepted Socket whose handle is adopted by the stream.',
+    ],
+    [
+      <InlineCode>buffer</InlineCode>,
+      'byte[]',
+      'The byte array that receives or supplies data.',
+    ],
+    [
+      <InlineCode>offset</InlineCode>,
+      'int',
+      'The zero-based index in buffer where the operation begins. Must be non-negative.',
+    ],
+    [
+      <InlineCode>count</InlineCode>,
+      'int',
+      'The number of bytes to read or write. Must be non-negative and fit within the buffer bounds.',
+    ],
+    [
+      <InlineCode>cancellationToken</InlineCode>,
+      'CancellationToken',
+      'A token obtained from CancellationTokenSource. When canceled, the async operation faults with an Operation canceled error.',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<InlineCode>Socket.Connect</InlineCode>, 'bool', 'true when the connection succeeds; false when the address is invalid or the connection is refused.'],
+    [<InlineCode>Socket.Send</InlineCode>, 'int', 'The number of bytes transmitted, or -1 if the socket handle is invalid. The count is in bytes, not characters.'],
+    [<InlineCode>Socket.Bind</InlineCode>, 'bool', 'true when the local endpoint is bound successfully.'],
+    [<InlineCode>Socket.Listen</InlineCode>, 'bool', 'true when the socket enters the listening state.'],
+    [<InlineCode>Socket.Accept</InlineCode>, 'Socket', 'A new Socket representing the accepted client connection.'],
+    [<InlineCode>Socket.AcceptAsync</InlineCode>, 'ValueTask<Socket>', 'An awaitable Socket for the next incoming connection.'],
+    [<InlineCode>Socket.Receive</InlineCode>, 'string', 'The received wide-character string, or an empty string if the socket is closed or no data is available.'],
+    [<InlineCode>SocketStream.Connect</InlineCode>, 'bool', 'true when the connection succeeds; otherwise a runtime exception is thrown.'],
+    [<InlineCode>SocketStream.Read</InlineCode>, 'int', 'The number of bytes copied into buffer. Zero indicates end-of-stream.'],
+    [<InlineCode>SocketStream.ReadAsync</InlineCode>, 'ValueTask<int>', 'An awaitable byte count. Zero indicates end-of-stream.'],
+    [<InlineCode>SocketStream.Write / WriteAsync</InlineCode>, 'void / Task', 'Completes after the requested bytes are sent or an error is reported.'],
+    [<InlineCode>SocketStream.Flush / FlushAsync</InlineCode>, 'void / Task', 'No operation; TCP sends data immediately.'],
+    [<InlineCode>Close / Dispose</InlineCode>, 'void', 'Releases the native socket handle. Subsequent operations fail or throw.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Namespace import required</strong> — The{' '}
+    <InlineCode>net</InlineCode> namespace must be imported with <InlineCode>using net;</InlineCode> before
+    referencing <InlineCode>Socket</InlineCode> or <InlineCode>SocketStream</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Socket creation failure</strong> — Constructing{' '}
+    <InlineCode>new Socket()</InlineCode> or <InlineCode>new SocketStream()</InlineCode> throws a runtime exception
+    when the underlying <InlineCode>socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)</InlineCode> call fails or the network
+    subsystem cannot be initialized.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid server socket handle</strong> —{' '}
+    <InlineCode>Socket.Accept()</InlineCode> and <InlineCode>Socket.AcceptAsync()</InlineCode> throw when called on a
+    socket that has not been bound and listened, or whose handle has already been closed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid IP address</strong> —{' '}
+    <InlineCode>SocketStream.Connect</InlineCode> throws when <InlineCode>ip</InlineCode> cannot be parsed as an IPv4
+    address. <InlineCode>Socket.Connect</InlineCode> returns <InlineCode>false</InlineCode> instead.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Receive on invalid socket</strong> —{' '}
+    <InlineCode>Socket.Receive</InlineCode> returns an empty string when the handle is invalid or when the peer has
+    closed the connection; it does not throw.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Read from a closed SocketStream</strong> —{' '}
+    <InlineCode>SocketStream.Read</InlineCode> and <InlineCode>ReadAsync</InlineCode> throw when the stream has been
+    disposed or closed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Negative offset or count</strong> —{' '}
+    <InlineCode>SocketStream.Read</InlineCode> and <InlineCode>SocketStream.Write</InlineCode> reject negative{' '}
+    <InlineCode>offset</InlineCode> or <InlineCode>count</InlineCode> values.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Socket send/receive failure</strong> —{' '}
+    <InlineCode>SocketStream.Write</InlineCode> and <InlineCode>SocketStream.Read</InlineCode> throw when the underlying
+    native send or recv call reports an error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Operation canceled</strong> — The cancellation-aware async overloads on
+    <InlineCode>SocketStream</InlineCode> fault with an <InlineCode>Operation canceled</InlineCode> error when the
+    provided <InlineCode>CancellationToken</InlineCode> is canceled before or during the operation.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>IPv4 TCP only.</strong> The current implementation creates sockets with{' '}
+  <InlineCode>AF_INET</InlineCode>, <InlineCode>SOCK_STREAM</InlineCode>, and <InlineCode>IPPROTO_TCP</InlineCode>. IPv6
+  addresses, UDP datagrams, and Unix domain sockets are not supported by this library.
+</Prose>
+
+<Prose>
+  <strong>Wide-character string transport.</strong> <InlineCode>Socket.Send</InlineCode> transmits each character as a
+  platform wide character (UTF-16LE on Windows, typically 32-bit on Linux). The byte count returned by{' '}
+  <InlineCode>Send</InlineCode> is therefore <InlineCode>data.Length * sizeof(wchar_t)</InlineCode>, not the character
+  count. <InlineCode>Receive</InlineCode> reads raw bytes and reconstructs a string from complete wide characters. Use{' '}
+  <InlineCode>SocketStream</InlineCode> when you need portable byte-oriented transport and control over encoding.
+</Prose>
+
+<Prose>
+  <strong>Bind any local interface.</strong> For server sockets, pass <InlineCode>"0.0.0.0"</InlineCode> or an empty
+  string to <InlineCode>Bind</InlineCode> to listen on all available IPv4 interfaces. A specific address such as{' '}
+  <InlineCode>"127.0.0.1"</InlineCode> restricts the listener to the loopback interface.
+</Prose>
+
+<Prose>
+  <strong>Backlog behavior.</strong> <InlineCode>Listen(backlog)</InlineCode> forwards the backlog value directly to
+  the operating system. A negative value such as <InlineCode>-1</InlineCode> is accepted by the implementation and
+  resolved to a platform default, but the exact limit depends on the host OS.
+</Prose>
+
+<Prose>
+  <strong>SocketStream is a thin stream adapter.</strong> <InlineCode>SocketStream</InlineCode> implements{' '}
+  <InlineCode>io.IReadableStream</InlineCode>, <InlineCode>io.IWritableStream</InlineCode>, and{' '}
+  <InlineCode>IDisposable</InlineCode>. It does not buffer, seek, or expose <InlineCode>Position</InlineCode> or{' '}
+  <InlineCode>Length</InlineCode>. <InlineCode>Flush</InlineCode> and <InlineCode>FlushAsync</InlineCode> are no-ops
+  because TCP sends data immediately.
+</Prose>
+
+<Prose>
+  <strong>Asynchronous operations run on the thread pool.</strong>{' '}
+  <InlineCode>Socket.AcceptAsync</InlineCode> and the <InlineCode>SocketStream</InlineCode> async methods schedule the
+  blocking native call on a background thread and resume the awaiting ShardScript task on completion. This keeps the
+  VM event loop responsive while waiting for network I/O.
+</Prose>
+
+<Prose>
+  <strong>End-of-stream detection.</strong> <InlineCode>SocketStream.Read</InlineCode> and{' '}
+  <InlineCode>ReadAsync</InlineCode> return <InlineCode>0</InlineCode> when the peer gracefully closes the connection.
+  A loop that reads until EOF must treat <InlineCode>0</InlineCode> as termination, not as an error.
+</Prose>
+
+<Prose>
+  <strong>Dispose is idempotent.</strong> Calling <InlineCode>Close()</InlineCode> or{' '}
+  <InlineCode>Dispose()</InlineCode> more than once on a <InlineCode>Socket</InlineCode> or{' '}
+  <InlineCode>SocketStream</InlineCode> is safe. Both methods close the native handle and mark the object as closed.
+  Because both classes implement <InlineCode>IDisposable</InlineCode>, the <InlineCode>defer</InlineCode> statement can
+  be used for deterministic cleanup.
+</Prose>
+
+<Callout tone="blue">
+  Prefer <InlineCode>SocketStream</InlineCode> for new code. It interoperates with generic helpers written against{' '}
+  <InlineCode>io.IReadableStream</InlineCode> and <InlineCode>io.IWritableStream</InlineCode>, supports cancellation
+  tokens, and avoids the wide-character encoding quirks of the low-level <InlineCode>Socket.Send</InlineCode> /{' '}
+  <InlineCode>Socket.Receive</InlineCode> API.
+</Callout>
+
+<Callout tone="amber" title="Not implemented">
+  UDP sockets, IPv6, raw sockets, non-blocking polling, socket options (keep-alive, no-delay, receive buffer size),
+  and DNS hostname resolution are not exposed by <InlineCode>shard.socket</InlineCode>. Connect by IPv4 address or
+  resolve hostnames through a separate library before calling <InlineCode>Connect</InlineCode>.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Simple TCP client using the low-level Socket API.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    client: Socket = new Socket();
+    defer client.Dispose();
+
+    if (!client.Connect("127.0.0.1", 6969))
+    {
+        println("Failed to connect to server");
+        return;
+    }
+
+    sent: int = client.Send("Hello from ShardScript");
+    println("Sent bytes: " + sent);
+}`}
+  language="csharp"
+  filename="socket_client.shard"
+/>
+
+<Prose>
+  <strong>Simple TCP echo server using the low-level Socket API.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    server: Socket = new Socket();
+    defer server.Dispose();
+
+    if (!server.Bind("127.0.0.1", 6969))
+    {
+        println("Failed to bind");
+        return;
+    }
+
+    if (!server.Listen(-1))
+    {
+        println("Failed to listen");
+        return;
+    }
+
+    println("Server listening on port 6969");
+
+    while (true)
+    {
+        client: Socket = server.Accept();
+        if (client == null)
+        {
+            continue;
+        }
+
+        defer client.Dispose();
+
+        message: string = client.Receive(1024);
+        println("Received: " + message);
+
+        // Echo the same payload back to the client.
+        client.Send(message);
+    }
+}`}
+  language="csharp"
+  filename="socket_server.shard"
+/>
+
+<Prose>
+  <strong>Byte-oriented echo server and client with SocketStream.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+using net;
+using io;
+
+namespace demo;
+
+public class Program
+{
+    public static async func RunServer(port: int, done: TaskCompletionSource<int>) -> Task
+    {
+        server: Socket = new Socket();
+        defer server.Dispose();
+
+        if (!server.Bind("127.0.0.1", port))
+        {
+            println("Failed to bind");
+            throw new RuntimeException();
+        }
+
+        if (!server.Listen(1))
+        {
+            println("Failed to listen");
+            throw new RuntimeException();
+        }
+
+        client: Socket = await server.AcceptAsync();
+        defer client.Dispose();
+
+        stream: SocketStream = new SocketStream(client);
+        defer stream.Dispose();
+
+        buffer: byte[] = [0 as byte; 64];
+        read: int = await stream.ReadAsync(buffer, 0, buffer.Length);
+        if (read == 0)
+        {
+            println("Client disconnected before sending data");
+            throw new RuntimeException();
+        }
+
+        await stream.WriteAsync(buffer, 0, read);
+        done.SetResult(0);
+    }
+
+    public static async func RunClient(port: int) -> Task
+    {
+        client: Socket = new Socket();
+        defer client.Dispose();
+
+        if (!client.Connect("127.0.0.1", port))
+        {
+            println("Failed to connect");
+            throw new RuntimeException();
+        }
+
+        stream: SocketStream = new SocketStream(client);
+        defer stream.Dispose();
+
+        payload: byte[] = [72 as byte, 101 as byte, 108 as byte, 108 as byte, 111 as byte];
+        await stream.WriteAsync(payload, 0, payload.Length);
+
+        buffer: byte[] = [0 as byte; 64];
+        read: int = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+        i: int = 0;
+        while (i < read)
+        {
+            println(buffer[i]);
+            i = i + 1;
+        }
+    }
+
+    public static func Main() -> void
+    {
+        port: int = 17654;
+        done: TaskCompletionSource<int> = new TaskCompletionSource<int>();
+
+        serverTask: Task = RunServer(port, done);
+
+        // Give the server time to start listening before connecting.
+        Task.Wait(Task.Delay(50));
+
+        clientTask: Task = RunClient(port);
+        Task.Wait(clientTask);
+        Task.Wait(serverTask);
+
+        println("echo completed");
+    }
+}`}
+  language="csharp"
+  filename="socket_stream_echo.shard"
+/>
+
+<Prose>
+  <strong>Reading until end-of-stream with SocketStream.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+using io;
+
+namespace demo;
+
+public static func ReadAll(stream: SocketStream) -> byte[]
+{
+    accumulator: MemoryStream = new MemoryStream();
+    defer accumulator.Dispose();
+
+    chunk: byte[] = [0 as byte; 256];
+
+    while (true)
+    {
+        read: int = stream.Read(chunk, 0, chunk.Length);
+        if (read == 0)
+        {
+            // The peer closed the connection; no more bytes will arrive.
+            break;
+        }
+
+        accumulator.Write(chunk, 0, read);
+    }
+
+    return accumulator.ToArray();
+}
+
+public static func Main() -> void
+{
+    socket: Socket = new Socket();
+    defer socket.Dispose();
+
+    if (!socket.Connect("127.0.0.1", 8080))
+    {
+        println("Failed to connect");
+        return;
+    }
+
+    stream: SocketStream = new SocketStream(socket);
+    defer stream.Dispose();
+
+    data: byte[] = ReadAll(stream);
+    println("Received " + data.Length + " bytes");
+}`}
+  language="csharp"
+  filename="socket_stream_read_all.shard"
+/>
+
+<Prose>
+  <strong>Cancellation-aware SocketStream read.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+using net;
+
+namespace demo;
+
+public class Program
+{
+    public static async func RunCancellationDemo() -> Task
+    {
+        socket: Socket = new Socket();
+        defer socket.Dispose();
+
+        if (!socket.Connect("127.0.0.1", 8080))
+        {
+            println("Failed to connect");
+            return;
+        }
+
+        stream: SocketStream = new SocketStream(socket);
+        defer stream.Dispose();
+
+        cts: CancellationTokenSource = new CancellationTokenSource();
+        cts.CancelAfter(100);   // cancel after 100 milliseconds
+
+        buffer: byte[] = [0 as byte; 256];
+
+        try
+        {
+            read: int = await stream.ReadAsync(buffer, 0, buffer.Length, cts.Token);
+            println("Read " + read + " bytes");
+        }
+        catch (ex: RuntimeException)
+        {
+            println("Read was canceled or failed: " + ex.message);
+        }
+
+        cts.Dispose();
+    }
+
+    public static func Main() -> void
+    {
+        task: Task = RunCancellationDemo();
+        Task.Wait(task);
+    }
+}`}
+  language="csharp"
+  filename="socket_stream_cancellation.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: assuming Receive returns null on disconnect.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    socket: Socket = new Socket();
+    defer socket.Dispose();
+
+    if (!socket.Connect("127.0.0.1", 8080))
+    {
+        println("Failed to connect");
+        return;
+    }
+
+    // WRONG: Socket.Receive never returns null.
+    // if (socket.Receive(1024) == null) { ... }
+
+    // CORRECT: test for the empty string.
+    response: string = socket.Receive(1024);
+    if (response == "")
+    {
+        println("Peer closed the connection or no data arrived");
+    }
+    else
+    {
+        println(response);
+    }
+}`}
+  language="csharp"
+  filename="socket_receive_mistake.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: forgetting to dispose accepted clients.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    server: Socket = new Socket();
+    defer server.Dispose();
+
+    if (!server.Bind("127.0.0.1", 6969) || !server.Listen(-1))
+    {
+        println("Server setup failed");
+        return;
+    }
+
+    while (true)
+    {
+        client: Socket = server.Accept();
+
+        // CORRECT: dispose each accepted client to release the native handle.
+        defer client.Dispose();
+
+        msg: string = client.Receive(1024);
+        println(msg);
+    }
+}`}
+  language="csharp"
+  filename="socket_dispose_client.shard"
+/>

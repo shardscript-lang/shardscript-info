@@ -1,0 +1,447 @@
+---
+title: Type Introspection
+group: SHARD.REFLECTION
+groupOrder: 13
+order: 1
+slug: type-introspection
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.reflection</InlineCode> library exposes a runtime <InlineCode>Type</InlineCode>{' '}
+  class in the <InlineCode>reflection</InlineCode> namespace for inspecting types, members, and
+  assignability relationships. It also provides <InlineCode>MethodInfo</InlineCode>,{' '}
+  <InlineCode>FieldInfo</InlineCode>, <InlineCode>PropertyInfo</InlineCode>, and{' '}
+  <InlineCode>ParameterInfo</InlineCode> wrappers for enumerating the members of a type.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  All reflection types live in the <InlineCode>reflection</InlineCode> namespace. The entry point is
+  the static <InlineCode>Type</InlineCode> class:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Obtain a Type from an instance.
+    value: int = 42;
+    runtimeType: Type = Type.Of(value);
+
+    // Obtain a Type by name.
+    namedType: Type = Type.GetType("Integer");
+
+    println(runtimeType.Name);
+    println(namedType.Name);
+}`}
+  language="csharp"
+  filename="type_basics.shard"
+/>
+
+<DocsTable
+  headers={['Type', 'Description']}
+  rows={[
+    [<code>Type</code>, 'Runtime descriptor for a ShardScript type.'],
+    [<code>MethodInfo</code>, 'Descriptor for a method or function declared on a type.'],
+    [<code>FieldInfo</code>, 'Descriptor for a field declared on a type.'],
+    [<code>PropertyInfo</code>, 'Descriptor for a property declared on a type.'],
+    [<code>ParameterInfo</code>, 'Descriptor for a single parameter of a method.'],
+  ]}
+/>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [<code>Type.Of(instance)</code>, <><code>static func Of(object: any) -&gt; Type</code></>, 'Returns the runtime type of an object.'],
+    [<code>Type.GetType(name)</code>, <><code>static func GetType(name: string) -&gt; Type</code></>, 'Looks up a type by simple name or fully-qualified name.'],
+    [<code>Type.Name</code>, <><code>property Name: string</code></>, 'Simple name of the type.'],
+    [<code>Type.FullName</code>, <><code>property FullName: string</code></>, 'Fully-qualified name including namespace.'],
+    [<code>Type.Namespace</code>, <><code>property Namespace: string</code></>, 'Namespace portion of the full name, or an empty string.'],
+    [<code>Type.IsArray</code>, <><code>property IsArray: bool</code></>, 'True when the type is an array type.'],
+    [<code>Type.IsClass</code>, <><code>property IsClass: bool</code></>, 'True when the type is a class.'],
+    [<code>Type.IsStruct</code>, <><code>property IsStruct: bool</code></>, 'True when the type is a struct.'],
+    [<code>Type.IsInterface</code>, <><code>property IsInterface: bool</code></>, 'True when the type is an interface.'],
+    [<code>Type.IsEnum</code>, <><code>property IsEnum: bool</code></>, 'True when the type is an enum.'],
+    [<code>Type.IsGeneric</code>, <><code>property IsGeneric: bool</code></>, 'True when the type is a constructed generic type.'],
+    [<code>Type.IsPrimitive</code>, <><code>property IsPrimitive: bool</code></>, 'True when the type is a primitive such as int, bool, or string.'],
+    [<code>Type.GetElementType()</code>, <><code>func GetElementType() -&gt; Type</code></>, 'Returns the element type of an array, or null.'],
+    [<code>Type.GetInterfaces()</code>, <><code>func GetInterfaces() -&gt; Type[]</code></>, 'Returns all interfaces implemented by the type.'],
+    [<code>Type.IsAssignableFrom(other)</code>, <><code>func IsAssignableFrom(other: Type) -&gt; bool</code></>, 'True when the target type can be assigned from the other type.'],
+    [<code>Type.GetMethods()</code>, <><code>func GetMethods() -&gt; MethodInfo[]</code></>, 'Returns all methods declared on the type.'],
+    [<code>Type.GetFields()</code>, <><code>func GetFields() -&gt; FieldInfo[]</code></>, 'Returns all fields declared on the type.'],
+    [<code>Type.GetProperties()</code>, <><code>func GetProperties() -&gt; PropertyInfo[]</code></>, 'Returns all properties declared on the type.'],
+  ]}
+/>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [<code>MethodInfo.Name</code>, <><code>property Name: string</code></>, 'Name of the method.'],
+    [<code>MethodInfo.ReturnType</code>, <><code>property ReturnType: Type</code></>, 'Declared return type of the method.'],
+    [<code>MethodInfo.IsStatic</code>, <><code>property IsStatic: bool</code></>, 'True when the method is declared static.'],
+    [<code>MethodInfo.GetParameters()</code>, <><code>func GetParameters() -&gt; ParameterInfo[]</code></>, 'Returns the parameters of the method in declaration order.'],
+    [<code>FieldInfo.Name</code>, <><code>property Name: string</code></>, 'Name of the field.'],
+    [<code>FieldInfo.FieldType</code>, <><code>property FieldType: Type</code></>, 'Declared type of the field.'],
+    [<code>FieldInfo.IsStatic</code>, <><code>property IsStatic: bool</code></>, 'True when the field is declared static.'],
+    [<code>PropertyInfo.Name</code>, <><code>property Name: string</code></>, 'Name of the property.'],
+    [<code>PropertyInfo.PropertyType</code>, <><code>property PropertyType: Type</code></>, 'Declared type of the property.'],
+    [<code>PropertyInfo.IsStatic</code>, <><code>property IsStatic: bool</code></>, 'True when the property is declared static.'],
+    [<code>ParameterInfo.Name</code>, <><code>property Name: string</code></>, 'Name of the parameter.'],
+    [<code>ParameterInfo.ParameterType</code>, <><code>property ParameterType: Type</code></>, 'Declared type of the parameter.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>object</code>, 'any', 'The instance whose runtime type is requested.'],
+    [<code>name</code>, 'string', 'The simple name or fully-qualified name of a type. Examples: "Integer", "collections.List", "IEnumerable".'],
+    [<code>other</code>, 'Type', 'The candidate source type in an assignability check.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<code>Type.Of(instance)</code>, <code>Type</code>, 'The runtime type of the instance, or null when the instance is null.'],
+    [<code>Type.GetType(name)</code>, <code>Type</code>, 'The type whose name matches, or a runtime error when no match exists.'],
+    [<code>Type.Name</code>, <code>string</code>, 'Simple type name such as "List" or "Integer".'],
+    [<code>Type.FullName</code>, <code>string</code>, 'Fully-qualified name such as "collections.List".'],
+    [<code>Type.Namespace</code>, <code>string</code>, 'Namespace such as "collections", or an empty string for global types.'],
+    [<code>Type.Is*</code>, <code>bool</code>, 'Classification flag for the represented type.'],
+    [<code>Type.GetElementType()</code>, <code>Type</code>, 'Element type for arrays, otherwise null.'],
+    [<code>Type.GetInterfaces()</code>, <code>Type[]</code>, 'Array of implemented interfaces. Empty when none.'],
+    [<code>Type.IsAssignableFrom(other)</code>, <code>bool</code>, 'True when a value of the other type can be assigned to the represented type.'],
+    [<code>Type.GetMethods()</code>, <code>MethodInfo[]</code>, 'Array of methods declared on the type.'],
+    [<code>Type.GetFields()</code>, <code>FieldInfo[]</code>, 'Array of fields declared on the type.'],
+    [<code>Type.GetProperties()</code>, <code>PropertyInfo[]</code>, 'Array of properties declared on the type.'],
+    [<code>MethodInfo.GetParameters()</code>, <code>ParameterInfo[]</code>, 'Array of parameters for the method.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compile-time namespace resolution</strong> — The{' '}
+    <InlineCode>reflection</InlineCode> namespace must be imported with{' '}
+    <InlineCode>using reflection;</InlineCode> before <InlineCode>Type</InlineCode> or the member-info
+    types can be referenced.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type not found</strong> — <InlineCode>Type.GetType(name)</InlineCode>{' '}
+    throws a runtime exception when the supplied name does not match any loaded type by simple or
+    fully-qualified name.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null instance introspection</strong> —{' '}
+    <InlineCode>Type.Of(null)</InlineCode> returns <InlineCode>null</InlineCode>. It does not throw,
+    so the result must be checked before accessing members.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid element-type query</strong> —{' '}
+    <InlineCode>Type.GetElementType()</InlineCode> returns <InlineCode>null</InlineCode> when the type
+    is not an array.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Type lookup rules.</strong> <InlineCode>Type.GetType</InlineCode> accepts either a simple
+  name or a fully-qualified name. It first checks the built-in primitives
+  (<InlineCode>Void</InlineCode>, <InlineCode>Null</InlineCode>, <InlineCode>Any</InlineCode>,{' '}
+  <InlineCode>Boolean</InlineCode>, <InlineCode>Integer</InlineCode>, <InlineCode>Double</InlineCode>,{' '}
+  <InlineCode>Char</InlineCode>, <InlineCode>String</InlineCode>, <InlineCode>Array</InlineCode>,{' '}
+  <InlineCode>NativeInteger</InlineCode>) and standard library types such as{' '}
+  <InlineCode>RuntimeException</InlineCode>, <InlineCode>IDisposable</InlineCode>, and{' '}
+  <InlineCode>IEnumerable</InlineCode>. It then searches all user-defined types loaded in the current
+  symbol table. Names are matched case-sensitively.
+</Prose>
+
+<Prose>
+  <strong>Assignability semantics.</strong> <InlineCode>target.IsAssignableFrom(source)</InlineCode>{' '}
+  follows the same rules as the compiler. It returns <InlineCode>true</InlineCode> when a value of the
+  source type can be used where the target type is expected, including inheritance, interface
+  implementation, and primitive widening.
+</Prose>
+
+<Prose>
+  <strong>Generic types.</strong> When reflecting over a constructed generic instance such as{' '}
+  <InlineCode>List&lt;int&gt;</InlineCode>, the returned <InlineCode>Type</InlineCode> reports{' '}
+  <InlineCode>IsGeneric = true</InlineCode> and its <InlineCode>Name</InlineCode> is the simple name of
+  the generic definition. Member enumeration methods such as <InlineCode>GetMethods</InlineCode>,{' '}
+  <InlineCode>GetFields</InlineCode>, and <InlineCode>GetProperties</InlineCode> operate on the
+  underlying generic definition, so the returned <InlineCode>MethodInfo</InlineCode>,{' '}
+  <InlineCode>FieldInfo</InlineCode>, and <InlineCode>PropertyInfo</InlineCode> objects describe the
+  members declared by <InlineCode>List&lt;T&gt;</InlineCode> rather than a constructed specialization.
+</Prose>
+
+<Prose>
+  <strong>Member visibility.</strong> Reflection enumerates members declared on the type itself. It does
+  not currently walk the inheritance hierarchy or surface inherited members, and it does not filter by
+  access modifier. The set returned by <InlineCode>GetMethods</InlineCode> includes all methods known to
+  the compiler symbol table for that type definition.
+</Prose>
+
+<Callout tone="blue">
+  Prefer <InlineCode>Type.Of(instance)</InlineCode> when you already have an object. Use{' '}
+  <InlineCode>Type.GetType("Full.Name")</InlineCode> only when you need to resolve a type dynamically by
+  name.
+</Callout>
+
+<Callout tone="amber" title="Not implemented">
+  <InlineCode>shard.reflection</InlineCode> does not currently expose constructors, events, base-type
+  traversal, generic type arguments, custom attributes, or dynamic invocation of methods and property
+  accessors. It is a read-only inspection API.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic type inspection of a generic list.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    listOfInts: List<int> = new List<int>();
+    listOfInts.Add(10);
+    listOfInts.Add(20);
+
+    listType: Type = Type.Of(listOfInts);
+
+    println("Name      : " + listType.Name);
+    println("FullName  : " + listType.FullName);
+    println("Namespace : " + listType.Namespace);
+    println("IsClass   : " + listType.IsClass);
+    println("IsGeneric : " + listType.IsGeneric);
+    println("IsArray   : " + listType.IsArray);
+    println("IsPrimitive : " + listType.IsPrimitive);
+}`}
+  language="csharp"
+  filename="type_list.shard"
+/>
+
+<Prose>
+  <strong>Array introspection and element types.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    arrayOfInts: int[] = 1..3;
+
+    arrayType: Type = Type.Of(arrayOfInts);
+
+    println("Name    : " + arrayType.Name);
+    println("IsArray : " + arrayType.IsArray);
+
+    elementType: Type = arrayType.GetElementType();
+    if (elementType != null)
+    {
+        println("Element : " + elementType.Name);
+    }
+
+    // Demonstrate the null fallback for non-array types.
+    intType: Type = Type.GetType("Integer");
+    nonElement: Type = intType.GetElementType();
+    if (nonElement == null)
+    {
+        println("Integer has no element type");
+    }
+}`}
+  language="csharp"
+  filename="type_array.shard"
+/>
+
+<Prose>
+  <strong>Looking up types by name.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    intType: Type = Type.GetType("Integer");
+    println("int name        : " + intType.Name);
+    println("int IsPrimitive : " + intType.IsPrimitive);
+
+    listType: Type = Type.GetType("collections.List");
+    println("list name       : " + listType.Name);
+    println("list IsClass    : " + listType.IsClass);
+
+    iEnumerableType: Type = Type.GetType("IEnumerable");
+    println("IEnumerable name : " + iEnumerableType.Name);
+    println("IsInterface      : " + iEnumerableType.IsInterface);
+}`}
+  language="csharp"
+  filename="type_by_name.shard"
+/>
+
+<Prose>
+  <strong>Checking assignability and implemented interfaces.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    listOfInts: List<int> = new List<int>();
+    arrayOfInts: int[] = 1..3;
+
+    listType: Type = Type.Of(listOfInts);
+    arrayType: Type = Type.Of(arrayOfInts);
+    iEnumerableType: Type = Type.GetType("IEnumerable");
+
+    println("IEnumerable <- int[]      : " + iEnumerableType.IsAssignableFrom(arrayType));
+    println("IEnumerable <- List<int>  : " + iEnumerableType.IsAssignableFrom(listType));
+
+    println("Interfaces of List<int>:");
+    ifaces: Type[] = listType.GetInterfaces();
+    foreach (iface in ifaces)
+    {
+        println("  " + iface.FullName);
+    }
+}`}
+  language="csharp"
+  filename="type_assignability.shard"
+/>
+
+<Prose>
+  <strong>Enumerating methods, fields, and properties.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    listOfInts: List<int> = new List<int>();
+    listType: Type = Type.Of(listOfInts);
+
+    println("Methods:");
+    methods: MethodInfo[] = listType.GetMethods();
+    foreach (m in methods)
+    {
+        println("  " + m.Name + " -> " + m.ReturnType.Name);
+    }
+
+    println("Fields:");
+    fields: FieldInfo[] = listType.GetFields();
+    foreach (f in fields)
+    {
+        println("  " + f.Name + " : " + f.FieldType.Name + " (static=" + f.IsStatic + ")");
+    }
+
+    println("Properties:");
+    props: PropertyInfo[] = listType.GetProperties();
+    foreach (p in props)
+    {
+        println("  " + p.Name + " : " + p.PropertyType.Name + " (static=" + p.IsStatic + ")");
+    }
+}`}
+  language="csharp"
+  filename="type_members.shard"
+/>
+
+<Prose>
+  <strong>Inspecting method parameters.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    listOfInts: List<int> = new List<int>();
+    listType: Type = Type.Of(listOfInts);
+
+    methods: MethodInfo[] = listType.GetMethods();
+    foreach (m in methods)
+    {
+        if (m.Name == "Add")
+        {
+            println("Method: " + m.Name);
+            println("ReturnType: " + m.ReturnType.Name);
+            println("IsStatic: " + m.IsStatic);
+
+            parameters: ParameterInfo[] = m.GetParameters();
+            foreach (p in parameters)
+            {
+                println("  Parameter: " + p.Name + " : " + p.ParameterType.Name);
+            }
+        }
+    }
+}`}
+  language="csharp"
+  filename="type_parameters.shard"
+/>
+
+<Prose>
+  <strong>Handling null instances safely.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using reflection;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    maybe: object = null;
+
+    // Type.Of returns null when the instance is null.
+    type: Type = Type.Of(maybe);
+    if (type == null)
+    {
+        println("Cannot reflect a null instance");
+        return;
+    }
+
+    println(type.Name);
+}`}
+  language="csharp"
+  filename="type_null.shard"
+/>

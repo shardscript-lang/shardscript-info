@@ -1,0 +1,404 @@
+---
+title: I/O & Lifecycle
+group: SHARD.SUBPROCESS
+groupOrder: 8
+order: 2
+slug: subprocess-io-and-lifecycle
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.subprocess</InlineCode> library lets a ShardScript program spawn external
+  processes and interact with their <InlineCode>stdin</InlineCode>,{' '}
+  <InlineCode>stdout</InlineCode>, and <InlineCode>stderr</InlineCode> streams. This page covers the
+  I/O redirection API, blocking read helpers, write helpers, process lifetime management
+  (<InlineCode>WaitForExit</InlineCode>, <InlineCode>Kill</InlineCode>), and deterministic cleanup
+  via <InlineCode>IDisposable</InlineCode> and <InlineCode>defer</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  All I/O and lifecycle members belong to the <InlineCode>Process</InlineCode> class in the{' '}
+  <InlineCode>process</InlineCode> namespace. Configure redirection before launch by setting fields
+  on a <InlineCode>ProcessStartInfo</InlineCode> instance and passing it to{' '}
+  <InlineCode>Process.Start</InlineCode>.
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [<code>Process.Start</code>, <InlineCode>{"public static func Start(fileName: string) -> Process"}</InlineCode>, 'Spawns a process without redirection.'],
+    [<code>Process.Start</code>, <InlineCode>{"public static func Start(fileName: string, arguments: string) -> Process"}</InlineCode>, 'Spawns a process with a command-line argument string.'],
+    [<code>Process.Start</code>, <InlineCode>{"public static func Start(startInfo: ProcessStartInfo) -> Process"}</InlineCode>, 'Spawns a process using a fully configured start-info object.'],
+    [<code>ReadToEnd</code>, <InlineCode>{"public func ReadToEnd() -> string"}</InlineCode>, 'Reads the entire stdout pipe and returns it as a string.'],
+    [<code>ReadErrorToEnd</code>, <InlineCode>{"public func ReadErrorToEnd() -> string"}</InlineCode>, 'Reads the entire stderr pipe and returns it as a string.'],
+    [<code>Write</code>, <InlineCode>{"public func Write(text: string) -> void"}</InlineCode>, 'Writes text to the child process stdin pipe.'],
+    [<code>WriteLine</code>, <InlineCode>{"public func WriteLine(text: string) -> void"}</InlineCode>, 'Writes text followed by a newline to the child stdin pipe.'],
+    [<code>WaitForExit</code>, <InlineCode>{"public func WaitForExit() -> int"}</InlineCode>, 'Blocks until the child process terminates and returns its exit code.'],
+    [<code>WaitForExit</code>, <InlineCode>{"public func WaitForExit(timeoutMilliseconds: int) -> bool"}</InlineCode>, 'Polls until the process exits or the timeout elapses.'],
+    [<code>Kill</code>, <InlineCode>{"public func Kill() -> void"}</InlineCode>, 'Forcefully terminates the child process.'],
+    [<code>Dispose</code>, <InlineCode>{"public func Dispose() -> void"}</InlineCode>, 'Releases the native process handle and closes all pipes.'],
+    [<code>HasExited</code>, <InlineCode>{"public property HasExited: bool"}</InlineCode>, 'Returns true when the child process is no longer alive.'],
+    [<code>ExitCode</code>, <InlineCode>{"public property ExitCode: int"}</InlineCode>, 'Returns the last recorded exit code.'],
+    [<code>ProcessId</code>, <InlineCode>{"public property ProcessId: int"}</InlineCode>, 'Returns the OS process identifier.'],
+  ]}
+/>
+
+<Prose>
+  The <InlineCode>ProcessStartInfo</InlineCode> fields that control I/O and lifetime behavior are:
+</Prose>
+
+<DocsTable
+  headers={['Field', 'Type', 'Default', 'Description']}
+  rows={[
+    [<code>FileName</code>, 'string', <InlineCode>&quot;&quot;</InlineCode>, 'Executable or command to run. Required.'],
+    [<code>Arguments</code>, 'string', <InlineCode>&quot;&quot;</InlineCode>, 'Command-line arguments passed to the executable.'],
+    [<code>WorkingDirectory</code>, 'string', <InlineCode>&quot;&quot;</InlineCode>, 'Working directory for the child process.'],
+    [<code>RedirectStandardOutput</code>, 'bool', <InlineCode>false</InlineCode>, 'Create a pipe and capture stdout.'],
+    [<code>RedirectStandardError</code>, 'bool', <InlineCode>false</InlineCode>, 'Create a pipe and capture stderr.'],
+    [<code>RedirectStandardInput</code>, 'bool', <InlineCode>false</InlineCode>, 'Create a pipe and feed stdin.'],
+    [<code>CreateNoWindow</code>, 'bool', <InlineCode>false</InlineCode>, 'On Windows, hide the console window of the child.'],
+    [<code>InheritEnvironment</code>, 'bool', <InlineCode>true</InlineCode>, 'Inherit environment variables from the parent process.'],
+    [<code>EnvironmentVariables</code>, <InlineCode>Dictionary&lt;string, string&gt;</InlineCode>, 'empty', 'Additional or replacement environment variables.'],
+    [<code>UseShellExecute</code>, 'bool', <InlineCode>false</InlineCode>, 'Not supported; setting this to true throws at start time.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  The parameters for each I/O and lifecycle member are listed below.
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>Process.Start</code>, <code>fileName</code>, 'string', 'Path or name of the executable. The runtime searches PATH when the name is not absolute.'],
+    [<code>Process.Start</code>, <code>arguments</code>, 'string', 'Whitespace-separated argument string. Quotes preserve spaces; backslash escapes are applied by the underlying C runtime.'],
+    [<code>Process.Start</code>, <code>startInfo</code>, 'ProcessStartInfo', 'Configuration object that selects redirection, working directory, environment, and window behavior.'],
+    [<code>Write / WriteLine</code>, <code>text</code>, 'string', 'Text to send to the child stdin pipe. Converted to UTF-8 before writing.'],
+    [<code>WaitForExit(timeout)</code>, <code>timeoutMilliseconds</code>, 'int', 'Maximum time to wait. A negative value waits indefinitely.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Meaning']}
+  rows={[
+    [<code>ReadToEnd</code>, 'string', 'The complete stdout output decoded from UTF-8.'],
+    [<code>ReadErrorToEnd</code>, 'string', 'The complete stderr output decoded from UTF-8.'],
+    [<code>WaitForExit()</code>, 'int', 'The child process exit code recorded by the OS.'],
+    [<code>WaitForExit(ms)</code>, 'bool', 'True if the process exited within the timeout; false if the timeout elapsed.'],
+    [<code>HasExited</code>, 'bool', 'True when the native process handle reports the process is no longer alive.'],
+    [<code>ExitCode</code>, 'int', 'The exit code recorded by the most recent WaitForExit call, or -1 after Kill.'],
+    [<code>ProcessId</code>, 'int', 'The OS-specific process identifier assigned at launch.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Process start failure</strong> —{' '}
+    <InlineCode>Process.Start</InlineCode> throws when the executable cannot be found, permission is
+    denied, pipe creation fails, or the start-info object is invalid. The native error code is
+    surfaced as part of the exception message.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">UseShellExecute not supported</strong> — Setting{' '}
+    <InlineCode>ProcessStartInfo.UseShellExecute = true</InlineCode> causes{' '}
+    <InlineCode>Process.Start</InlineCode> to throw immediately.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid process handle</strong> — Calling{' '}
+    <InlineCode>WaitForExit</InlineCode>, <InlineCode>Kill</InlineCode>,{' '}
+    <InlineCode>ReadToEnd</InlineCode>, <InlineCode>ReadErrorToEnd</InlineCode>, or{' '}
+    <InlineCode>Write</InlineCode> after the process has been disposed throws.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Stream not redirected</strong> —{' '}
+    <InlineCode>ReadToEnd</InlineCode>, <InlineCode>ReadErrorToEnd</InlineCode>, and{' '}
+    <InlineCode>Write</InlineCode> throw if the corresponding{' '}
+    <InlineCode>RedirectStandard*</InlineCode> flag was not set before the process was started.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Timeout does not kill</strong> —{' '}
+    <InlineCode>WaitForExit(ms)</InlineCode> returns <InlineCode>false</InlineCode> on timeout and
+    leaves the process running. You must call <InlineCode>Kill</InlineCode> explicitly if you want
+    termination.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Orphaned child on parent exit</strong> — If the parent
+    exits without calling <InlineCode>Dispose</InlineCode> or <InlineCode>Kill</InlineCode>, the
+    child may continue running independently of the parent.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Redirection is configured before launch.</strong> The runtime creates OS pipes only when
+  the corresponding <InlineCode>RedirectStandardOutput</InlineCode>,{' '}
+  <InlineCode>RedirectStandardError</InlineCode>, or{' '}
+  <InlineCode>RedirectStandardInput</InlineCode> field is set to <InlineCode>true</InlineCode> on
+  the <InlineCode>ProcessStartInfo</InlineCode> object. Attempting to read or write a stream that
+  was not redirected produces a runtime error.
+</Prose>
+
+<Prose>
+  <strong>Blocking reads collect the entire stream.</strong>{' '}
+  <InlineCode>ReadToEnd</InlineCode> and <InlineCode>ReadErrorToEnd</InlineCode> read in 4096-byte
+  chunks until the pipe closes, then call <InlineCode>WaitForExit</InlineCode> internally to reap
+  the child and update <InlineCode>ExitCode</InlineCode>. Because these calls block the calling
+  thread until the child closes its end of the pipe, they are not suitable for interactive or
+  streaming scenarios where you need to read while the process is still running.
+</Prose>
+
+<Prose>
+  <strong>Writing to stdin.</strong> <InlineCode>Write</InlineCode> converts the supplied string to
+  UTF-8 and writes it through <InlineCode>std::fwrite</InlineCode>, followed by an explicit{' '}
+  <InlineCode>std::fflush</InlineCode>. <InlineCode>WriteLine</InlineCode> performs the same write
+  and then appends a single <InlineCode>\n</InlineCode> byte. If you need to signal end-of-input to
+  a child that reads until EOF, close the pipe by disposing the <InlineCode>Process</InlineCode>{' '}
+  instance or by letting the deferred disposal run.
+</Prose>
+
+<Prose>
+  <strong>Waiting and timeouts.</strong> The parameterless <InlineCode>WaitForExit()</InlineCode>{' '}
+  blocks until the child terminates and returns the OS exit code. The timed overload polls the
+  native <InlineCode>subprocess_alive</InlineCode> function in a loop with 10 ms sleeps. A
+  negative timeout is treated as an indefinite wait. On timeout the method returns{' '}
+  <InlineCode>false</InlineCode> and does <em>not</em> terminate the child.
+</Prose>
+
+<Prose>
+  <strong>Kill behavior.</strong> <InlineCode>Kill</InlineCode> calls the native terminate function
+  (<InlineCode>TerminateProcess</InlineCode> on Windows, <InlineCode>SIGTERM</InlineCode> on POSIX),
+  sets <InlineCode>ExitCode</InlineCode> to <InlineCode>-1</InlineCode>, and marks the process as
+  exited. Calling <InlineCode>Kill</InlineCode> on an already-exited process is a no-op.
+</Prose>
+
+<Prose>
+  <strong>IDisposable and defer.</strong> <InlineCode>Process</InlineCode> implements{' '}
+  <InlineCode>IDisposable</InlineCode>. The recommended pattern is to declare the variable with{' '}
+  <InlineCode>defer</InlineCode>: <InlineCode>defer p: Process = Process.Start(...)</InlineCode>.
+  This guarantees that <InlineCode>Dispose</InlineCode> runs when the variable goes out of scope,
+  whether by normal return, early return, or exception. <InlineCode>Dispose</InlineCode> calls the
+  native destroy function, closes all pipe handles, frees the underlying{' '}
+  <InlineCode>subprocess_s</InlineCode> structure, and nulls the handle field. Calling{' '}
+  <InlineCode>Dispose</InlineCode> multiple times is safe.
+</Prose>
+
+<Callout tone="blue">
+  The native subprocess layer always enables asynchronous I/O internally so that blocking reads
+  can drain the pipe reliably. You do not need to set any async flag manually; just enable the
+  specific <InlineCode>RedirectStandard*</InlineCode> flags you need.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Capture stdout and stderr separately.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo stdout message & echo stderr message >&2";
+    info.RedirectStandardOutput = true;
+    info.RedirectStandardError = true;
+    info.CreateNoWindow = true;
+
+    defer p: Process = Process.Start(info);
+
+    outText: string = p.ReadToEnd();
+    errText: string = p.ReadErrorToEnd();
+
+    println("stdout: " + outText);
+    println("stderr: " + errText);
+    println("exit code: " + p.ExitCode);
+}`}
+  language="csharp"
+  filename="subprocess_capture.shard"
+/>
+
+<Prose>
+  <strong>Feed input to a child process.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c sort";
+    info.RedirectStandardInput = true;
+    info.RedirectStandardOutput = true;
+    info.CreateNoWindow = true;
+
+    defer p: Process = Process.Start(info);
+
+    // Send three lines to the sort utility.
+    p.WriteLine("cherry");
+    p.WriteLine("apple");
+    p.WriteLine("banana");
+
+    // Closing stdin signals EOF; defer will dispose the process at scope exit.
+    sorted: string = p.ReadToEnd();
+
+    println("sorted output:");
+    println(sorted);
+    println("exit code: " + p.ExitCode);
+}`}
+  language="csharp"
+  filename="subprocess_stdin.shard"
+/>
+
+<Prose>
+  <strong>Enforce a timeout and kill a long-running process.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // On Windows this command sleeps for about 5 seconds.
+    defer p: Process = Process.Start("cmd.exe", "/c ping 127.0.0.1 -n 6 > nul");
+
+    finished: bool = p.WaitForExit(250);
+    if (!finished)
+    {
+        println("Timeout reached — terminating process.");
+        p.Kill();
+    }
+    else
+    {
+        println("Process finished on time.");
+    }
+
+    println("Has exited: " + p.HasExited);
+    println("Exit code: " + p.ExitCode);
+}`}
+  language="csharp"
+  filename="subprocess_timeout.shard"
+/>
+
+<Prose>
+  <strong>Check exit status after capturing output.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c exit 42";
+    info.RedirectStandardOutput = true;
+    info.CreateNoWindow = true;
+
+    defer p: Process = Process.Start(info);
+
+    output: string = p.ReadToEnd();
+    code: int = p.WaitForExit();
+
+    if (code != 0)
+    {
+        println("Command failed with exit code " + code);
+    }
+    else
+    {
+        println("Command succeeded");
+    }
+
+    println("Captured output: '" + output + "'");
+}`}
+  language="csharp"
+  filename="subprocess_exitcode.shard"
+/>
+
+<Callout tone="amber" title="Common mistake: reading after dispose">
+  Do not call <InlineCode>ReadToEnd</InlineCode> or <InlineCode>Kill</InlineCode> after the deferred
+  <InlineCode>Process</InlineCode> variable has gone out of scope. The handle is released on scope
+  exit, and subsequent member access throws. Keep all reads, writes, and waits inside the same
+  scope as the <InlineCode>defer</InlineCode> declaration.
+</Callout>
+
+<Prose>
+  <strong>Environment variables and working directory.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo %MY_VAR%";
+    info.RedirectStandardOutput = true;
+    info.CreateNoWindow = true;
+
+    // Replace inherited environment with a custom one.
+    info.InheritEnvironment = false;
+    info.EnvironmentVariables.Add("MY_VAR", "hello from shard");
+
+    defer p: Process = Process.Start(info);
+
+    output: string = p.ReadToEnd();
+    println(output);
+    println("PID: " + p.ProcessId);
+}`}
+  language="csharp"
+  filename="subprocess_env.shard"
+/>
+
+<Prose>
+  <strong>Run a simple command without redirection.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // When no redirection is needed, use the two-argument overload.
+    defer p: Process = Process.Start("cmd.exe", "/c echo hello");
+
+    code: int = p.WaitForExit();
+    println("Process exited with code " + code);
+}`}
+  language="csharp"
+  filename="subprocess_simple.shard"
+/>

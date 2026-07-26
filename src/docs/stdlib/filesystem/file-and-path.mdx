@@ -1,0 +1,403 @@
+---
+title: File & Path
+group: SHARD.FILESYSTEM
+groupOrder: 7
+order: 1
+slug: file-and-path
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.filesystem</InlineCode> namespace exposes two static utility classes:{" "}
+  <InlineCode>File</InlineCode> for reading, writing, and manipulating files on disk, and{" "}
+  <InlineCode>Path</InlineCode> for parsing and composing file-system paths without touching the disk.
+  All members are <InlineCode>static</InlineCode>; neither class is ever instantiated.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Both classes are declared with <InlineCode>LINK_STATIC</InlineCode> and live inside the{" "}
+  <InlineCode>filesystem</InlineCode> namespace. Reference them through a <InlineCode>using filesystem;</InlineCode>{" "}
+  directive.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // File operations work directly on path strings.
+    File.WriteAllText("demo.txt", "hello, shard");
+
+    // Path operations are pure string transformations.
+    name: string = Path.GetFileName("demo.txt");
+    println(name);
+}`}
+  language="csharp"
+  filename="file_and_path_intro.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<H2>Class File</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>ReadAllText(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'string', 'Opens the file and returns its entire contents as a string.'],
+    [<code>WriteAllText(fileName, content)</code>, <><InlineCode>fileName</InlineCode>: string, <InlineCode>content</InlineCode>: string</>, 'void', 'Creates a new file or overwrites an existing one with the supplied text.'],
+    [<code>Exists(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'bool', 'Returns true if the path refers to an existing file-system entry.'],
+    [<code>Delete(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'void', 'Deletes the file if it exists; does nothing if it does not.'],
+    [<code>Copy(sourceFileName, destFileName)</code>, <><InlineCode>sourceFileName</InlineCode>: string, <InlineCode>destFileName</InlineCode>: string</>, 'void', 'Copies source to destination, overwriting an existing destination file.'],
+    [<code>Move(sourceFileName, destFileName)</code>, <><InlineCode>sourceFileName</InlineCode>: string, <InlineCode>destFileName</InlineCode>: string</>, 'void', 'Moves or renames a regular file from source to destination.'],
+  ]}
+/>
+
+<H2>Class Path</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>Join(paths)</code>, <><InlineCode>paths</InlineCode>: string[]</>, 'string', 'Joins path segments using the platform directory separator.'],
+    [<code>GetDirectoryName(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the parent directory of the supplied path, or empty if none.'],
+    [<code>GetFileName(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the final path component including the extension.'],
+    [<code>GetExtension(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the file extension including the leading dot, or empty if none.'],
+    [<code>GetFileNameWithoutExtension(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the final component with the extension removed.'],
+    [<code>HasExtension(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'bool', 'Returns true if the final component contains a dot.'],
+    [<code>ChangeExtension(path, extension)</code>, <><InlineCode>path</InlineCode>: string, <InlineCode>extension</InlineCode>: string</>, 'string', 'Returns a new path with the extension replaced; adds a leading dot if needed.'],
+    [<code>GetFullPath(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the absolute path resolved against the process working directory.'],
+  ]}
+/>
+
+<H2>Path Separator Properties</H2>
+
+<DocsTable
+  headers={['Property', 'Type', 'Description']}
+  rows={[
+    [<code>DirectorySeparatorChar</code>, 'string', 'Primary separator: "\\" on Windows, "/" on Linux.'],
+    [<code>AltDirectorySeparatorChar</code>, 'string', 'Alternate separator: "/" on Windows, "\\" on Linux.'],
+    [<code>PathSeparator</code>, 'string', 'List separator for PATH-style variables: ";" on Windows, ":" on Linux.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Notes']}
+  rows={[
+    [<code>File.ReadAllText</code>, 'string', 'Content of the file as a wide-character string.'],
+    [<code>File.WriteAllText</code>, 'void', 'No value; the file is created or overwritten.'],
+    [<code>File.Exists</code>, 'bool', 'True for any existing file-system entry, including directories.'],
+    [<code>File.Delete</code>, 'void', 'Silent when the file is already absent.'],
+    [<code>File.Copy</code>, 'void', 'No value; destination is overwritten if it already exists.'],
+    [<code>File.Move</code>, 'void', 'No value; source ceases to exist after a successful call.'],
+    [<code>Path.Join</code>, 'string', 'Joined path with platform-native separators.'],
+    [<code>Path.GetDirectoryName</code>, 'string', 'Parent path string; empty for a bare file name.'],
+    [<code>Path.GetFileName</code>, 'string', 'Last component, e.g. "readme.txt".'],
+    [<code>Path.GetExtension</code>, 'string', 'Extension with dot, e.g. ".txt"; empty when none.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Failed to open text file</strong> —{" "}
+    <InlineCode>ReadAllText</InlineCode> or <InlineCode>WriteAllText</InlineCode> throws when the file
+    cannot be opened because of missing permissions, a locked handle, or a non-existent parent directory.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">File writing failed</strong> —{" "}
+    <InlineCode>WriteAllText</InlineCode> throws when the stream reports a failure after writing.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Failed to delete file</strong> —{" "}
+    <InlineCode>File.Delete</InlineCode> throws when the path exists but cannot be removed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Failed to copy file</strong> —{" "}
+    <InlineCode>File.Copy</InlineCode> throws when the source cannot be read or the destination cannot be written.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Source file does not exist or is not a regular file</strong> —{" "}
+    <InlineCode>File.Move</InlineCode> rejects missing sources or directory sources.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Destination path cannot be an existing directory</strong> —{" "}
+    <InlineCode>File.Move</InlineCode> refuses to overwrite an existing directory with a file.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Failed to resolve absolute path</strong> —{" "}
+    <InlineCode>Path.GetFullPath</InlineCode> throws when the runtime cannot normalize the input.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Static classes, no instances.</strong> Both <InlineCode>File</InlineCode> and{" "}
+  <InlineCode>Path</InlineCode> are static. Calls compile to <InlineCode>CALLSTATICMETHODSYMBOL</InlineCode>{" "}
+  and resolve at compile time. There is no <InlineCode>new File()</InlineCode> or{" "}
+  <InlineCode>new Path()</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Text encoding.</strong> Synchronous <InlineCode>File</InlineCode> methods use{" "}
+  <InlineCode>std::wifstream</InlineCode> and <InlineCode>std::wofstream</InlineCode>. The runtime reads
+  and writes wide-character strings, so ShardScript <InlineCode>string</InlineCode> values round-trip
+  without additional encoding conversions on Windows. The async counterparts use UTF-8 internally via libuv.
+</Prose>
+
+<Prose>
+  <strong>Exists checks any entry.</strong> <InlineCode>File.Exists</InlineCode> wraps{" "}
+  <InlineCode>std::filesystem::exists</InlineCode>, which returns <InlineCode>true</InlineCode> for both
+  files and directories. To distinguish a file from a directory, use <InlineCode>Directory.Exists</InlineCode>{" "}
+  or inspect a <InlineCode>FileInfo</InlineCode> instance.
+</Prose>
+
+<Prose>
+  <strong>Copy always overwrites.</strong> The underlying call passes{" "}
+  <InlineCode>fs::copy_options::overwrite_existing</InlineCode>, so an existing destination file is
+  silently replaced. There is currently no overload that preserves an existing destination.
+</Prose>
+
+<Prose>
+  <strong>Move semantics.</strong> <InlineCode>File.Move</InlineCode> first validates the source as a
+  regular file and the destination as a non-directory, then calls <InlineCode>fs::rename</InlineCode>.
+  On most platforms this is an atomic metadata operation within the same volume; across volumes the
+  behavior depends on the C++ standard library implementation.
+</Prose>
+
+<Prose>
+  <strong>Path helpers are pure string operations.</strong> <InlineCode>Path</InlineCode> methods construct
+  a <InlineCode>std::filesystem::path</InlineCode>, call the matching C++17 accessor, and return the result
+  as a string. No method verifies that the path exists, is reachable, or is syntactically valid for the
+  current platform beyond what <InlineCode>std::filesystem::path</InlineCode> accepts.
+</Prose>
+
+<Prose>
+  <strong>Domain-relative resolution.</strong> <InlineCode>Path.GetFullPath</InlineCode> resolves relative
+  paths against the application domain&apos;s current working directory at the time of execution, not against
+  the script file location.
+</Prose>
+
+<Callout tone="amber" title="Path.Combine is not implemented">
+  The <InlineCode>Path</InlineCode> class currently provides <InlineCode>Join(paths: string[])</InlineCode>,
+  not a <InlineCode>Combine</InlineCode> overload. Use <InlineCode>Path.Join</InlineCode> with an array
+  literal, or use the <InlineCode>/</InlineCode> operator on strings for two-segment joins.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic read, write, existence, and cleanup.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    path: string = "D:/temp/shard_demo.txt";
+
+    // Overwrite the file with new content.
+    File.WriteAllText(path, "hello\\nworld");
+
+    // Read the entire file back into memory.
+    content: string = File.ReadAllText(path);
+    println(content);
+
+    // Verify the file is still on disk.
+    found: bool = File.Exists(path);
+    println(found);
+
+    // Remove the file.
+    File.Delete(path);
+    println(File.Exists(path));
+}`}
+  language="csharp"
+  filename="file_basic.shard"
+/>
+
+<Prose>
+  <strong>Copying and moving files safely.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    source: string = "D:/temp/original.txt";
+    copy: string   = "D:/temp/original_copy.txt";
+    moved: string  = "D:/temp/renamed.txt";
+
+    File.WriteAllText(source, "copy me");
+
+    // Copy overwrites an existing destination file.
+    File.Copy(source, copy);
+    println(File.Exists(copy));
+
+    // Move renames the source file.
+    File.Move(copy, moved);
+    println(File.Exists(moved));
+    println(File.Exists(copy));
+
+    // Clean up both files.
+    File.Delete(source);
+    File.Delete(moved);
+}`}
+  language="csharp"
+  filename="file_copy_move.shard"
+/>
+
+<Prose>
+  <strong>Extracting path components.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    full: string = "C:/Users/gutii/docs/readme.txt";
+
+    dir: string      = Path.GetDirectoryName(full);
+    file: string     = Path.GetFileName(full);
+    ext: string      = Path.GetExtension(full);
+    stem: string     = Path.GetFileNameWithoutExtension(full);
+    hasExt: bool     = Path.HasExtension(full);
+
+    println(dir);      // C:/Users/gutii/docs
+    println(file);     // readme.txt
+    println(ext);      // .txt
+    println(stem);     // readme
+    println(hasExt);   // true
+}`}
+  language="csharp"
+  filename="path_components.shard"
+/>
+
+<Prose>
+  <strong>Joining segments and replacing extensions.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Join takes a string array and uses the platform separator.
+    segments: string[] = ["C:/", "Users", "gutii", "file.txt"];
+    joined: string = Path.Join(segments);
+    println(joined);
+
+    // ChangeExtension adds a leading dot automatically.
+    log: string = Path.ChangeExtension("app.log", "txt");
+    println(log);
+
+    // An empty extension removes the existing one.
+    bare: string = Path.ChangeExtension("app.log", "");
+    println(bare);
+
+    // Resolve a relative path against the current working directory.
+    absolute: string = Path.GetFullPath("data/input.txt");
+    println(absolute);
+}`}
+  language="csharp"
+  filename="path_join.shard"
+/>
+
+<Prose>
+  <strong>Defensive file-writing with existence checks.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    target: string = "D:/temp/report.txt";
+
+    // Avoid overwriting an existing report.
+    if (File.Exists(target))
+    {
+        println("report already exists");
+    }
+    else
+    {
+        File.WriteAllText(target, "daily report");
+        println("report created");
+    }
+
+    // Append a new line without reading the whole file.
+    File.AppendAllText(target, "\\nmore data");
+
+    // Verify the append worked.
+    println(File.ReadAllText(target));
+
+    File.Delete(target);
+}`}
+  language="csharp"
+  filename="file_defensive.shard"
+/>
+
+<Prose>
+  <strong>Edge cases in path parsing.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // A bare file name has no parent directory.
+    println(Path.GetDirectoryName("readme.txt"));   // (empty)
+
+    // A trailing separator is preserved by the parser.
+    println(Path.GetDirectoryName("C:/data/"));     // C:/
+
+    // Dots are part of the extension only on the final component.
+    println(Path.GetExtension("C:/archive.tar.gz")); // .gz
+
+    // Multiple leading dots count as a single extension.
+    println(Path.GetFileNameWithoutExtension("backup..old.txt")); // backup..old
+
+    // Paths with no dot return an empty extension.
+    println(Path.GetExtension("Makefile"));         // (empty)
+    println(Path.HasExtension("Makefile"));         // false
+}`}
+  language="csharp"
+  filename="path_edge_cases.shard"
+/>
+
+<Callout tone="blue">
+  For large files or streaming access, use <InlineCode>FileStream</InlineCode> instead of{" "}
+  <InlineCode>File.ReadAllText</InlineCode> / <InlineCode>File.WriteAllText</InlineCode>. The all-text
+  helpers load the entire file into memory, which is convenient for configuration or log headers but
+  unsuitable for multi-gigabyte data.
+</Callout>

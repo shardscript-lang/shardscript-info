@@ -1,0 +1,386 @@
+---
+title: Queue and Stack
+group: SHARD.COLLECTIONS
+groupOrder: 4
+order: 4
+slug: queue-and-stack
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>Queue&lt;T&gt;</InlineCode> and <InlineCode>Stack&lt;T&gt;</InlineCode> are generic
+  reference types in the <InlineCode>shard.collections</InlineCode> library.
+  <InlineCode>Queue&lt;T&gt;</InlineCode> stores elements in first-in, first-out (FIFO) order;
+  <InlineCode>Stack&lt;T&gt;</InlineCode> stores elements in last-in, first-out (LIFO) order.
+  Both support insertion, removal, inspection, counting, membership testing, and
+  <InlineCode>foreach</InlineCode> enumeration by implementing <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Both types are declared with a single type parameter <InlineCode>T</InlineCode> and are
+  instantiated through the parameterless constructor.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // FIFO queue for pending work items.
+    queue: Queue<int> = new Queue<int>();
+
+    // LIFO stack for undo history.
+    stack: Stack<string> = new Stack<string>();
+
+    println(queue.Count);   // 0
+    println(stack.Count);   // 0
+}`}
+  language="csharp"
+  filename="queue_stack_syntax.shard"
+/>
+
+<Prose>
+  The public surface of <InlineCode>Queue&lt;T&gt;</InlineCode> is:
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>new Queue&lt;T&gt;()</code>, '—', <code>Queue&lt;T&gt;</code>, 'Creates an empty queue with zero initial capacity.'],
+    [<code>Count</code>, '—', <code>int</code>, 'Number of elements currently stored.'],
+    [<code>Enqueue(item: T)</code>, <code>item: T</code>, <code>void</code>, 'Adds the item to the tail of the queue.'],
+    [<code>Dequeue()</code>, '—', <code>T</code>, 'Removes and returns the item at the head of the queue.'],
+    [<code>Peek()</code>, '—', <code>T</code>, 'Returns the item at the head without removing it.'],
+    [<code>Clear()</code>, '—', <code>void</code>, 'Removes every element and releases the backing storage.'],
+    [<code>Contains(item: T)</code>, <code>item: T</code>, <code>bool</code>, 'Searches head-to-tail for an equal element.'],
+    [<code>GetEnumerator()</code>, '—', <code>IEnumerator&lt;T&gt;</code>, 'Returns an enumerator used by foreach.'],
+  ]}
+/>
+
+<Prose>
+  The public surface of <InlineCode>Stack&lt;T&gt;</InlineCode> is:
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>new Stack&lt;T&gt;()</code>, '—', <code>Stack&lt;T&gt;</code>, 'Creates an empty stack with zero initial capacity.'],
+    [<code>Count</code>, '—', <code>int</code>, 'Number of elements currently stored.'],
+    [<code>Push(item: T)</code>, <code>item: T</code>, <code>void</code>, 'Adds the item to the top of the stack.'],
+    [<code>Pop()</code>, '—', <code>T</code>, 'Removes and returns the item at the top of the stack.'],
+    [<code>Peek()</code>, '—', <code>T</code>, 'Returns the top item without removing it.'],
+    [<code>Clear()</code>, '—', <code>void</code>, 'Removes every element and releases the backing storage.'],
+    [<code>Contains(item: T)</code>, <code>item: T</code>, <code>bool</code>, 'Searches top-to-bottom for an equal element.'],
+    [<code>GetEnumerator()</code>, '—', <code>IEnumerator&lt;T&gt;</code>, 'Returns an enumerator used by foreach.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Methods that accept arguments expect a value whose type matches the collection's type argument
+  <InlineCode>T</InlineCode>. Passing an incompatible type is caught at compile time.
+</Prose>
+
+<DocsTable
+  headers={['Method', 'Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>Queue.Enqueue(item)</code>, <code>item</code>, <code>T</code>, 'Value to store at the tail.'],
+    [<code>Queue.Contains(item)</code>, <code>item</code>, <code>T</code>, 'Value to compare against each element.'],
+    [<code>Stack.Push(item)</code>, <code>item</code>, <code>T</code>, 'Value to store at the top.'],
+    [<code>Stack.Contains(item)</code>, <code>item</code>, <code>T</code>, 'Value to compare against each element.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<code>Queue.Count</code> / <code>Stack.Count</code>, <code>int</code>, 'Current number of stored elements.'],
+    [<code>Queue.Dequeue()</code>, <code>T</code>, 'The oldest element, which is removed.'],
+    [<code>Queue.Peek()</code>, <code>T</code>, 'The oldest element, which remains in the queue.'],
+    [<code>Stack.Pop()</code>, <code>T</code>, 'The most recently pushed element, which is removed.'],
+    [<code>Stack.Peek()</code>, <code>T</code>, 'The most recently pushed element, which remains on the stack.'],
+    [<code>Queue.Contains(item)</code> / <code>Stack.Contains(item)</code>, <code>bool</code>, 'True when an equal element is found.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Empty queue</strong> — Calling{' '}
+    <InlineCode>Queue.Dequeue()</InlineCode> or <InlineCode>Queue.Peek()</InlineCode> when{' '}
+    <InlineCode>Count == 0</InlineCode> throws a runtime exception with the message "queue is empty".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Empty stack</strong> — Calling{' '}
+    <InlineCode>Stack.Pop()</InlineCode> or <InlineCode>Stack.Peek()</InlineCode> when{' '}
+    <InlineCode>Count == 0</InlineCode> throws a runtime exception with the message "stack is empty".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch</strong> — Pushing, enqueuing, or searching with a
+    value that is not assignable to <InlineCode>T</InlineCode> fails during semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null reference</strong> — Calling an instance method on a{' '}
+    <InlineCode>null</InlineCode> collection reference throws at runtime.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Storage and growth.</strong> Both collections are backed by a resizable array.
+  The initial capacity is zero; the first insertion allocates capacity <InlineCode>4</InlineCode>,
+  and the array doubles each time it becomes full. The queue implementation compacts the array
+  and resets <InlineCode>_head</InlineCode> to <InlineCode>0</InlineCode> during growth so that
+  enqueue stays amortized <InlineCode>O(1)</InlineCode>. Removing elements does not shrink the
+  array; call <InlineCode>Clear()</InlineCode> to release storage.
+</Prose>
+
+<Prose>
+  <strong>Equality in <InlineCode>Contains</InlineCode>.</strong> The collection walks its elements
+  and compares each against the supplied value. Primitives, characters, booleans, and strings are
+  compared by value. For all other reference types, equality is reference identity: two distinct
+  object instances are never equal even if their fields match.
+</Prose>
+
+<Prose>
+  <strong>Enumeration order.</strong> A queue enumerates from head to tail, matching the order in
+  which elements would be dequeued. A stack enumerates from top to bottom, matching the order in
+  which elements would be popped. Both use lightweight value-type enumerators
+  (<InlineCode>QueueEnumerator&lt;T&gt;</InlineCode> and <InlineCode>StackEnumerator&lt;T&gt;</InlineCode>)
+  that read from the live source collection. Modifying the collection during enumeration is not
+  supported and may skip, repeat, or unexpectedly terminate elements.
+</Prose>
+
+<Callout tone="blue">
+  <InlineCode>Count</InlineCode> is a read-only property, not a method. Access it with{' '}
+  <InlineCode>queue.Count</InlineCode> and <InlineCode>stack.Count</InlineCode> — no parentheses are
+  needed.
+</Callout>
+
+<Callout tone="amber">
+  Only the parameterless constructor is available. There is no capacity constructor, no{' '}
+  <InlineCode>TrimExcess</InlineCode>, and no <InlineCode>TryDequeue</InlineCode> /{' '}
+  <InlineCode>TryPop</InlineCode> helper in the current release.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic FIFO queue.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    queue: Queue<int> = new Queue<int>();
+
+    queue.Enqueue(10);
+    queue.Enqueue(20);
+    queue.Enqueue(30);
+
+    println(queue.Count);      // 3
+    println(queue.Peek());     // 10
+
+    while (queue.Count > 0)
+    {
+        println(queue.Dequeue()); // 10, 20, 30
+    }
+
+    println(queue.Count);      // 0
+}`}
+  language="csharp"
+  filename="queue_basic.shard"
+/>
+
+<Prose>
+  <strong>Basic LIFO stack.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    stack: Stack<int> = new Stack<int>();
+
+    stack.Push(10);
+    stack.Push(20);
+    stack.Push(30);
+
+    println(stack.Count);      // 3
+    println(stack.Peek());     // 30
+
+    while (stack.Count > 0)
+    {
+        println(stack.Pop());  // 30, 20, 10
+    }
+
+    println(stack.Count);      // 0
+}`}
+  language="csharp"
+  filename="stack_basic.shard"
+/>
+
+<Prose>
+  <strong>Membership testing with <InlineCode>Contains</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    stack: Stack<string> = new Stack<string>();
+    stack.Push("shard");
+    stack.Push("script");
+    stack.Push("vm");
+
+    println(stack.Contains("script")); // true
+    println(stack.Contains("csharp")); // false
+
+    queue: Queue<int> = new Queue<int>();
+    queue.Enqueue(5);
+    queue.Enqueue(7);
+    queue.Enqueue(9);
+
+    println(queue.Contains(7));  // true
+    println(queue.Contains(8));  // false
+}`}
+  language="csharp"
+  filename="queue_stack_contains.shard"
+/>
+
+<Prose>
+  <strong>Enumeration order.</strong> A queue yields elements in enqueue order; a stack yields
+  elements from the top down.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    queue: Queue<char> = new Queue<char>();
+    queue.Enqueue('A');
+    queue.Enqueue('B');
+    queue.Enqueue('C');
+
+    print("queue: ");
+    foreach (ch in queue)
+    {
+        print(ch);   // ABC
+    }
+    println("");
+
+    stack: Stack<char> = new Stack<char>();
+    stack.Push('A');
+    stack.Push('B');
+    stack.Push('C');
+
+    print("stack: ");
+    foreach (ch in stack)
+    {
+        print(ch);   // CBA
+    }
+    println("");
+}`}
+  language="csharp"
+  filename="queue_stack_enumeration.shard"
+/>
+
+<Prose>
+  <strong>Edge case: empty collection operations.</strong> Always check <InlineCode>Count</InlineCode>{' '}
+  before calling <InlineCode>Pop</InlineCode>, <InlineCode>Dequeue</InlineCode>, or{' '}
+  <InlineCode>Peek</InlineCode>, or handle the resulting runtime exception.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    queue: Queue<int> = new Queue<int>();
+
+    // Safe: guard before removing.
+    if (queue.Count > 0)
+    {
+        println(queue.Dequeue());
+    }
+    else
+    {
+        println("queue is empty — skipping dequeue");
+    }
+
+    // Alternative: catch the runtime exception.
+    try
+    {
+        queue.Dequeue();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught dequeue on empty queue");
+    }
+
+    queue.Enqueue(42);
+    queue.Clear();
+    println(queue.Count); // 0
+}`}
+  language="csharp"
+  filename="queue_stack_empty.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes.</strong>
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Using <InlineCode>Length</InlineCode> instead of{' '}
+    <InlineCode>Count</InlineCode>.</strong> Queues and stacks expose <InlineCode>Count</InlineCode>;
+    <InlineCode>Length</InlineCode> belongs to arrays and <InlineCode>List&lt;T&gt;</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Assuming a stack enumerates in insertion order.</strong>{' '}
+    <InlineCode>foreach</InlineCode> on a <InlineCode>Stack&lt;T&gt;</InlineCode> walks from the top
+    down, which is the same order as repeated <InlineCode>Pop()</InlineCode> calls.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Modifying while enumerating.</strong> Do not push, pop,
+    enqueue, or dequeue inside the body of a <InlineCode>foreach</InlineCode> over the same
+    collection.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Calling <InlineCode>Dequeue</InlineCode> or{' '}
+    <InlineCode>Pop</InlineCode> without checking <InlineCode>Count</InlineCode>.</strong> On an
+    empty collection this throws a runtime exception.
+  </Bullet>
+</ul>

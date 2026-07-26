@@ -1,0 +1,301 @@
+---
+title: Path Concatenation
+group: SHARD.FILESYSTEM
+groupOrder: 7
+order: 3
+slug: path-concatenation
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.io</InlineCode> library provides <strong>pure, allocation-only</strong> path
+  joining for the <InlineCode>filesystem</InlineCode> namespace. Paths can be concatenated with the
+  overloaded division operator <InlineCode>/</InlineCode> or with the explicit static method{' '}
+  <InlineCode>Path.Join</InlineCode>. Every overload delegates to the same native helper, which uses
+  the host platform's directory separator and never touches the disk.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Three operator forms and one static method are available. All produce platform-normalized paths.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Signature', 'Return Type']}
+  rows={[
+    ['Operator', <InlineCode>string / string</InlineCode>, 'string'],
+    ['Operator', <InlineCode>DirectoryInfo / string</InlineCode>, 'DirectoryInfo'],
+    ['Operator', <InlineCode>DirectoryInfo / FileInfo</InlineCode>, 'FileInfo'],
+    ['Static method', <InlineCode>Path.Join(paths: string[])</InlineCode>, 'string'],
+  ]}
+/>
+
+<Prose>
+  Platform separators are also exposed as read-only static properties on the <InlineCode>Path</InlineCode>{' '}
+  class:
+</Prose>
+
+<DocsTable
+  headers={['Property', 'Type', 'Value']}
+  rows={[
+    [<InlineCode>Path.DirectorySeparatorChar</InlineCode>, 'string', <><InlineCode>&quot;\\&quot;</InlineCode> on Windows, <InlineCode>&quot;/&quot;</InlineCode> on Linux</>],
+    [<InlineCode>Path.AltDirectorySeparatorChar</InlineCode>, 'string', <><InlineCode>&quot;/&quot;</InlineCode> on Windows, <InlineCode>&quot;\\&quot;</InlineCode> on Linux</>],
+    [<InlineCode>Path.PathSeparator</InlineCode>, 'string', <><InlineCode>&quot;;&quot;</InlineCode> on Windows, <InlineCode>&quot;:&quot;</InlineCode> on Linux</>],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>left</InlineCode> — For the string overload, any string path segment. For the{' '}
+    <InlineCode>DirectoryInfo</InlineCode> overloads, a <InlineCode>DirectoryInfo</InlineCode>{' '}
+    instance whose <InlineCode>FullName</InlineCode> becomes the left side of the join.
+  </Bullet>
+  <Bullet>
+    <InlineCode>right</InlineCode> — For <InlineCode>string / string</InlineCode> and{' '}
+    <InlineCode>DirectoryInfo / string</InlineCode>, the next path segment as a string. For{' '}
+    <InlineCode>DirectoryInfo / FileInfo</InlineCode>, a <InlineCode>FileInfo</InlineCode>{' '}
+    instance whose file name is appended to the directory.
+  </Bullet>
+  <Bullet>
+    <InlineCode>paths</InlineCode> — A ShardScript string array passed to{' '}
+    <InlineCode>Path.Join</InlineCode>. The first element is the base path; every subsequent element
+    is appended in order.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Form', 'Return Value']}
+  rows={[
+    [<InlineCode>string / string</InlineCode>, 'A new string containing the joined path.'],
+    [<InlineCode>DirectoryInfo / string</InlineCode>, 'A new DirectoryInfo whose FullName is the joined path.'],
+    [<InlineCode>DirectoryInfo / FileInfo</InlineCode>, 'A new FileInfo whose FullName combines the directory with the file name.'],
+    [<InlineCode>Path.Join(paths)</InlineCode>, 'A string containing all array elements joined in order.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compile-time type mismatch</strong> — The{' '}
+    <InlineCode>/</InlineCode> operator only accepts the parameter combinations listed above.
+    Passing a <InlineCode>FileInfo</InlineCode> on the left or a non-string, non-FileInfo value
+    on the right fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Empty join</strong> — Calling{' '}
+    <InlineCode>Path.Join</InlineCode> with an empty array returns an empty string.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid path characters</strong> — The join itself does not
+    validate characters. The resulting string may later fail when used with disk methods such as{' '}
+    <InlineCode>File.ReadAllText</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Pure string manipulation.</strong> Every join is implemented by constructing a temporary{' '}
+  <InlineCode>std::filesystem::path</InlineCode> in the native runtime and applying{' '}
+  <InlineCode>operator/=</InlineCode>. No file system calls are made, no existence checks are
+  performed, and the original operands are never modified.
+</Prose>
+
+<Prose>
+  <strong>Platform separator normalization.</strong> The native helper always uses the platform's
+  preferred separator. On Windows the result contains backslashes; on Linux it contains forward
+  slashes. Input strings may contain either separator — the C++17 path append operation normalizes
+  the result, but it does not collapse redundant separators or resolve <InlineCode>.</InlineCode>{' '}
+  and <InlineCode>..</InlineCode> segments. Use <InlineCode>Path.GetFullPath</InlineCode> when you
+  need canonicalization.
+</Prose>
+
+<Prose>
+  <strong>Left-associative chaining.</strong> The <InlineCode>/</InlineCode> operator chains
+  left-to-right, so <InlineCode>a / b / c</InlineCode> is parsed as{' '}
+  <InlineCode>(a / b) / c</InlineCode>. When the leftmost operand is a{' '}
+  <InlineCode>DirectoryInfo</InlineCode>, each subsequent <InlineCode>/ string</InlineCode> step
+  returns another <InlineCode>DirectoryInfo</InlineCode> until the final segment. To end the chain
+  with a file, use either the <InlineCode>DirectoryInfo / FileInfo</InlineCode> overload or the{' '}
+  <InlineCode>FileInfo</InlineCode> constructor.
+</Prose>
+
+<Prose>
+  <strong>Path.Join versus the / operator.</strong> Both call the same native helper. Use the
+  operator for readable, fixed-segment navigation. Use <InlineCode>Path.Join</InlineCode> when the
+  segments are collected at runtime in a string array, or when you want a single function call for
+  an arbitrary number of segments.
+</Prose>
+
+<Callout tone="blue">
+  The <InlineCode>Path</InlineCode> class is declared <InlineCode>LINK_STATIC</InlineCode>. It is never
+  instantiated; call <InlineCode>Path.Join(...)</InlineCode> and access separator properties directly
+  on the class.
+</Callout>
+
+<Callout tone="amber" title="DirectoryInfo / FileInfo registration">
+  The native runtime registers a <InlineCode>DirectoryInfo / FileInfo</InlineCode> operator that is
+  intended to relocate a file into a directory, keeping only the file name. In the current
+  registration this overload overlaps with <InlineCode>DirectoryInfo / string</InlineCode>, so for
+  portable code prefer constructing the file explicitly with{' '}
+  <InlineCode>new FileInfo(directory, fileName)</InlineCode>.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic string concatenation with /.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The / operator joins segments using the platform separator.
+    base: string = "D:/projects";
+    full: string = base / "src" / "main.shard";
+    println(full);
+}`}
+  language="csharp"
+  filename="path_concat_string.shard"
+/>
+
+<Prose>
+  <strong>Building paths from DirectoryInfo.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // DirectoryInfo / string returns a new DirectoryInfo.
+    root: DirectoryInfo = new DirectoryInfo("D:/data");
+    sub: DirectoryInfo = root / "logs";
+    println(sub.FullName);
+
+    // Chain several directory segments, then create a FileInfo explicitly.
+    deep: DirectoryInfo = root / "users" / "gutii";
+    config: FileInfo = new FileInfo(deep, "config.json");
+    println(config.FullName);
+}`}
+  language="csharp"
+  filename="path_concat_directoryinfo.shard"
+/>
+
+<Prose>
+  <strong>Multi-segment joining with Path.Join.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Path.Join accepts a string array and joins every element in order.
+    segments: string[] = ["D:/data", "users", "gutii", "config.json"];
+    joined: string = Path.Join(segments);
+    println(joined);
+
+    // An empty array yields an empty string.
+    empty: string[] = [];
+    println(Path.Join(empty));
+}`}
+  language="csharp"
+  filename="path_join_array.shard"
+/>
+
+<Prose>
+  <strong>Platform separators and cross-platform code.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Inspect the separators at runtime instead of hard-coding them.
+    sep: string = Path.DirectorySeparatorChar;
+    alt: string = Path.AltDirectorySeparatorChar;
+    listSep: string = Path.PathSeparator;
+
+    println("directory separator: " + sep);
+    println("alternate separator: " + alt);
+    println("path list separator: " + listSep);
+
+    // Build a path that adapts to the current platform.
+    root: string = "data";
+    leaf: string = "output.log";
+    combined: string = root / leaf;
+    println(combined);
+}`}
+  language="csharp"
+  filename="path_separators.shard"
+/>
+
+<Prose>
+  <strong>Edge cases and common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Trailing separators in the left operand are absorbed by the join.
+    a: string = "D:/data/";
+    b: string = "logs";
+    println(a / b);
+
+    // Leading separators in the right operand are preserved.
+    c: string = "/absolute";
+    d: string = "file.txt";
+    println(c / d);
+
+    // Path.Join does not normalize ".." or "."; GetFullPath does.
+    messy: string = "D:/data/../config.json";
+    println(Path.GetFullPath(messy));
+
+    // Joining an empty string as a segment is allowed and produces a valid path.
+    parts: string[] = ["D:/data", "", "file.txt"];
+    println(Path.Join(parts));
+}`}
+  language="csharp"
+  filename="path_edge_cases.shard"
+/>
+
+<H2>Operator Summary</H2>
+
+<DocsTable
+  headers={['Overload', 'Return Type', 'Use Case']}
+  rows={[
+    [<InlineCode>string / string</InlineCode>, 'string', 'Join two arbitrary path segments.'],
+    [<InlineCode>DirectoryInfo / string</InlineCode>, 'DirectoryInfo', 'Descend into a subdirectory.'],
+    [<InlineCode>new FileInfo(DirectoryInfo, string)</InlineCode>, 'FileInfo', 'Create a file path under a directory.'],
+    [<InlineCode>Path.Join(string[])</InlineCode>, 'string', 'Join a runtime-collected list of segments.'],
+  ]}
+/>

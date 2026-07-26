@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run docs:manifest && vite",
-    "build": "npm run docs:manifest && tsc -b && vite build",
+    "build": "npm run docs:manifest && tsc -b && vite build && tsx scripts/copy-404.ts",
     "docs:manifest": "tsx scripts/build-docs-manifest.ts",
     "lint": "eslint .",
     "preview": "vite preview"

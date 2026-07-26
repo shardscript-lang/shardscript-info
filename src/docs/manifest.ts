@@ -5,6 +5,7 @@ export interface DocArticle {
   slug: string
   title: string
   group: string
+  groupOrder: number
   order: number
   file: string
   section: 'getting-started' | 'syntax' | 'stdlib'
@@ -135,6 +136,23 @@ const manifest: DocManifest = {
       ]
     },
     {
+      "title": "Functional Programming",
+      "items": [
+        {
+          "slug": "functions-and-delegates",
+          "title": "Functions and Delegates"
+        },
+        {
+          "slug": "lambda-expressions",
+          "title": "Lambda Expressions"
+        },
+        {
+          "slug": "closures",
+          "title": "Closures"
+        }
+      ]
+    },
+    {
       "title": "Resource Management",
       "items": [
         {
@@ -171,36 +189,6 @@ const manifest: DocManifest = {
           "title": "Cancellation Tokens"
         }
       ]
-    },
-    {
-      "title": "Internals",
-      "items": [
-        {
-          "slug": "typeshape-and-slots",
-          "title": "TypeShape and Slots"
-        },
-        {
-          "slug": "async-state-machine-lowering",
-          "title": "Async State Machine Lowering"
-        }
-      ]
-    },
-    {
-      "title": "Functional Programming",
-      "items": [
-        {
-          "slug": "functions-and-delegates",
-          "title": "Functions and Delegates"
-        },
-        {
-          "slug": "lambda-expressions",
-          "title": "Lambda Expressions"
-        },
-        {
-          "slug": "closures",
-          "title": "Closures"
-        }
-      ]
     }
   ],
   "stdlib": [
@@ -220,6 +208,166 @@ const manifest: DocManifest = {
           "title": "Random Number Generation"
         }
       ]
+    },
+    {
+      "title": "SHARD.ENVIRONMENT",
+      "items": [
+        {
+          "slug": "environment",
+          "title": "Environment"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.DEBUG",
+      "items": [
+        {
+          "slug": "developer-tools",
+          "title": "Developer Tools"
+        },
+        {
+          "slug": "vm-inspection",
+          "title": "VM Inspection"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.COLLECTIONS",
+      "items": [
+        {
+          "slug": "ienumerable-and-ienumerator",
+          "title": "IEnumerable & IEnumerator"
+        },
+        {
+          "slug": "list",
+          "title": "List<T>"
+        },
+        {
+          "slug": "dictionary",
+          "title": "Dictionary<K, V>"
+        },
+        {
+          "slug": "queue-and-stack",
+          "title": "Queue and Stack"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.JSON",
+      "items": [
+        {
+          "slug": "json-serializer",
+          "title": "JsonSerializer"
+        },
+        {
+          "slug": "json-node",
+          "title": "JsonNode"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.STREAMS",
+      "items": [
+        {
+          "slug": "stream-interfaces",
+          "title": "Stream Interfaces"
+        },
+        {
+          "slug": "memory-stream",
+          "title": "MemoryStream"
+        },
+        {
+          "slug": "stream-reader-writer",
+          "title": "StreamReader / StreamWriter"
+        },
+        {
+          "slug": "binary-reader-writer",
+          "title": "BinaryReader / BinaryWriter"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.FILESYSTEM",
+      "items": [
+        {
+          "slug": "file-and-path",
+          "title": "File & Path"
+        },
+        {
+          "slug": "directory-and-directoryinfo",
+          "title": "Directory & DirectoryInfo"
+        },
+        {
+          "slug": "path-concatenation",
+          "title": "Path Concatenation"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.SUBPROCESS",
+      "items": [
+        {
+          "slug": "process-and-processstartinfo",
+          "title": "Process & ProcessStartInfo"
+        },
+        {
+          "slug": "subprocess-io-and-lifecycle",
+          "title": "I/O & Lifecycle"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.ASYNC",
+      "items": [
+        {
+          "slug": "task-completion-source",
+          "title": "TaskCompletionSource<T>"
+        },
+        {
+          "slug": "cancellation-token-and-source",
+          "title": "CancellationToken & CancellationTokenSource"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.INTEROP",
+      "items": [
+        {
+          "slug": "native-interop",
+          "title": "Native Interop"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.HTTP",
+      "items": [
+        {
+          "slug": "http-client",
+          "title": "HttpClient"
+        },
+        {
+          "slug": "http-server",
+          "title": "HttpServer"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.SOCKET",
+      "items": [
+        {
+          "slug": "tcp-sockets",
+          "title": "TCP Sockets"
+        }
+      ]
+    },
+    {
+      "title": "SHARD.REFLECTION",
+      "items": [
+        {
+          "slug": "type-introspection",
+          "title": "Type Introspection"
+        }
+      ]
     }
   ],
   "articles": {
@@ -227,6 +375,7 @@ const manifest: DocManifest = {
       "slug": "shardscript-philosophy",
       "title": "ShardScript Philosophy",
       "group": "Getting Started",
+      "groupOrder": 1,
       "order": 1,
       "file": "getting-started/01-philosophy.mdx",
       "section": "getting-started"
@@ -235,6 +384,7 @@ const manifest: DocManifest = {
       "slug": "runtime-architecture",
       "title": "Runtime Architecture",
       "group": "Getting Started",
+      "groupOrder": 1,
       "order": 2,
       "file": "getting-started/02-runtime-architecture.mdx",
       "section": "getting-started"
@@ -243,6 +393,7 @@ const manifest: DocManifest = {
       "slug": "installation-and-setup",
       "title": "Installation & Setup",
       "group": "Getting Started",
+      "groupOrder": 1,
       "order": 3,
       "file": "getting-started/03-installation-and-setup.mdx",
       "section": "getting-started"
@@ -251,6 +402,7 @@ const manifest: DocManifest = {
       "slug": "variables-and-types",
       "title": "Variables and Types",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 1,
       "file": "syntax/fundamentals/01-variables-and-types.mdx",
       "section": "syntax"
@@ -259,6 +411,7 @@ const manifest: DocManifest = {
       "slug": "type-inference",
       "title": "Type Inference",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 2,
       "file": "syntax/fundamentals/02-type-inference.mdx",
       "section": "syntax"
@@ -267,6 +420,7 @@ const manifest: DocManifest = {
       "slug": "primitive-types",
       "title": "Primitive Types",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 3,
       "file": "syntax/fundamentals/03-primitive-types.mdx",
       "section": "syntax"
@@ -275,6 +429,7 @@ const manifest: DocManifest = {
       "slug": "operators",
       "title": "Operators",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 4,
       "file": "syntax/fundamentals/04-operators.mdx",
       "section": "syntax"
@@ -283,6 +438,7 @@ const manifest: DocManifest = {
       "slug": "strings-and-interpolation",
       "title": "Strings and Interpolation",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 5,
       "file": "syntax/fundamentals/05-strings-and-interpolation.mdx",
       "section": "syntax"
@@ -291,6 +447,7 @@ const manifest: DocManifest = {
       "slug": "arrays",
       "title": "Arrays",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 6,
       "file": "syntax/fundamentals/06-arrays.mdx",
       "section": "syntax"
@@ -299,6 +456,7 @@ const manifest: DocManifest = {
       "slug": "lists-and-dictionaries",
       "title": "Lists and Dictionaries",
       "group": "Fundamentals",
+      "groupOrder": 1,
       "order": 7,
       "file": "syntax/fundamentals/07-lists-and-dictionaries.mdx",
       "section": "syntax"
@@ -307,6 +465,7 @@ const manifest: DocManifest = {
       "slug": "conditionals",
       "title": "Conditionals",
       "group": "Control Flow",
+      "groupOrder": 2,
       "order": 1,
       "file": "syntax/control-flow/01-conditionals.mdx",
       "section": "syntax"
@@ -315,6 +474,7 @@ const manifest: DocManifest = {
       "slug": "loops",
       "title": "Loops",
       "group": "Control Flow",
+      "groupOrder": 2,
       "order": 2,
       "file": "syntax/control-flow/02-loops.mdx",
       "section": "syntax"
@@ -323,6 +483,7 @@ const manifest: DocManifest = {
       "slug": "switch-expressions",
       "title": "switch Expressions",
       "group": "Control Flow",
+      "groupOrder": 2,
       "order": 3,
       "file": "syntax/control-flow/03-switch-expressions.mdx",
       "section": "syntax"
@@ -331,6 +492,7 @@ const manifest: DocManifest = {
       "slug": "exceptions",
       "title": "Exceptions and Error Handling",
       "group": "Control Flow",
+      "groupOrder": 2,
       "order": 4,
       "file": "syntax/control-flow/04-exceptions.mdx",
       "section": "syntax"
@@ -339,6 +501,7 @@ const manifest: DocManifest = {
       "slug": "deferred-execution",
       "title": "Deferred Execution",
       "group": "Control Flow",
+      "groupOrder": 2,
       "order": 5,
       "file": "syntax/control-flow/05-deferred-execution.mdx",
       "section": "syntax"
@@ -347,6 +510,7 @@ const manifest: DocManifest = {
       "slug": "classes",
       "title": "Classes",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 1,
       "file": "syntax/object-oriented/01-classes.mdx",
       "section": "syntax"
@@ -355,6 +519,7 @@ const manifest: DocManifest = {
       "slug": "fields-and-properties",
       "title": "Fields and Properties",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 2,
       "file": "syntax/object-oriented/02-fields-and-properties.mdx",
       "section": "syntax"
@@ -363,6 +528,7 @@ const manifest: DocManifest = {
       "slug": "methods",
       "title": "Methods",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 3,
       "file": "syntax/object-oriented/03-methods.mdx",
       "section": "syntax"
@@ -371,6 +537,7 @@ const manifest: DocManifest = {
       "slug": "constructors",
       "title": "Constructors and Initialization",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 4,
       "file": "syntax/object-oriented/04-constructors.mdx",
       "section": "syntax"
@@ -379,6 +546,7 @@ const manifest: DocManifest = {
       "slug": "interfaces",
       "title": "Interfaces and Abstractions",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 5,
       "file": "syntax/object-oriented/05-interfaces.mdx",
       "section": "syntax"
@@ -387,6 +555,7 @@ const manifest: DocManifest = {
       "slug": "extension-methods",
       "title": "Extension Methods",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 6,
       "file": "syntax/object-oriented/06-extension-methods.mdx",
       "section": "syntax"
@@ -395,6 +564,7 @@ const manifest: DocManifest = {
       "slug": "generics",
       "title": "Generic Types",
       "group": "Object-Oriented Programming",
+      "groupOrder": 3,
       "order": 7,
       "file": "syntax/object-oriented/07-generics.mdx",
       "section": "syntax"
@@ -403,6 +573,7 @@ const manifest: DocManifest = {
       "slug": "lambda-expressions",
       "title": "Lambda Expressions",
       "group": "Functional Programming",
+      "groupOrder": 4,
       "order": 2,
       "file": "syntax/functional/02-lambda-expressions.mdx",
       "section": "syntax"
@@ -411,6 +582,7 @@ const manifest: DocManifest = {
       "slug": "closures",
       "title": "Closures",
       "group": "Functional Programming",
+      "groupOrder": 4,
       "order": 3,
       "file": "syntax/functional/03-closures.mdx",
       "section": "syntax"
@@ -419,6 +591,7 @@ const manifest: DocManifest = {
       "slug": "functions-and-delegates",
       "title": "Functions and Delegates",
       "group": "Functional Programming",
+      "groupOrder": 4,
       "order": 1,
       "file": "syntax/functional/01-functions-and-delegates.mdx",
       "section": "syntax"
@@ -427,6 +600,7 @@ const manifest: DocManifest = {
       "slug": "garbage-collection",
       "title": "Automatic Memory Management",
       "group": "Resource Management",
+      "groupOrder": 5,
       "order": 1,
       "file": "syntax/resource-management/01-garbage-collection.mdx",
       "section": "syntax"
@@ -435,6 +609,7 @@ const manifest: DocManifest = {
       "slug": "idisposable",
       "title": "Deterministic Disposal",
       "group": "Resource Management",
+      "groupOrder": 5,
       "order": 2,
       "file": "syntax/resource-management/02-idisposable.mdx",
       "section": "syntax"
@@ -443,6 +618,7 @@ const manifest: DocManifest = {
       "slug": "cooperative-multitasking",
       "title": "Cooperative Multitasking",
       "group": "Asynchronous Programming",
+      "groupOrder": 6,
       "order": 1,
       "file": "syntax/async/01-cooperative-multitasking.mdx",
       "section": "syntax"
@@ -451,6 +627,7 @@ const manifest: DocManifest = {
       "slug": "async-functions",
       "title": "Async Functions",
       "group": "Asynchronous Programming",
+      "groupOrder": 6,
       "order": 2,
       "file": "syntax/async/02-async-functions.mdx",
       "section": "syntax"
@@ -459,6 +636,7 @@ const manifest: DocManifest = {
       "slug": "await-and-state-machines",
       "title": "Await and State Machines",
       "group": "Asynchronous Programming",
+      "groupOrder": 6,
       "order": 3,
       "file": "syntax/async/03-await-and-state-machines.mdx",
       "section": "syntax"
@@ -467,6 +645,7 @@ const manifest: DocManifest = {
       "slug": "task-and-valuetask",
       "title": "Task and ValueTask",
       "group": "Asynchronous Programming",
+      "groupOrder": 6,
       "order": 4,
       "file": "syntax/async/04-task-and-valuetask.mdx",
       "section": "syntax"
@@ -475,30 +654,16 @@ const manifest: DocManifest = {
       "slug": "cancellation-tokens",
       "title": "Cancellation Tokens",
       "group": "Asynchronous Programming",
+      "groupOrder": 6,
       "order": 5,
       "file": "syntax/async/05-cancellation-tokens.mdx",
-      "section": "syntax"
-    },
-    "typeshape-and-slots": {
-      "slug": "typeshape-and-slots",
-      "title": "TypeShape and Slots",
-      "group": "Internals",
-      "order": 1,
-      "file": "syntax/internals/01-typeshape-and-slots.mdx",
-      "section": "syntax"
-    },
-    "async-state-machine-lowering": {
-      "slug": "async-state-machine-lowering",
-      "title": "Async State Machine Lowering",
-      "group": "Internals",
-      "order": 2,
-      "file": "syntax/internals/02-async-state-machine-lowering.mdx",
       "section": "syntax"
     },
     "basic-math": {
       "slug": "basic-math",
       "title": "Basic Math",
       "group": "SHARD.MATH",
+      "groupOrder": 1,
       "order": 1,
       "file": "stdlib/math/01-basic-math.mdx",
       "section": "stdlib"
@@ -507,6 +672,7 @@ const manifest: DocManifest = {
       "slug": "random-number-generation",
       "title": "Random Number Generation",
       "group": "SHARD.MATH",
+      "groupOrder": 1,
       "order": 3,
       "file": "stdlib/math/02-random.mdx",
       "section": "stdlib"
@@ -515,8 +681,234 @@ const manifest: DocManifest = {
       "slug": "trigonometry-and-logarithms",
       "title": "Trigonometry & Logarithms",
       "group": "SHARD.MATH",
+      "groupOrder": 1,
       "order": 2,
       "file": "stdlib/math/02-trigonometry-and-logarithms.mdx",
+      "section": "stdlib"
+    },
+    "environment": {
+      "slug": "environment",
+      "title": "Environment",
+      "group": "SHARD.ENVIRONMENT",
+      "groupOrder": 2,
+      "order": 1,
+      "file": "stdlib/environment/environment.mdx",
+      "section": "stdlib"
+    },
+    "developer-tools": {
+      "slug": "developer-tools",
+      "title": "Developer Tools",
+      "group": "SHARD.DEBUG",
+      "groupOrder": 3,
+      "order": 1,
+      "file": "stdlib/debug/developer-tools.mdx",
+      "section": "stdlib"
+    },
+    "vm-inspection": {
+      "slug": "vm-inspection",
+      "title": "VM Inspection",
+      "group": "SHARD.DEBUG",
+      "groupOrder": 3,
+      "order": 2,
+      "file": "stdlib/debug/vm-inspection.mdx",
+      "section": "stdlib"
+    },
+    "ienumerable-and-ienumerator": {
+      "slug": "ienumerable-and-ienumerator",
+      "title": "IEnumerable & IEnumerator",
+      "group": "SHARD.COLLECTIONS",
+      "groupOrder": 4,
+      "order": 1,
+      "file": "stdlib/collections/ienumerable-and-ienumerator.mdx",
+      "section": "stdlib"
+    },
+    "list": {
+      "slug": "list",
+      "title": "List<T>",
+      "group": "SHARD.COLLECTIONS",
+      "groupOrder": 4,
+      "order": 2,
+      "file": "stdlib/collections/list.mdx",
+      "section": "stdlib"
+    },
+    "dictionary": {
+      "slug": "dictionary",
+      "title": "Dictionary<K, V>",
+      "group": "SHARD.COLLECTIONS",
+      "groupOrder": 4,
+      "order": 3,
+      "file": "stdlib/collections/dictionary.mdx",
+      "section": "stdlib"
+    },
+    "queue-and-stack": {
+      "slug": "queue-and-stack",
+      "title": "Queue and Stack",
+      "group": "SHARD.COLLECTIONS",
+      "groupOrder": 4,
+      "order": 4,
+      "file": "stdlib/collections/queue-and-stack.mdx",
+      "section": "stdlib"
+    },
+    "json-serializer": {
+      "slug": "json-serializer",
+      "title": "JsonSerializer",
+      "group": "SHARD.JSON",
+      "groupOrder": 5,
+      "order": 1,
+      "file": "stdlib/json/json-serializer.mdx",
+      "section": "stdlib"
+    },
+    "json-node": {
+      "slug": "json-node",
+      "title": "JsonNode",
+      "group": "SHARD.JSON",
+      "groupOrder": 5,
+      "order": 2,
+      "file": "stdlib/json/json-node.mdx",
+      "section": "stdlib"
+    },
+    "stream-interfaces": {
+      "slug": "stream-interfaces",
+      "title": "Stream Interfaces",
+      "group": "SHARD.STREAMS",
+      "groupOrder": 6,
+      "order": 1,
+      "file": "stdlib/streams/stream-interfaces.mdx",
+      "section": "stdlib"
+    },
+    "memory-stream": {
+      "slug": "memory-stream",
+      "title": "MemoryStream",
+      "group": "SHARD.STREAMS",
+      "groupOrder": 6,
+      "order": 2,
+      "file": "stdlib/streams/memory-stream.mdx",
+      "section": "stdlib"
+    },
+    "stream-reader-writer": {
+      "slug": "stream-reader-writer",
+      "title": "StreamReader / StreamWriter",
+      "group": "SHARD.STREAMS",
+      "groupOrder": 6,
+      "order": 3,
+      "file": "stdlib/streams/stream-reader-writer.mdx",
+      "section": "stdlib"
+    },
+    "binary-reader-writer": {
+      "slug": "binary-reader-writer",
+      "title": "BinaryReader / BinaryWriter",
+      "group": "SHARD.STREAMS",
+      "groupOrder": 6,
+      "order": 4,
+      "file": "stdlib/streams/binary-reader-writer.mdx",
+      "section": "stdlib"
+    },
+    "file-and-path": {
+      "slug": "file-and-path",
+      "title": "File & Path",
+      "group": "SHARD.FILESYSTEM",
+      "groupOrder": 7,
+      "order": 1,
+      "file": "stdlib/filesystem/file-and-path.mdx",
+      "section": "stdlib"
+    },
+    "directory-and-directoryinfo": {
+      "slug": "directory-and-directoryinfo",
+      "title": "Directory & DirectoryInfo",
+      "group": "SHARD.FILESYSTEM",
+      "groupOrder": 7,
+      "order": 2,
+      "file": "stdlib/filesystem/directory-and-directoryinfo.mdx",
+      "section": "stdlib"
+    },
+    "path-concatenation": {
+      "slug": "path-concatenation",
+      "title": "Path Concatenation",
+      "group": "SHARD.FILESYSTEM",
+      "groupOrder": 7,
+      "order": 3,
+      "file": "stdlib/filesystem/path-concatenation.mdx",
+      "section": "stdlib"
+    },
+    "process-and-processstartinfo": {
+      "slug": "process-and-processstartinfo",
+      "title": "Process & ProcessStartInfo",
+      "group": "SHARD.SUBPROCESS",
+      "groupOrder": 8,
+      "order": 1,
+      "file": "stdlib/subprocess/process-and-processstartinfo.mdx",
+      "section": "stdlib"
+    },
+    "subprocess-io-and-lifecycle": {
+      "slug": "subprocess-io-and-lifecycle",
+      "title": "I/O & Lifecycle",
+      "group": "SHARD.SUBPROCESS",
+      "groupOrder": 8,
+      "order": 2,
+      "file": "stdlib/subprocess/subprocess-io-and-lifecycle.mdx",
+      "section": "stdlib"
+    },
+    "task-completion-source": {
+      "slug": "task-completion-source",
+      "title": "TaskCompletionSource<T>",
+      "group": "SHARD.ASYNC",
+      "groupOrder": 9,
+      "order": 1,
+      "file": "stdlib/async/task-completion-source.mdx",
+      "section": "stdlib"
+    },
+    "cancellation-token-and-source": {
+      "slug": "cancellation-token-and-source",
+      "title": "CancellationToken & CancellationTokenSource",
+      "group": "SHARD.ASYNC",
+      "groupOrder": 9,
+      "order": 2,
+      "file": "stdlib/async/cancellation-token-and-source.mdx",
+      "section": "stdlib"
+    },
+    "native-interop": {
+      "slug": "native-interop",
+      "title": "Native Interop",
+      "group": "SHARD.INTEROP",
+      "groupOrder": 10,
+      "order": 1,
+      "file": "stdlib/interop/native-interop.mdx",
+      "section": "stdlib"
+    },
+    "http-client": {
+      "slug": "http-client",
+      "title": "HttpClient",
+      "group": "SHARD.HTTP",
+      "groupOrder": 11,
+      "order": 1,
+      "file": "stdlib/http/http-client.mdx",
+      "section": "stdlib"
+    },
+    "http-server": {
+      "slug": "http-server",
+      "title": "HttpServer",
+      "group": "SHARD.HTTP",
+      "groupOrder": 11,
+      "order": 2,
+      "file": "stdlib/http/http-server.mdx",
+      "section": "stdlib"
+    },
+    "tcp-sockets": {
+      "slug": "tcp-sockets",
+      "title": "TCP Sockets",
+      "group": "SHARD.SOCKET",
+      "groupOrder": 12,
+      "order": 1,
+      "file": "stdlib/socket/tcp-sockets.mdx",
+      "section": "stdlib"
+    },
+    "type-introspection": {
+      "slug": "type-introspection",
+      "title": "Type Introspection",
+      "group": "SHARD.REFLECTION",
+      "groupOrder": 13,
+      "order": 1,
+      "file": "stdlib/reflection/type-introspection.mdx",
       "section": "stdlib"
     }
   }

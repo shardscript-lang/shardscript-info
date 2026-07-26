@@ -1,0 +1,381 @@
+---
+title: Process & ProcessStartInfo
+group: SHARD.SUBPROCESS
+groupOrder: 8
+order: 1
+slug: process-and-processstartinfo
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.subprocess</InlineCode> library (namespace <InlineCode>process</InlineCode>)
+  provides the <InlineCode>Process</InlineCode> and <InlineCode>ProcessStartInfo</InlineCode> classes
+  for spawning and controlling external operating-system processes from ShardScript.
+  <InlineCode>ProcessStartInfo</InlineCode> collects launch parameters such as the executable path,
+  arguments, and working directory, while <InlineCode>Process.Start</InlineCode> creates the child
+  process and returns a handle you can wait on, inspect, and dispose.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  The declarations below show the public surface of the two classes. You do not write these
+  definitions yourself; import the library with <InlineCode>using process;</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`namespace process;
+
+public class ProcessStartInfo
+{
+    public FileName: string;
+    public Arguments: string;
+    public WorkingDirectory: string;
+    public RedirectStandardOutput: bool;
+    public RedirectStandardError: bool;
+    public RedirectStandardInput: bool;
+    public UseShellExecute: bool;
+    public CreateNoWindow: bool;
+    public InheritEnvironment: bool;
+    public EnvironmentVariables: Dictionary<string, string>;
+}
+
+public class Process
+{
+    public static func Start(fileName: string) -> Process;
+    public static func Start(fileName: string, arguments: string) -> Process;
+    public static func Start(startInfo: ProcessStartInfo) -> Process;
+
+    public HasExited: bool { get; }
+    public ExitCode: int { get; }
+    public ProcessId: int { get; }
+
+    public func WaitForExit() -> int;
+    public func WaitForExit(timeoutMilliseconds: int) -> bool;
+    public func Kill() -> void;
+    public func Dispose() -> void;
+}`}
+  language="csharp"
+  filename="process_surface.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  <InlineCode>ProcessStartInfo</InlineCode> is a plain mutable data class. Its constructor sets
+  <InlineCode>InheritEnvironment</InlineCode> to <InlineCode>true</InlineCode> and allocates an empty
+  <InlineCode>Dictionary&lt;string, string&gt;</InlineCode> for environment variables.
+</Prose>
+
+<DocsTable
+  headers={['Field', 'Type', 'Default', 'Description']}
+  rows={[
+    [<code>FileName</code>, 'string', 'empty', 'Required. Path to the executable. A bare name is resolved against PATH when possible.'],
+    [<code>Arguments</code>, 'string', 'empty', 'Command-line arguments passed as a single string. Split on whitespace, respecting single and double quotes.'],
+    [<code>WorkingDirectory</code>, 'string', 'empty', 'Working directory for the child process. If empty, the child inherits the parent working directory.'],
+    [<code>RedirectStandardOutput</code>, 'bool', 'false', 'Must be true to read stdout via Process.ReadToEnd().'],
+    [<code>RedirectStandardError</code>, 'bool', 'false', 'Must be true to read stderr via Process.ReadErrorToEnd().'],
+    [<code>RedirectStandardInput</code>, 'bool', 'false', 'Must be true to write to stdin via Process.Write() or Process.WriteLine().'],
+    [<code>UseShellExecute</code>, 'bool', 'false', 'Not supported. Setting this to true causes Process.Start to throw a RuntimeException.'],
+    [<code>CreateNoWindow</code>, 'bool', 'false', 'If true, prevents a console window from appearing on Windows. No effect on Linux.'],
+    [<code>InheritEnvironment</code>, 'bool', 'true', 'If true, the child inherits the parent environment variables.'],
+    [<code>EnvironmentVariables</code>, 'Dictionary<string, string>', 'empty', 'Custom environment variables. Used only when InheritEnvironment is false; they replace the inherited environment.'],
+  ]}
+/>
+
+<Prose>
+  <InlineCode>Process.Start</InlineCode> has three static overloads. The two-string overloads are
+  convenience wrappers; the <InlineCode>ProcessStartInfo</InlineCode> overload exposes the full
+  configuration surface.
+</Prose>
+
+<DocsTable
+  headers={['Overload', 'Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>Start(fileName)</code>, 'fileName', 'string', 'The executable to launch.'],
+    [<code>Start(fileName, arguments)</code>, 'fileName', 'string', 'The executable to launch.'],
+    [<code>Start(fileName, arguments)</code>, 'arguments', 'string', 'Arguments passed to the executable.'],
+    [<code>Start(startInfo)</code>, 'startInfo', 'ProcessStartInfo', 'A fully populated ProcessStartInfo instance. FileName must be non-empty.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<code>Process.Start(...)</code>, 'Process', 'A handle to the newly created child process.'],
+    [<code>WaitForExit()</code>, 'int', 'Blocks until the process exits, then returns its exit code.'],
+    [<code>WaitForExit(timeoutMilliseconds)</code>, 'bool', 'true if the process exited within the timeout; false if the deadline passed.'],
+    [<code>HasExited</code>, 'bool', 'true when the child process is no longer running.'],
+    [<code>ExitCode</code>, 'int', 'The last cached exit code. Updated by WaitForExit and ReadToEnd; -1 after Kill.'],
+    [<code>ProcessId</code>, 'int', 'An OS identifier. On Windows this is the process handle value; on Linux it is the child PID.'],
+    [<code>Kill()</code>, 'void', 'Forcefully terminates the process.'],
+    [<code>Dispose()</code>, 'void', 'Terminates the process if it is still running and releases all OS handles.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing file name</strong> — Calling{' '}
+    <InlineCode>Process.Start(startInfo)</InlineCode> when{' '}
+    <InlineCode>startInfo.FileName</InlineCode> is empty throws a{' '}
+    <InlineCode>RuntimeException</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">UseShellExecute not supported</strong> — Setting{' '}
+    <InlineCode>UseShellExecute = true</InlineCode> causes{' '}
+    <InlineCode>Process.Start</InlineCode> to throw a <InlineCode>RuntimeException</InlineCode>. All
+    processes are created directly through the OS process-creation API.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Process creation failure</strong> — If the executable cannot
+    be found or the OS rejects the launch, <InlineCode>Process.Start</InlineCode> throws a{' '}
+    <InlineCode>RuntimeException</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid handle</strong> — Calling{' '}
+    <InlineCode>WaitForExit</InlineCode>, <InlineCode>Kill</InlineCode>, <InlineCode>ReadToEnd</InlineCode>,
+    or <InlineCode>Write</InlineCode> after the process has been disposed throws a{' '}
+    <InlineCode>RuntimeException</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Stream not redirected</strong> — Calling{' '}
+    <InlineCode>ReadToEnd</InlineCode>, <InlineCode>ReadErrorToEnd</InlineCode>, or{' '}
+    <InlineCode>Write</InlineCode> when the matching <InlineCode>RedirectStandard*</InlineCode> flag is
+    false throws a <InlineCode>RuntimeException</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Stale ExitCode</strong> — Reading <InlineCode>ExitCode</InlineCode>{' '}
+    before the process exits does not throw, but it returns the cached placeholder value (usually 0, or
+    -1 after <InlineCode>Kill</InlineCode>).
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Argument splitting.</strong> The <InlineCode>Arguments</InlineCode> string is split into
+  argv entries on whitespace, but text inside single or double quotes is preserved as one argument.
+  For example, <InlineCode>Arguments = "a \"b c\" d"</InlineCode> produces three argv entries:
+  <InlineCode>a</InlineCode>, <InlineCode>b c</InlineCode>, and <InlineCode>d</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Environment variables.</strong> By default <InlineCode>InheritEnvironment</InlineCode> is
+  <InlineCode>true</InlineCode> and the child receives the parent environment. Entries in{' '}
+  <InlineCode>EnvironmentVariables</InlineCode> are honored only when{' '}
+  <InlineCode>InheritEnvironment</InlineCode> is <InlineCode>false</InlineCode>, in which case they
+  replace the inherited environment entirely. If you need both inherited and custom variables, set
+  <InlineCode>InheritEnvironment = false</InlineCode> and copy the required parent values into the
+  dictionary yourself.
+</Prose>
+
+<Prose>
+  <strong>Resource cleanup.</strong> <InlineCode>Process</InlineCode> implements{' '}
+  <InlineCode>IDisposable</InlineCode>. Always use{' '}
+  <InlineCode>defer p: Process = Process.Start(...)</InlineCode> so that{' '}
+  <InlineCode>Dispose</InlineCode> runs when the variable goes out of scope, even if an exception is
+  thrown. <InlineCode>Dispose</InlineCode> terminates a still-running process and closes all OS
+  handles. Calling <InlineCode>Dispose</InlineCode> more than once is safe.
+</Prose>
+
+<Prose>
+  <strong>Waiting and exit codes.</strong> The parameterless <InlineCode>WaitForExit()</InlineCode>{' '}
+  blocks the calling thread until the child terminates and returns its exit code. The timed overload
+  polls <InlineCode>subprocess_alive</InlineCode> every 10 milliseconds; it returns{' '}
+  <InlineCode>false</InlineCode> on timeout and <strong>does not kill</strong> the child. Pass a
+  negative timeout to fall back to indefinite waiting. <InlineCode>ExitCode</InlineCode> is updated by
+  <InlineCode>WaitForExit</InlineCode> and by the blocking read methods; calling{' '}
+  <InlineCode>Kill</InlineCode> sets <InlineCode>ExitCode</InlineCode> to -1.
+</Prose>
+
+<Prose>
+  <strong>Cross-platform implementation.</strong> The library is backed by the{' '}
+  <InlineCode>subprocess.h</InlineCode> single-header C library. On Windows it calls{' '}
+  <InlineCode>CreateProcessW</InlineCode>; on Linux it uses <InlineCode>posix_spawnp</InlineCode> or{' '}
+  <InlineCode>fork</InlineCode> + <InlineCode>execvp</InlineCode>. The examples below use{' '}
+  <InlineCode>cmd.exe</InlineCode>, which is Windows-specific; on Linux replace them with{' '}
+  <InlineCode>sh -c "..."</InlineCode>.
+</Prose>
+
+<Callout tone="amber">
+  <InlineCode>UseShellExecute</InlineCode> is intentionally unsupported. There is no plan to add shell
+  execution through the standard <InlineCode>Process</InlineCode> API. If you need shell features such
+  as redirection or piping, launch <InlineCode>sh</InlineCode> / <InlineCode>cmd.exe</InlineCode>{' '}
+  explicitly with the appropriate <InlineCode>Arguments</InlineCode>.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic spawn with the two-string overload.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Launch a command and wait for it to finish.
+    defer p: Process = Process.Start("cmd.exe", "/c exit 42");
+
+    code: int = p.WaitForExit();
+
+    println("Has exited: " + p.HasExited);
+    println("Exit code: " + code);
+}`}
+  language="csharp"
+  filename="process_basic.shard"
+/>
+
+<Prose>
+  <strong>Configuring a launch with ProcessStartInfo.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c cd";
+    info.WorkingDirectory = "C:\\";
+    info.CreateNoWindow = true;
+    info.RedirectStandardOutput = true;
+
+    defer p: Process = Process.Start(info);
+
+    output: string = p.ReadToEnd();
+    println(output);
+    println("Exit code: " + p.WaitForExit());
+}`}
+  language="csharp"
+  filename="process_startinfo.shard"
+/>
+
+<Prose>
+  <strong>Timed wait and forced termination.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Start a process that takes longer than the timeout.
+    defer p: Process = Process.Start("cmd.exe", "/c ping 127.0.0.1 -n 3 > nul");
+
+    finished: bool = p.WaitForExit(100);
+
+    if (!finished)
+    {
+        println("Process did not finish in time; killing it.");
+        p.Kill();
+    }
+    else
+    {
+        println("Process finished. Exit code: " + p.ExitCode);
+    }
+}`}
+  language="csharp"
+  filename="process_timeout.shard"
+/>
+
+<Prose>
+  <strong>Custom environment variables.</strong> Remember to set{' '}
+  <InlineCode>InheritEnvironment = false</InlineCode>, otherwise the custom dictionary is ignored.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo %MY_VAR%";
+    info.InheritEnvironment = false;
+    info.RedirectStandardOutput = true;
+    info.EnvironmentVariables.Add("MY_VAR", "hello from shard");
+
+    defer p: Process = Process.Start(info);
+
+    output: string = p.ReadToEnd();
+    println(output);
+    println("Exit code: " + p.WaitForExit());
+}`}
+  language="csharp"
+  filename="process_environment.shard"
+/>
+
+<Prose>
+  <strong>ExitCode caching and a common mistake.</strong> Reading <InlineCode>ExitCode</InlineCode>{' '}
+  before the process has exited returns the cached placeholder, not the real exit code.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer p: Process = Process.Start("cmd.exe", "/c exit 7");
+
+    // The process has not exited yet, so ExitCode is still the placeholder.
+    println("Before wait: " + p.ExitCode);
+
+    code: int = p.WaitForExit();
+
+    println("After wait:  " + code);
+    println("Has exited:  " + p.HasExited);
+}`}
+  language="csharp"
+  filename="process_exitcode.shard"
+/>
+
+<Prose>
+  <strong>Argument quoting.</strong> Use double quotes to pass an argument that contains spaces.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using process;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    info: ProcessStartInfo = new ProcessStartInfo();
+    info.FileName = "cmd.exe";
+    info.Arguments = "/c echo \"hello world\"";
+    info.RedirectStandardOutput = true;
+
+    defer p: Process = Process.Start(info);
+
+    println(p.ReadToEnd());
+    println("Exit code: " + p.WaitForExit());
+}`}
+  language="csharp"
+  filename="process_quoting.shard"
+/>

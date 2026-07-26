@@ -1,0 +1,408 @@
+---
+title: HttpClient
+group: SHARD.HTTP
+groupOrder: 11
+order: 1
+slug: http-client
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.http</InlineCode> library exposes the <InlineCode>HttpClient</InlineCode>{' '}
+  class in the <InlineCode>net</InlineCode> namespace for making synchronous HTTP requests against a
+  single base URL. It currently supports <InlineCode>GET</InlineCode> and <InlineCode>POST</InlineCode>{' '}
+  operations and returns a structured <InlineCode>HttpResponse</InlineCode> containing the status code
+  and response body.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Import the namespace and create a client bound to a base URL. The client implements{' '}
+  <InlineCode>IDisposable</InlineCode>, so it must be disposed when it is no longer needed:
+</Prose>
+
+<CodeBlock
+  code={`using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The client is bound to the base URL for the lifetime of the object.
+    client := new HttpClient("http://localhost:8080");
+
+    // Perform a GET request against a path relative to the base URL.
+    response: HttpResponse = client.Get("/api/status");
+    println(response.StatusCode);
+    println(response.Body);
+
+    // Release the native httplib client and its connection state.
+    client.Dispose();
+}`}
+  language="csharp"
+  filename="httpclient_basic.shard"
+/>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Access']}
+  rows={[
+    [
+      <InlineCode>HttpClient</InlineCode>,
+      <><InlineCode>new HttpClient(baseUrl: string)</InlineCode></>,
+      'Public constructor; binds the client to the supplied base URL.',
+    ],
+    [
+      <InlineCode>Get(path)</InlineCode>,
+      <><InlineCode>func Get(path: string) -&gt; HttpResponse</InlineCode></>,
+      'Instance method; performs an HTTP GET request.',
+    ],
+    [
+      <InlineCode>Post(path, jsonPayload)</InlineCode>,
+      <><InlineCode>func Post(path: string, jsonPayload: string) -&gt; HttpResponse</InlineCode></>,
+      'Instance method; performs an HTTP POST request with JSON content.',
+    ],
+    [
+      <InlineCode>Dispose()</InlineCode>,
+      <><InlineCode>func Dispose() -&gt; void</InlineCode></>,
+      'Instance method; releases the native client and connection resources.',
+    ],
+    [
+      <InlineCode>HttpResponse.StatusCode</InlineCode>,
+      <><InlineCode>property StatusCode: int</InlineCode></>,
+      'Read-only instance property; HTTP status code returned by the server.',
+    ],
+    [
+      <InlineCode>HttpResponse.Body</InlineCode>,
+      <><InlineCode>property Body: string</InlineCode></>,
+      'Read-only instance property; response payload as a string.',
+    ],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>baseUrl</InlineCode>,
+      'string',
+      'The scheme, host, and optional port to which all requests are relative. Example values include "http://localhost:8080" and "https://api.example.com".',
+    ],
+    [
+      <InlineCode>path</InlineCode>,
+      'string',
+      'The request path, relative to baseUrl. May include a query string such as "/search?q=shard".',
+    ],
+    [
+      <InlineCode>jsonPayload</InlineCode>,
+      'string',
+      'The request body sent with a POST request. The implementation always sets the Content-Type header to "application/json".',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>new HttpClient(baseUrl)</InlineCode>,
+      'HttpClient',
+      'A client instance bound to the supplied base URL.',
+    ],
+    [
+      <InlineCode>Get(path)</InlineCode>,
+      'HttpResponse',
+      'The server response, including status code and body.',
+    ],
+    [
+      <InlineCode>Post(path, jsonPayload)</InlineCode>,
+      'HttpResponse',
+      'The server response, including status code and body.',
+    ],
+    [
+      <InlineCode>Dispose()</InlineCode>,
+      'void',
+      'No value is returned.',
+    ],
+    [
+      <InlineCode>HttpResponse.StatusCode</InlineCode>,
+      'int',
+      'Numeric HTTP status code, such as 200, 404, or 500.',
+    ],
+    [
+      <InlineCode>HttpResponse.Body</InlineCode>,
+      'string',
+      'Response body decoded as a wide string. Binary payloads are represented as-is; non-text content may contain unprintable characters.',
+    ],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Namespace import required</strong> — The{' '}
+    <InlineCode>net</InlineCode> namespace must be imported with <InlineCode>using net;</InlineCode>{' '}
+    before <InlineCode>HttpClient</InlineCode> or <InlineCode>HttpResponse</InlineCode> can be referenced.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument type mismatch</strong> — The constructor and every
+    method expect <InlineCode>string</InlineCode> arguments. Passing other primitive types or reference
+    types fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Connection failure</strong> — If the underlying TCP connection
+    cannot be established, <InlineCode>Get</InlineCode> and <InlineCode>Post</InlineCode> throw a runtime
+    exception with a message such as "HTTP Request Failed: Connection".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Request timeout</strong> — The client enforces a 5-second
+    connection timeout and a 5-second read timeout. Exceeding either throws a runtime exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Use after dispose</strong> — Calling <InlineCode>Get</InlineCode>,
+    <InlineCode>Post</InlineCode>, or reusing the client after <InlineCode>Dispose()</InlineCode> throws
+    "HttpClient: Client is disposed.".
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">HTTP-level errors are not exceptions</strong> — Status codes
+    such as 404 and 500 are returned normally in the <InlineCode>HttpResponse</InlineCode>; they do not
+    throw. Inspect <InlineCode>StatusCode</InlineCode> to distinguish success from failure.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Base URL binding.</strong> The <InlineCode>baseUrl</InlineCode> passed to the constructor is
+  stored in the native httplib client and applies to every request. The <InlineCode>path</InlineCode>{' '}
+  argument is concatenated with the base URL, so it should begin with a forward slash and should not
+  repeat the host or scheme.
+</Prose>
+
+<Prose>
+  <strong>Synchronous execution.</strong> Both <InlineCode>Get</InlineCode> and <InlineCode>Post</InlineCode>{' '}
+  block the calling thread until the request completes, fails, or times out. They are not async methods and
+  cannot be awaited. For concurrent requests, create one client per thread or run each request on its own
+  <InlineCode>Task</InlineCode> and call <InlineCode>Task.Wait</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Timeouts are fixed.</strong> The constructor sets a 5-second connection timeout and a 5-second
+  read timeout. These values are not configurable from ShardScript code. Hosts that require longer timeouts
+  must perform the request outside the VM or use a separate integration layer.
+</Prose>
+
+<Prose>
+  <strong>POST content type.</strong> <InlineCode>Post</InlineCode> always sends the payload with the
+  header <InlineCode>Content-Type: application/json</InlineCode>. To send other content types, use the
+  generic request overloads in a host integration library.
+</Prose>
+
+<Prose>
+  <strong>Response body encoding.</strong> The native response bytes are converted to a wide string using
+  a byte-to-wchar expansion. This works for UTF-8 and ASCII text. Binary content is preserved as a string
+  of code points, but manipulation of such content should be done through the byte-oriented stream APIs
+  instead of <InlineCode>HttpResponse.Body</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Resource cleanup.</strong> <InlineCode>HttpClient</InlineCode> wraps a native httplib client
+  pointer. Call <InlineCode>Dispose()</InlineCode> when the client is no longer needed to free the
+  connection pool and native resources. The <InlineCode>defer</InlineCode> statement can be used to
+  guarantee disposal at the end of the enclosing scope.
+</Prose>
+
+<Callout tone="blue">
+  Treat non-2xx status codes as application-level failures. Always inspect{' '}
+  <InlineCode>response.StatusCode</InlineCode> before parsing <InlineCode>response.Body</InlineCode>.
+</Callout>
+
+<Callout tone="amber" title="Not implemented">
+  The following HTTP features are not exposed by <InlineCode>HttpClient</InlineCode>: custom headers,
+  request methods other than GET and POST (such as PUT, DELETE, PATCH), query-string builders, form
+  encoding, multipart uploads, cookies, redirects, proxy configuration, and async request methods.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic GET request with explicit disposal.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    client := new HttpClient("http://httpbin.org");
+
+    response: HttpResponse = client.Get("/get");
+    println("Status: " + response.StatusCode);
+
+    if (response.StatusCode == 200)
+    {
+        println(response.Body);
+    }
+
+    client.Dispose();
+}`}
+  language="csharp"
+  filename="httpclient_get.shard"
+/>
+
+<Prose>
+  <strong>Automatic disposal with <InlineCode>defer</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The Dispose call is scheduled when this scope exits, even if an exception occurs.
+    defer client := new HttpClient("http://localhost:8080");
+
+    response: HttpResponse = client.Get("/health");
+    println("Status: " + response.StatusCode);
+    println("Body: " + response.Body);
+}`}
+  language="csharp"
+  filename="httpclient_defer.shard"
+/>
+
+<Prose>
+  <strong>POST request with a JSON payload.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer client := new HttpClient("http://localhost:8080");
+
+    payload: string = "{\"name\": \"shard\", \"version\": 1}";
+    response: HttpResponse = client.Post("/api/records", payload);
+
+    if (response.StatusCode >= 200 && response.StatusCode < 300)
+    {
+        println("Created: " + response.Body);
+    }
+    else
+    {
+        println("Server returned " + response.StatusCode);
+        println(response.Body);
+    }
+}`}
+  language="csharp"
+  filename="httpclient_post.shard"
+/>
+
+<Prose>
+  <strong>Handling network failures gracefully.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer client := new HttpClient("http://localhost:8080");
+
+    try
+    {
+        response: HttpResponse = client.Get("/api/data");
+        println("Status: " + response.StatusCode);
+        println(response.Body);
+    }
+    catch (ex: RuntimeException)
+    {
+        // The base URL or path may be unreachable, or the request timed out.
+        println("Request failed: " + ex.Message);
+    }
+}`}
+  language="csharp"
+  filename="httpclient_error.shard"
+/>
+
+<Prose>
+  <strong>Inspecting status codes before reading the body.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer client := new HttpClient("http://localhost:8080");
+
+    response: HttpResponse = client.Get("/missing-resource");
+
+    if (response.StatusCode == 404)
+    {
+        println("Resource not found");
+    }
+    else if (response.StatusCode >= 500)
+    {
+        println("Server error: " + response.StatusCode);
+    }
+    else if (response.StatusCode == 200)
+    {
+        println("OK: " + response.Body);
+    }
+    else
+    {
+        println("Unexpected status: " + response.StatusCode);
+    }
+}`}
+  language="csharp"
+  filename="httpclient_status.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: treating the client as a static singleton.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using net;
+
+namespace demo;
+
+// WRONG: a shared mutable client can outlive its intended scope and is
+//        not thread-safe by default.
+// static sharedClient: HttpClient = new HttpClient("http://localhost:8080");
+
+public static func Main() -> void
+{
+    // CORRECT: create and dispose a client in the scope where it is used.
+    defer client := new HttpClient("http://localhost:8080");
+
+    response: HttpResponse = client.Get("/api/status");
+    println(response.StatusCode);
+}`}
+  language="csharp"
+  filename="httpclient_scope.shard"
+/>

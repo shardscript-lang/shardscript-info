@@ -1,0 +1,305 @@
+---
+title: Dictionary<K, V>
+group: SHARD.COLLECTIONS
+groupOrder: 4
+order: 3
+slug: dictionary
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> is a generic hash table that maps unique keys of type{' '}
+  <InlineCode>K</InlineCode> to values of type <InlineCode>V</InlineCode>. It supports insertion, lookup by key,
+  removal, and enumeration over <InlineCode>KeyValuePair&lt;K, V&gt;</InlineCode> entries via the{' '}
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> contract in the <InlineCode>collections</InlineCode> namespace.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A dictionary is created with <InlineCode>new Dictionary&lt;K, V&gt;()</InlineCode>. Keys and values are accessed
+  through the indexer, and the public API is expressed as follows:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Explicit generic instantiation.
+    ages: Dictionary<string, int> = new Dictionary<string, int>();
+
+    // Add fails if the key already exists.
+    ages.Add("alice", 30);
+    ages.Add("bob", 25);
+
+    // Indexer get/set: setter inserts or overwrites; getter throws on a missing key.
+    println(ages["alice"]);
+    ages["bob"] = 26;
+
+    // Membership test without exceptions.
+    if (ages.ContainsKey("carol"))
+    {
+        println(ages["carol"]);
+    }
+}`}
+  language="csharp"
+  filename="dictionary_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Description']}
+  rows={[
+    [<code>new Dictionary&lt;K, V&gt;()</code>, '—', 'Creates an empty dictionary. Internal storage is allocated lazily on the first insertion.'],
+    [<code>Count</code>, '—', 'Read-only property returning the number of active key-value pairs.'],
+    [<code>Keys</code>, '—', 'Read-only property returning a new K[] snapshot of all active keys.'],
+    [<code>Values</code>, '—', 'Read-only property returning a new V[] snapshot of all active values.'],
+    [<code>this[key]</code>, <><code>key</code>: K</>, 'Indexer getter returns the value for an existing key; setter inserts or updates.'],
+    [<code>Add(key, value)</code>, <><code>key</code>: K, <code>value</code>: V</>, 'Inserts a new key-value pair. Throws if the key is already present.'],
+    [<code>ContainsKey(key)</code>, <><code>key</code>: K</>, 'Returns true if the key exists, false otherwise. Never throws.'],
+    [<code>Remove(key)</code>, <><code>key</code>: K</>, 'Removes the key if it exists and returns true; otherwise returns false.'],
+    [<code>Clear()</code>, '—', 'Removes every entry by replacing the internal arrays with zero-length arrays.'],
+    [<code>GetEnumerator()</code>, '—', 'Returns a <code>DictionaryEnumerator&lt;K, V&gt;</code> positioned before the first entry.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Meaning']}
+  rows={[
+    [<code>Count</code>, 'int', 'The current number of occupied slots.'],
+    [<code>Keys</code>, 'K[]', 'A newly allocated array containing every active key.'],
+    [<code>Values</code>, 'V[]', 'A newly allocated array containing every active value.'],
+    [<code>this[key]</code> (get), 'V', 'The value associated with the supplied key.'],
+    [<code>this[key]</code> (set), 'void', 'Assigns the value to the key, inserting a new pair when necessary.'],
+    [<code>Add(key, value)</code>, 'void', 'No meaningful return; the side effect is the inserted pair.'],
+    [<code>ContainsKey(key)</code>, 'bool', 'True when the key is present; false otherwise.'],
+    [<code>Remove(key)</code>, 'bool', 'True when an entry was removed; false when the key was absent.'],
+    [<code>Clear()</code>, 'void', 'No return value.'],
+    [<code>GetEnumerator()</code>, 'DictionaryEnumerator&lt;K, V&gt;', 'An enumerator that yields <code>KeyValuePair&lt;K, V&gt;</code> values.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Key already exists</strong> — <InlineCode>Add(key, value)</InlineCode>{' '}
+    throws a runtime exception when the key is already present. Use the indexer or guard with{' '}
+    <InlineCode>ContainsKey</InlineCode> if you need overwrite semantics.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Key not found</strong> — The indexer getter throws when the requested key
+    is absent. Always check <InlineCode>ContainsKey</InlineCode> before reading, or be prepared to catch the runtime error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch</strong> — The compiler rejects keys or values whose type does
+    not match the dictionary's generic arguments. The key type must also be hashable by the runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unhashable key</strong> — Custom reference types use identity hashing
+    (object address) and identity equality by default. A mutable key that changes its identity-related state will
+    become unreachable through normal lookups.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Open-addressing hash table with linear probing.</strong>{' '}
+  <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> stores keys, values, hashes, and slot states in four parallel arrays.
+  Each slot is marked empty (<InlineCode>0</InlineCode>), occupied (<InlineCode>1</InlineCode>), or deleted
+  (<InlineCode>-1</InlineCode>, a tombstone). Tombstones keep probe chains intact so that lookups continue to find
+  entries that were inserted after a deleted entry.
+</Prose>
+
+<Prose>
+  <strong>Growth policy.</strong> The dictionary starts with zero-length internal arrays and allocates an initial
+  capacity of four slots on the first insertion. After that, it doubles in size whenever the next insertion would push
+  occupancy past a 75% load factor. Resizing rehashes every active entry into the new arrays, discarding tombstones.
+</Prose>
+
+<Prose>
+  <strong>Hashing and equality.</strong> The runtime dispatches hashing through an internal helper that mirrors the
+  key's type: integers, characters, and booleans hash to their own value; doubles use their IEEE 754 bit pattern;
+  strings use a DJB2-style polynomial hash; all other types fall back to a hash of their object reference. Equality
+  matches the same pattern: value equality for primitives and strings, reference equality for everything else. This
+  means that using a mutable object as a key is generally unsafe.
+</Prose>
+
+<Prose>
+  <strong>Enumeration and snapshots.</strong> Iteration yields <InlineCode>KeyValuePair&lt;K, V&gt;</InlineCode>
+  structs in the physical order of occupied slots, which is not the insertion order. The <InlineCode>Keys</InlineCode>{' '}
+  and <InlineCode>Values</InlineCode> properties allocate fresh arrays on every access; modifying the dictionary does
+  not affect an array that was already returned.
+</Prose>
+
+<Prose>
+  <strong>Asymmetric indexer.</strong> The indexer setter silently inserts a missing key or overwrites an existing one,
+  while the getter throws on a missing key. This matches the design in the legacy page but is worth emphasizing:
+  treat the getter as a fast path when you already know the key exists, and <InlineCode>ContainsKey</InlineCode> as the
+  defensive alternative.
+</Prose>
+
+<Callout tone="blue">
+  <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> is not sorted. If you need predictable ordering, copy the keys into
+  a <InlineCode>List&lt;T&gt;</InlineCode> and sort them, or iterate over the <InlineCode>Keys</InlineCode> array after
+  sorting it with host-side utilities.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic create, read, update, and delete.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    scores: Dictionary<string, int> = new Dictionary<string, int>();
+
+    scores.Add("alice", 95);
+    scores.Add("bob", 87);
+
+    // Read an existing value.
+    println(scores["alice"]);
+
+    // Update through the indexer.
+    scores["bob"] = 92;
+    println(scores["bob"]);
+
+    // Remove an entry and verify it is gone.
+    removed: bool = scores.Remove("alice");
+    println(removed);
+    println(scores.ContainsKey("alice"));
+
+    // Current size after the removal.
+    println(scores.Count);
+}`}
+  language="csharp"
+  filename="dictionary_crud.shard"
+/>
+
+<Prose>
+  <strong>Iterating with <InlineCode>foreach</InlineCode> and snapshot properties.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    capitals: Dictionary<string, string> = new Dictionary<string, string>();
+    capitals.Add("france", "paris");
+    capitals.Add("japan", "tokyo");
+    capitals.Add("brazil", "brasília");
+
+    // foreach exposes KeyValuePair<K, V> values.
+    foreach (pair in capitals)
+    {
+        println(pair.Key + " -> " + pair.Value);
+    }
+
+    // Keys and Values allocate independent arrays.
+    keys: string[] = capitals.Keys;
+    values: string[] = capitals.Values;
+
+    println(keys.Length);
+    println(values.Length);
+}`}
+  language="csharp"
+  filename="dictionary_iteration.shard"
+/>
+
+<Prose>
+  <strong>Defensive reads and overwrite-on-conflict.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    settings: Dictionary<string, int> = new Dictionary<string, int>();
+    settings.Add("timeout", 30);
+
+    // Add only when the key is absent; otherwise overwrite.
+    if (!settings.ContainsKey("retries"))
+    {
+        settings.Add("retries", 3);
+    }
+
+    // Safe read: provide a fallback without throwing.
+    timeout: int = 0;
+    if (settings.ContainsKey("timeout"))
+    {
+        timeout = settings["timeout"];
+    }
+    else
+    {
+        timeout = 60;
+    }
+    println(timeout);
+
+    // Indexer overwrites without error.
+    settings["timeout"] = 45;
+    println(settings["timeout"]);
+}`}
+  language="csharp"
+  filename="dictionary_defensive.shard"
+/>
+
+<Prose>
+  <strong>Edge cases and common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    counts: Dictionary<int, string> = new Dictionary<int, string>();
+    counts.Add(1, "one");
+
+    // Duplicate Add throws; indexer would have overwritten.
+    // counts.Add(1, "uno");   // ERROR at runtime
+
+    // Reading a missing key throws.
+    // println(counts[99]);    // ERROR at runtime
+
+    // Remove returns false without throwing for a missing key.
+    println(counts.Remove(99));
+
+    // Clearing empties the dictionary but keeps the type arguments intact.
+    counts.Clear();
+    println(counts.Count);
+
+    // Re-insertion after Clear works normally.
+    counts.Add(2, "two");
+    println(counts.Count);
+}`}
+  language="csharp"
+  filename="dictionary_edgecases.shard"
+/>

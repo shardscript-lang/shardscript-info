@@ -1,0 +1,571 @@
+---
+title: VM Inspection
+group: SHARD.DEBUG
+groupOrder: 3
+order: 2
+slug: vm-inspection
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.debug</InlineCode> namespace and the companion{' '}
+  <InlineCode>ProgramDisassembler</InlineCode> C++ class provide two complementary ways to inspect a
+  ShardScript program: the <InlineCode>-d</InlineCode> (<InlineCode>--decompiled</InlineCode>) CLI flag
+  prints the compiled bytecode of every source-defined method, while the{' '}
+  <InlineCode>Debug</InlineCode> static class exposes runtime heap and stack snapshots from inside
+  running ShardScript code.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  <strong>Command-line disassembly.</strong> Pass <InlineCode>-d</InlineCode> or{' '}
+  <InlineCode>--decompiled</InlineCode> instead of running the program:
+</Prose>
+
+<CodeBlock
+  code={`shard -d hello.shard
+shard --decompiled hello.shard`}
+  language="text"
+  filename="cli.txt"
+/>
+
+<Prose>
+  <strong>C++ host integration.</strong> Include <InlineCode>&lt;shard/compilation/ProgramDisassembler.hpp&gt;</InlineCode>{' '}
+  and call either overload:
+</Prose>
+
+<CodeBlock
+  code={`shard::ProgramDisassembler disassembler;
+
+// Disassemble the whole program image starting at its entry point.
+disassembler.Disassemble(std::wcout, programVirtualImage);
+
+// Disassemble a single method symbol.
+disassembler.Disassemble(std::wcout, methodSymbol);`}
+  language="cpp"
+  filename="host_disassembler.cpp"
+/>
+
+<Prose>
+  <strong>Runtime inspection from ShardScript.</strong> Call the static members on the{' '}
+  <InlineCode>Debug</InlineCode> class after importing <InlineCode>debug</InlineCode>:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    PrintStackFrameInfo();
+    PrintGcInfo();
+}`}
+  language="csharp"
+  filename="runtime_inspection.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Member', 'Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>shard -d &lt;file&gt;</code>, <code>file</code>, 'string (path)', 'A ShardScript source file or glob pattern to compile and disassemble.'],
+    [<code>ProgramDisassembler::Disassemble</code>, <code>out</code>, 'std::wostream&amp;', 'Output stream. ANSI colors are emitted only when the stream is std::wcout.'],
+    [<code>ProgramDisassembler::Disassemble</code>, <code>program</code>, 'ProgramVirtualImage&amp;', 'Compiled program image whose EntryPoint will be disassembled.'],
+    [<code>ProgramDisassembler::Disassemble</code>, <code>method</code>, 'MethodSymbol*', 'Specific method symbol to disassemble.'],
+    [<code>Debug.PrintStackFrameInfo</code>, '(none)', '-', 'Dumps local variables from the caller frame.'],
+    [<code>Debug.PrintGcInfo</code>, '(none)', '-', 'Dumps every live object on the GC heap.'],
+  ]}
+/>
+
+<Prose>
+  The CLI flag accepts the same positional-file and library options as a normal run.{' '}
+  <InlineCode>-d</InlineCode> implicitly sets <InlineCode>RunProgram = false</InlineCode>, so the
+  entry point is never executed.
+</Prose>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Value']}
+  rows={[
+    [<code>shard -d</code>, 'Text disassembly written to stdout. Exit code 0 on success, 1 on compilation error.'],
+    [<code>ProgramDisassembler::Disassemble</code>, 'None. Formatted text is written to the supplied wostream.'],
+    [<code>Debug.PrintStackFrameInfo</code>, 'void.'],
+    [<code>Debug.PrintGcInfo</code>, 'void.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compilation failure</strong> —{' '}
+    <InlineCode>-d</InlineCode> still runs the full compiler pipeline. Lexical, syntactic, or
+    semantic errors are reported before any bytecode is printed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing entry point</strong> — When calling{' '}
+    <InlineCode>Disassemble(std::wostream&amp;, ProgramVirtualImage&amp;)</InlineCode> on an image with no{' '}
+    <InlineCode>EntryPoint</InlineCode>, the disassembler writes{' '}
+    <InlineCode>; Error: No EntryPoint found in ProgramVirtualImage.</InlineCode>
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">External or empty methods</strong> — Native/external methods
+    and methods with no bytecode emit a comment instead of an instruction stream.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">GC concurrency hazard</strong> —{' '}
+    <InlineCode>PrintGcInfo</InlineCode> reads the heap vector without synchronization. Calling it
+    during GC activity can produce inconsistent output.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>What <InlineCode>-d</InlineCode> actually prints.</strong> The interpreter's decompile mode
+  compiles every source file, then iterates over all <InlineCode>MethodSymbol</InlineCode> entries in
+  the semantic model. Only methods whose <InlineCode>HandleType</InlineCode> is{' '}
+  <InlineCode>Body</InlineCode> and whose declaring compilation unit originated from a source file are
+  printed. Compiler-generated async state-machine methods (named{' '}
+  <InlineCode>k__AsyncStateMachine_...</InlineCode>) are also included even though they have no
+  source node.
+</Prose>
+
+<Prose>
+  <strong>Method header format.</strong> Each method begins with a framed header:
+</Prose>
+
+<CodeBlock
+  code={`; ============================================================
+;  DISASSEMBLY: demo.Program.Main
+; ============================================================
+;  Handle:     body
+;  Access:     public static
+;  Return:     Void
+;  Parameters: ()
+;  Declared:   demo.Program
+;  Locals:     0
+;  Variables:  0
+; ============================================================`}
+  language="text"
+  filename="method_header.txt"
+/>
+
+<Prose>
+  <strong>Instruction format.</strong> Each line contains a 16-bit hex offset prefixed with{' '}
+  <InlineCode>SS_</InlineCode>, a right-aligned mnemonic, and operands:
+</Prose>
+
+<CodeBlock
+  code={`SS_0000:   ldc.bool    false
+SS_0003:   jmpf        SS_003F
+SS_000D:   ldstr       pool[0]
+SS_0017:   call        stdio.println`}
+  language="text"
+  filename="instruction_lines.txt"
+/>
+
+<Prose>
+  <strong>Color output.</strong> The disassembler detects whether the output stream is{' '}
+  <InlineCode>std::wcout</InlineCode>. If so, it emits ANSI color codes for offsets (gray), mnemonics
+  (cyan), and operands (yellow). Redirecting to a file disables colors automatically.
+</Prose>
+
+<Callout tone="blue">
+  The CLI prints <strong>all</strong> source-defined methods, not just the entry point. This is useful
+  for inspecting compiler-generated async state machines, lambda bodies, and helper methods.
+</Callout>
+
+<H2>Bytecode Opcode Reference</H2>
+
+<Prose>
+  The following table lists every opcode the disassembler currently recognizes. Any opcode not yet
+  handled is printed as <InlineCode>unknown 0xHHHH</InlineCode>.
+</Prose>
+
+<DocsTable
+  headers={['Opcode', 'Stack Effect', 'Operands', 'Description']}
+  rows={[
+    [<code>nop</code>, 'No change', '-', 'No operation.'],
+    [<code>halt</code>, '-', 'int32 exitCode', 'Stops the VM immediately.'],
+    [<code>pop</code>, 'Pops 1', '-', 'Discards the top of the evaluation stack.'],
+    [<code>pop.n</code>, 'Pops N', 'uint8 count', 'Discards N values from the stack.'],
+    [<code>ldnull</code>, 'Pushes 1', '-', 'Pushes a null object reference.'],
+    [<code>ret</code>, 'Pops frame', '-', 'Returns from the current method.'],
+    [<code>ldc.bool</code>, 'Pushes 1', 'bool value', 'Loads a boolean constant.'],
+    [<code>ldc.i8</code>, 'Pushes 1', 'int64 value', 'Loads a 64-bit integer constant.'],
+    [<code>ldc.r8</code>, 'Pushes 1', 'double value', 'Loads a 64-bit floating-point constant.'],
+    [<code>ldc.char</code>, 'Pushes 1', 'char value', 'Loads a UTF-16 character constant.'],
+    [<code>ldstr</code>, 'Pushes 1', 'pool[index]', 'Loads a string from the string pool.'],
+    [<code>ldloc</code>, 'Pushes 1', 'uint16 slot', 'Loads a local variable by slot.'],
+    [<code>stloc</code>, 'Pops 1', 'uint16 slot', 'Stores the stack top into a local variable slot.'],
+    [<code>ldfld</code>, 'Pops 1, pushes 1', 'uint32 slot', 'Loads an instance field by layout slot.'],
+    [<code>stfld</code>, 'Pops 2', 'uint32 slot', 'Stores a value into an instance field.'],
+    [<code>ldsfld</code>, 'Pushes 1', 'FieldSymbol*', 'Loads a static field.'],
+    [<code>stsfld</code>, 'Pops 1', 'FieldSymbol*', 'Stores into a static field.'],
+    [<code>ldenum</code>, 'Pushes 1', 'FieldSymbol*', 'Loads an enum field value.'],
+    [<code>dup</code>, 'Pushes 1', '-', 'Duplicates the top stack value.'],
+    [<code>add</code>, 'Pops 2, pushes 1', '-', 'Addition.'],
+    [<code>sub</code>, 'Pops 2, pushes 1', '-', 'Subtraction.'],
+    [<code>mul</code>, 'Pops 2, pushes 1', '-', 'Multiplication.'],
+    [<code>div</code>, 'Pops 2, pushes 1', '-', 'Division.'],
+    [<code>mod</code>, 'Pops 2, pushes 1', '-', 'Modulo.'],
+    [<code>pow</code>, 'Pops 2, pushes 1', '-', 'Exponentiation.'],
+    [<code>neg</code>, 'Pops 1, pushes 1', '-', 'Unary negation.'],
+    [<code>pos</code>, 'Pops 1, pushes 1', '-', 'Unary plus (no-op).'],
+    [<code>shl</code>, 'Pops 2, pushes 1', '-', 'Bitwise left shift.'],
+    [<code>shr</code>, 'Pops 2, pushes 1', '-', 'Bitwise right shift.'],
+    [<code>cmp_eq</code>, 'Pops 2, pushes 1', '-', 'Equality comparison.'],
+    [<code>cmp_neq</code>, 'Pops 2, pushes 1', '-', 'Inequality comparison.'],
+    [<code>cmp_l</code>, 'Pops 2, pushes 1', '-', 'Less-than comparison.'],
+    [<code>cmp_le</code>, 'Pops 2, pushes 1', '-', 'Less-than-or-equal comparison.'],
+    [<code>cmp_gt</code>, 'Pops 2, pushes 1', '-', 'Greater-than comparison.'],
+    [<code>cmp_ge</code>, 'Pops 2, pushes 1', '-', 'Greater-than-or-equal comparison.'],
+    [<code>not</code>, 'Pops 1, pushes 1', '-', 'Logical/bitwise NOT.'],
+    [<code>and</code>, 'Pops 2, pushes 1', '-', 'Logical/bitwise AND.'],
+    [<code>or</code>, 'Pops 2, pushes 1', '-', 'Logical/bitwise OR.'],
+    [<code>ldelem</code>, 'Pops 2, pushes 1', '-', 'Loads an array element.'],
+    [<code>stelem</code>, 'Pops 3', '-', 'Stores a value into an array element.'],
+    [<code>ldlen</code>, 'Pops 1, pushes 1', '-', 'Loads an array length.'],
+    [<code>newobj</code>, 'Pops args, pushes 1', 'TypeSymbol*, ConstructorSymbol*', 'Creates a new object instance.'],
+    [<code>newdelegate</code>, 'Pushes 1', 'DelegateTypeSymbol*', 'Creates a new delegate instance.'],
+    [<code>newarr</code>, 'Pops 1, pushes 1', 'ArrayTypeSymbol*', 'Creates a fixed-type array.'],
+    [<code>newdynarr</code>, 'Pops 1, pushes 1', 'TypeSymbol*', 'Creates a dynamic array.'],
+    [<code>newrange</code>, 'Pops 2, pushes 1', 'TypeSymbol*', 'Creates a range-backed array.'],
+    [<code>call</code>, 'Pops args, pushes 0/1', 'MethodSymbol*', 'Calls a method.'],
+    [<code>callgeneric</code>, 'Pops args, pushes 0/1', 'MethodSymbol*', 'Calls a generic method.'],
+    [<code>calldelegate</code>, 'Pops args, pushes 0/1', '-', 'Invokes a delegate.'],
+    [<code>callinterface</code>, 'Pops args, pushes 0/1', 'MethodSymbol*', 'Calls an interface method.'],
+    [<code>ldtypearg</code>, 'No stack change', 'uint16 index, TypeSymbol*', 'Loads a generic type argument.'],
+    [<code>isinst</code>, 'Pops 1, pushes 1', 'TypeSymbol*', 'Type compatibility test.'],
+    [<code>castinterface</code>, 'Pops 1, pushes 1', 'TypeSymbol*', 'Interface cast.'],
+    [<code>jmp</code>, '-', 'SS_XXXX target', 'Unconditional jump.'],
+    [<code>jmpf</code>, 'Pops 1', 'SS_XXXX target', 'Jump if stack top is false.'],
+    [<code>jmpt</code>, 'Pops 1', 'SS_XXXX target', 'Jump if stack top is true.'],
+    [<code>throw</code>, 'Pops 1', '-', 'Throws an exception.'],
+    [<code>enter_try</code>, '-', 'SS_XXXX handler', 'Marks the start of a try block.'],
+    [<code>leave_try</code>, '-', '-', 'Marks the end of a try block.'],
+    [<code>rethrow</code>, '-', '-', 'Re-throws the current exception.'],
+    [<code>end_catch</code>, '-', '-', 'Ends a catch handler.'],
+    [<code>load_current_exception</code>, 'Pushes 1', '-', 'Pushes the exception being handled.'],
+    [<code>store_current_exception</code>, 'Pops 1', '-', 'Stores the current exception.'],
+    [<code>defer</code>, '-', 'SS_XXXX target', 'Registers a deferred expression.'],
+    [<code>defer_break</code>, '-', '-', 'Returns from a deferred expression.'],
+    [<code>defer_drain</code>, '-', 'size_t count', 'Drains N registered defers.'],
+  ]}
+/>
+
+<Callout tone="amber" title="Unrecognized opcodes">
+  The disassembler source does not yet contain cases for <InlineCode>CAST</InlineCode> and{' '}
+  <InlineCode>CASTPRIMITIVE</InlineCode>. If the compiler emits them, they appear as{' '}
+  <InlineCode>unknown 0xHHHH</InlineCode> rather than a friendly mnemonic.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Disassembling a simple conditional.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace test;
+
+public class Program
+{
+    public static func Main() -> void
+    {
+        if (false)
+        {
+            println("if branch");
+        }
+        else
+        {
+            println("else branch");
+        }
+
+        println("after");
+    }
+}`}
+  language="csharp"
+  filename="if_else.shard"
+/>
+
+<Prose>Run <InlineCode>shard -d if_else.shard</InlineCode> to produce:</Prose>
+
+<CodeBlock
+  code={`; ============================================================
+;  DISASSEMBLY: test.Program.Main
+; ============================================================
+;  Access:      public static
+;  Return:      Void
+;  Parameters:  ()
+;  Locals:      0
+;  Variables:   0
+; ============================================================
+
+; Offset    Opcode      Arguments
+; --------  -----------  -----------------------------------------
+SS_0000:   ldc.bool    false          ; push the condition
+SS_0003:   jmpf        SS_003F        ; if false -> skip the then-branch
+SS_000D:   ldstr       pool[0]        ; "if branch"
+SS_0017:   call        stdio.println
+SS_0021:   jmp         SS_003F        ; else-branch fallthrough
+SS_002B:   ldstr       pool[10]       ; "else branch"
+SS_0035:   call        stdio.println
+SS_003F:   ldstr       pool[20]       ; "after"
+SS_0049:   call        stdio.println`}
+  language="text"
+  filename="if_else_disassembly.txt"
+/>
+
+<Prose>
+  Notice how the compiler emits a forward <InlineCode>jmpf</InlineCode> to skip the then-branch, an
+  unconditional <InlineCode>jmp</InlineCode> to skip the else-branch after the then-branch runs, and
+  string-pool indices for each literal.
+</Prose>
+
+<Prose>
+  <strong>Local variables and stack slots.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: int = 10;
+    b: int = 20;
+    sum: int = a + b;
+
+    println(sum);
+}`}
+  language="csharp"
+  filename="locals.shard"
+/>
+
+<Prose>
+  The disassembly reveals the fixed local slots assigned by the layout pass. Here the compiler stored
+  <InlineCode>a</InlineCode>, <InlineCode>b</InlineCode>, and <InlineCode>sum</InlineCode> in slots 0,
+  1, and 2:
+</Prose>
+
+<CodeBlock
+  code={`SS_0000:   ldc.i8      10
+SS_0009:   stloc       0
+SS_0012:   ldc.i8      20
+SS_001B:   stloc       1
+SS_0024:   ldloc       0
+SS_002D:   ldloc       1
+SS_0036:   add
+SS_0037:   stloc       2
+SS_0040:   ldloc       2
+SS_0049:   call        stdio.println`}
+  language="text"
+  filename="locals_disassembly.txt"
+/>
+
+<Prose>
+  <strong>Loops and backward jumps.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    i: int = 0;
+
+    while (i < 3)
+    {
+        println(i);
+        i = i + 1;
+    }
+}`}
+  language="csharp"
+  filename="loop.shard"
+/>
+
+<Prose>
+  The condition is re-evaluated through a backward jump. Watch how the offset decreases from{' '}
+  <InlineCode>SS_0040</InlineCode> back to <InlineCode>SS_0000</InlineCode>:
+</Prose>
+
+<CodeBlock
+  code={`SS_0000:   ldc.i8      0
+SS_0009:   stloc       0
+SS_0012:   ldloc       0
+SS_001B:   ldc.i8      3
+SS_0024:   cmp_l
+SS_0025:   jmpf        SS_004C
+SS_002E:   ldloc       0
+SS_0037:   call        stdio.println
+SS_0041:   ldloc       0
+SS_004A:   ldc.i8      1
+SS_0053:   add
+SS_0054:   stloc       0
+SS_005D:   jmp         SS_0012`}
+  language="text"
+  filename="loop_disassembly.txt"
+/>
+
+<Prose>
+  <strong>Runtime frame inspection.</strong> Use <InlineCode>Debug.PrintStackFrameInfo</InlineCode>{' '}
+  to see the current frame's locals from inside ShardScript:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Inspect(a: int, b: string) -> void
+{
+    local: bool = true;
+
+    // Dump the caller frame before doing anything else.
+    PrintStackFrameInfo();
+
+    println("done");
+}
+
+public static func Main() -> void
+{
+    Inspect(42, "shard");
+}`}
+  language="csharp"
+  filename="frame_inspection.shard"
+/>
+
+<Prose>
+  The output includes one line per local slot showing the object pointer, runtime type name, and
+  current reference count. The exact pointer values vary between runs.
+</Prose>
+
+<CodeBlock
+  code={`[Frame Info] Locals count: 3
+PTR: 0x...  TYPE: int    REFS: 1   ; argument 'a'
+PTR: 0x...  TYPE: string REFS: 1   ; argument 'b'
+PTR: 0x...  TYPE: bool   REFS: 1   ; local 'local'`}
+  language="text"
+  filename="frame_output.txt"
+/>
+
+<Prose>
+  <strong>Runtime heap inspection.</strong> Use <InlineCode>Debug.PrintGcInfo</InlineCode> to take a
+  snapshot of every live object:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Create some objects and capture a heap snapshot.
+    nums: int[] = [1, 2, 3];
+    msg: string = "hello";
+
+    PrintGcInfo();
+
+    println(msg);
+    println(nums.Length);
+}`}
+  language="csharp"
+  filename="heap_inspection.shard"
+/>
+
+<H2>Common Mistakes</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Expecting <InlineCode>-d</InlineCode> to run the program.</strong>{' '}
+    The flag compiles and prints bytecode only. Side effects in <InlineCode>Main</InlineCode> do not
+    execute.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Reading absolute offsets as stable identifiers.</strong>{' '}
+    Offsets change whenever the source, compiler version, or standard-library headers change. Do not
+    hard-code them in tooling.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Trusting <InlineCode>unknown</InlineCode> operands.</strong>{' '}
+    An <InlineCode>unknown</InlineCode> opcode means the disassembler does not know how many bytes to
+    decode, so the rest of the method may be misaligned.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Calling <InlineCode>PrintGcInfo</InlineCode> in hot paths.</strong>{' '}
+    It walks the entire heap and writes to stdout. Use it as a diagnostic checkpoint, not in tight
+    loops.
+  </Bullet>
+</ul>
+
+<H2>Internal Mechanics</H2>
+
+<div className="space-y-5">
+  <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+    <div className="flex items-center gap-3 mb-3">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">1</span>
+      <strong className="text-text-primary text-sm">CLI to Disassembler Pipeline</strong>
+    </div>
+    <Prose>
+      <InlineCode>ShardUtilities::ParseArguments</InlineCode> sets{' '}
+      <InlineCode>ShowDecompile = true</InlineCode> and <InlineCode>RunProgram = false</InlineCode>.
+      After <InlineCode>compiler.Compile()</InlineCode> succeeds, the interpreter iterates the symbol
+      table, skips external/native methods, and calls{' '}
+      <InlineCode>ProgramDisassembler::Disassemble(std::wcout, method)</InlineCode> for each body.
+    </Prose>
+  </div>
+
+  <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+    <div className="flex items-center gap-3 mb-3">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">2</span>
+      <strong className="text-text-primary text-sm">ByteCodeDecoder</strong>
+    </div>
+    <Prose>
+      The disassembler builds a <InlineCode>ByteCodeDecoder</InlineCode> over the method's{' '}
+      <InlineCode>ExecutableByteCode</InlineCode> vector and advances one opcode at a time. Each opcode
+      case absorbs its specific operands (integers, symbol pointers, jump targets, string-pool
+      indices) so the next iteration starts on the next instruction boundary.
+    </Prose>
+  </div>
+
+  <div className="bg-[#1A1A2E] border border-[#3A3A50] rounded-card p-5">
+    <div className="flex items-center gap-3 mb-3">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-accent-blue text-white text-xs font-jetbrains font-semibold">3</span>
+      <strong className="text-text-primary text-sm">External Methods Have No Bytecode</strong>
+    </div>
+    <Prose>
+      Methods backed by a native C++ callback (such as most of <InlineCode>shard.math</InlineCode>)
+      have <InlineCode>HandleType::External</InlineCode>. The disassembler prints their function
+      pointer and returns instead of decoding instructions.
+    </Prose>
+  </div>
+</div>
+
+<H2>Category Summary</H2>
+
+<DocsTable
+  headers={['Feature', 'Members / Entry Points']}
+  rows={[
+    ['CLI disassembly', 'shard -d <file>, shard --decompiled <file>'],
+    ['C++ disassembler', 'shard::ProgramDisassembler::Disassemble'],
+    ['Runtime frame dump', 'debug.Debug.PrintStackFrameInfo'],
+    ['Runtime heap dump', 'debug.Debug.PrintGcInfo'],
+  ]}
+/>

@@ -1,0 +1,437 @@
+---
+title: IEnumerable & IEnumerator
+group: SHARD.COLLECTIONS
+groupOrder: 4
+order: 1
+slug: ienumerable-and-ienumerator
+type: Reference
+---
+
+<Prose>
+  The <InlineCode>shard.collections</InlineCode> library is built on two generic interfaces:
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> and <InlineCode>IEnumerator&lt;T&gt;</InlineCode>.
+  Together they form the <strong>iteration contract</strong> that powers the
+  <InlineCode>foreach</InlineCode> statement, generic algorithms, and every standard
+  collection type.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> represents a readable sequence of elements of
+  type <InlineCode>T</InlineCode>. <InlineCode>IEnumerator&lt;T&gt;</InlineCode> is the cursor
+  that walks that sequence one element at a time. The <InlineCode>foreach</InlineCode>
+  statement calls <InlineCode>GetEnumerator()</InlineCode>, then repeatedly calls
+  <InlineCode>MoveNext()</InlineCode> and reads <InlineCode>Current</InlineCode> until the
+  sequence is exhausted.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Both interfaces are declared in the global namespace by the compiler. They are written
+  exactly as shown here when used as parameter types, return types, or variable types.
+</Prose>
+
+<CodeBlock
+  code={`// Interface signatures (compiler-provided).
+interface IEnumerable<T>
+{
+    func GetEnumerator() -> IEnumerator<T>;
+}
+
+interface IEnumerator<T>
+{
+    func MoveNext() -> bool;
+    prop Current: T;
+}`}
+  language="csharp"
+  filename="ienumerable_ienumerator.shard"
+/>
+
+<Prose>
+  The <InlineCode>foreach</InlineCode> statement uses the following syntax. The loop variable
+  type may be explicit or inferred with <InlineCode>:</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`foreach (item in source)
+{
+    // body
+}`}
+  language="csharp"
+  filename="foreach_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> members:
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>GetEnumerator()</code>, <></>, <><InlineCode>IEnumerator&lt;T&gt;</InlineCode></>, 'Returns a new enumerator positioned before the first element of the sequence.'],
+  ]}
+/>
+
+<Prose>
+  <InlineCode>IEnumerator&lt;T&gt;</InlineCode> members:
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<code>MoveNext()</code>, <></>, <><InlineCode>bool</InlineCode></>, 'Advances the cursor to the next element. Returns <InlineCode>true</InlineCode> if a valid element is available; otherwise <InlineCode>false</InlineCode>.'],
+    [<code>Current</code>, <></>, <><InlineCode>T</InlineCode></>, 'Gets the element at the current cursor position. Valid only after a successful <InlineCode>MoveNext()</InlineCode> call.'],
+  ]}
+/>
+
+<Prose>
+  The <InlineCode>foreach</InlineCode> statement accepts these arguments:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Loop variable</strong> — A local variable name
+    that receives the current element. The type is inferred from the enumerator's element
+    type unless explicitly declared.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Source expression</strong> — Any expression whose
+    type implements <InlineCode>IEnumerable&lt;T&gt;</InlineCode>. Arrays, lists, dictionaries,
+    queues, stacks, and ranges are all valid sources.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Value']}
+  rows={[
+    [<code>GetEnumerator()</code>, <><InlineCode>IEnumerator&lt;T&gt;</InlineCode> — a fresh cursor positioned before the first element.</>],
+    [<code>MoveNext()</code>, <><InlineCode>bool</InlineCode> — <InlineCode>true</InlineCode> while elements remain; <InlineCode>false</InlineCode> when the sequence ends.</>],
+    [<code>Current</code>, <><InlineCode>T</InlineCode> — the element at the current cursor position.</>],
+    [<code>foreach</code>, <><InlineCode>void</InlineCode> — the statement itself produces no value.</>],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Type does not implement IEnumerable&lt;T&gt;</strong> —
+    Using <InlineCode>foreach</InlineCode> on a non-enumerable type or passing a non-enumerable
+    argument to a parameter typed as <InlineCode>IEnumerable&lt;T&gt;</InlineCode> fails semantic
+    analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Current before MoveNext</strong> — Accessing
+    <InlineCode>Current</InlineCode> before the first successful <InlineCode>MoveNext()</InlineCode>
+    call, or after <InlineCode>MoveNext()</InlineCode> has returned <InlineCode>false</InlineCode>,
+    yields undefined behavior. The standard enumerators return the underlying storage element at
+    the internal index, which is typically <InlineCode>null</InlineCode> or the last valid value.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid generic type argument</strong> — Passing a
+    concrete element type that does not match the source's element type (for example,
+    <InlineCode>IEnumerable&lt;string&gt;</InlineCode> for an <InlineCode>int[]</InlineCode>)
+    produces a compile-time type mismatch error.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Compiler-provided interfaces.</strong> <InlineCode>IEnumerable&lt;T&gt;</InlineCode>
+  and <InlineCode>IEnumerator&lt;T&gt;</InlineCode> are defined as
+  <InlineCode>InterfaceSymbol</InlineCode> instances in the compiler's standard type system,
+  not in user code. This lets the compiler recognize them during semantic analysis before any
+  library is loaded. Concrete collection types register their conformance with
+  <InlineCode>Implements(...)</InlineCode> in the native library registration code.
+</Prose>
+
+<Prose>
+  <strong>Arrays are implicitly enumerable.</strong> The primitive array type is made to
+  implement <InlineCode>IEnumerable&lt;T&gt;</InlineCode> through a hidden
+  <InlineCode>ArrayEnumerator&lt;T&gt;</InlineCode> class. No wrapping or boxing occurs; the
+  compiler treats an array as directly compatible with <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>foreach lowering.</strong> The compiler lowers <InlineCode>foreach (x in source)</InlineCode>
+  to the following bytecode pattern:
+</Prose>
+
+<ol className="space-y-2 text-text-secondary list-decimal pl-5">
+  <li>Evaluate <InlineCode>source</InlineCode>.</li>
+  <li>Call <InlineCode>GetEnumerator()</InlineCode> and store the result in a hidden local.</li>
+  <li>Loop: call <InlineCode>MoveNext()</InlineCode>; jump to the end if it returns <InlineCode>false</InlineCode>.</li>
+  <li>Call the <InlineCode>Current</InlineCode> getter and assign the value to the loop variable.</li>
+  <li>Execute the loop body, then jump back to step 3.</li>
+</ol>
+
+<Callout tone="blue">
+  The current emitter does not emit a <InlineCode>Dispose</InlineCode> call for the enumerator
+  when the loop exits. Standard ShardScript enumerators are unmanaged structs or classes with
+  no resources, so this is safe today. If you implement a custom enumerator that holds native
+  resources, dispose it manually with a <InlineCode>defer</InlineCode> block.
+</Callout>
+
+<Prose>
+  <strong>Interface dispatch.</strong> When <InlineCode>GetEnumerator()</InlineCode> is called
+  through a variable typed as <InlineCode>IEnumerable&lt;T&gt;</InlineCode>, the compiler emits
+  <InlineCode>CALLINTERFACE</InlineCode>. The VM resolves the concrete implementation at runtime
+  through the <InlineCode>InterfaceMethodMap</InlineCode>. Each collection type registers both
+  the interface and its matching enumerator type during library loading.
+</Prose>
+
+<Prose>
+  <strong>Enumerators are independent cursors.</strong> Calling <InlineCode>GetEnumerator()</InlineCode>
+  twice on the same collection returns two independent cursors. Modifying the collection through
+  its own methods while an enumerator is active does not invalidate the enumerator; the enumerator
+  continues to walk the snapshot of backing storage it was created with. This means additions made
+  after the enumerator was created will not appear in the enumeration.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic foreach over List&lt;T&gt;.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(10);
+    list.Add(20);
+    list.Add(30);
+
+    foreach (n in list)
+    {
+        print(n);
+        print(" ");
+    }
+    println("");   // 10 20 30
+}`}
+  language="csharp"
+  filename="list_foreach.shard"
+/>
+
+<Prose>
+  <strong>Manual enumeration with IEnumerator&lt;T&gt;.</strong> This is the exact pattern
+  <InlineCode>foreach</InlineCode> compiles to.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(7);
+    list.Add(8);
+    list.Add(9);
+
+    e: IEnumerator<int> = list.GetEnumerator();
+    while (e.MoveNext())
+    {
+        println(e.Current);   // 7, 8, 9 (one per line)
+    }
+}`}
+  language="csharp"
+  filename="manual_enumerator.shard"
+/>
+
+<Prose>
+  <strong>Arrays as IEnumerable&lt;T&gt;.</strong> Arrays can be assigned directly to an
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> variable or passed to generic functions.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Sum(source: IEnumerable<int>) -> int
+{
+    total: int = 0;
+    foreach (n in source)
+    {
+        total = total + n;
+    }
+    return total;
+}
+
+public static func Main() -> void
+{
+    nums: int[] = [10, 20, 30];
+    e: IEnumerable<int> = nums;
+
+    println(Sum(e));   // 60
+    println(Sum(nums));   // 60 (array implicitly implements IEnumerable<int>)
+}`}
+  language="csharp"
+  filename="array_ienumerable.shard"
+/>
+
+<Prose>
+  <strong>Enumerating a Dictionary&lt;K, V&gt;.</strong> The enumerator yields
+  <InlineCode>KeyValuePair&lt;K, V&gt;</InlineCode> values with public
+  <InlineCode>Key</InlineCode> and <InlineCode>Value</InlineCode> fields.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ages: Dictionary<string, int> = new Dictionary<string, int>();
+    ages.Add("alice", 30);
+    ages.Add("bob", 25);
+
+    foreach (pair in ages)
+    {
+        println(pair.Key + " = " + pair.Value);
+    }
+    // Output:
+    // alice = 30
+    // bob = 25
+}`}
+  language="csharp"
+  filename="dictionary_foreach.shard"
+/>
+
+<Prose>
+  <strong>Multiple independent enumerators.</strong> Each call to
+  <InlineCode>GetEnumerator()</InlineCode> produces a separate cursor.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(1);
+    list.Add(2);
+
+    a: IEnumerator<int> = list.GetEnumerator();
+    b: IEnumerator<int> = list.GetEnumerator();
+
+    a.MoveNext();
+    b.MoveNext();
+    b.MoveNext();
+
+    println(a.Current);   // 1
+    println(b.Current);   // 2
+}`}
+  language="csharp"
+  filename="independent_enumerators.shard"
+/>
+
+<Prose>
+  <strong>Edge case: Current outside the valid window.</strong> Always call
+  <InlineCode>MoveNext()</InlineCode> before reading <InlineCode>Current</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(100);
+
+    e: IEnumerator<int> = list.GetEnumerator();
+
+    // Current is undefined here; do not rely on it before MoveNext.
+    if (e.MoveNext())
+    {
+        println(e.Current);   // 100
+    }
+
+    // Current is also undefined after MoveNext returns false.
+    while (e.MoveNext())
+    {
+        // No more elements; loop body never runs.
+    }
+}`}
+  language="csharp"
+  filename="current_safety.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: modifying the collection during enumeration.</strong> The enumerator
+  holds a reference to the backing storage that existed when it was created. Later additions are
+  not reflected, and the loop may appear to skip new elements.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(1);
+    list.Add(2);
+
+    // This enumerator captures the current backing array.
+    foreach (n in list)
+    {
+        println(n);
+
+        // The addition allocates a new backing array; the enumerator keeps walking the old one.
+        if (n == 1)
+        {
+            list.Add(99);
+        }
+    }
+    // Output: 1, 2 (99 is not printed by this loop)
+}`}
+  language="csharp"
+  filename="modification_during_enum.shard"
+/>
+
+<Callout tone="amber" title="Custom enumerators">
+  User-defined classes and structs cannot yet implement compiler-standard interfaces such as
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> or <InlineCode>IEnumerator&lt;T&gt;</InlineCode>
+  from ShardScript source code. The interfaces are recognized, but explicit interface
+  implementation and user-authored generic interface implementations are still being finalized.
+  Today, custom enumeration is best achieved by returning a built-in collection type.
+</Callout>
+
+<H2>Category Summary</H2>
+
+<DocsTable
+  headers={['Feature', 'Members']}
+  rows={[
+    ['IEnumerable<T>', 'GetEnumerator()'],
+    ['IEnumerator<T>', 'MoveNext(), Current'],
+    ['foreach lowering', 'GetEnumerator() → MoveNext() → Current'],
+    ['Built-in implementers', 'Array, List<T>, Dictionary<K, V>, Queue<T>, Stack<T>'],
+  ]}
+/>

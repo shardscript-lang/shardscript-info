@@ -1,0 +1,375 @@
+---
+title: StreamReader / StreamWriter
+group: SHARD.STREAMS
+groupOrder: 6
+order: 3
+slug: stream-reader-writer
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>StreamReader</InlineCode> and <InlineCode>StreamWriter</InlineCode> are text-oriented
+  adapters in the <InlineCode>io</InlineCode> namespace. They decode UTF-8 from an{' '}
+  <InlineCode>IReadableStream</InlineCode> and encode UTF-8 to an <InlineCode>IWritableStream</InlineCode>,
+  exposing line-based and whole-stream text operations. Both implement <InlineCode>IDisposable</InlineCode>;
+  disposing the wrapper also disposes the underlying stream.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Both classes are instantiated with a single constructor argument. The wrapper stores the stream
+  reference internally and tracks its own disposed state.
+</Prose>
+
+<DocsTable
+  headers={['Constructor', 'Description']}
+  rows={[
+    [<code>new StreamReader(stream: IReadableStream)</code>, 'Creates a reader that decodes UTF-8 text from the supplied stream.'],
+    [<code>new StreamWriter(stream: IWritableStream)</code>, 'Creates a writer that encodes UTF-8 text to the supplied stream.'],
+  ]}
+/>
+
+<DocsTable
+  headers={['StreamReader Member', 'Signature']}
+  rows={[
+    [<code>ReadLine()</code>, <code>func ReadLine() -&gt; string</code>],
+    [<code>ReadToEnd()</code>, <code>func ReadToEnd() -&gt; string</code>],
+    [<code>Read()</code>, <code>func Read() -&gt; int</code>],
+    [<code>Close()</code>, <code>func Close() -&gt; void</code>],
+    [<code>Dispose()</code>, <code>func Dispose() -&gt; void</code>],
+  ]}
+/>
+
+<DocsTable
+  headers={['StreamWriter Member', 'Signature']}
+  rows={[
+    [<code>Write(value)</code>, <code>func Write(value: string) -&gt; void</code>],
+    [<code>WriteLine(value)</code>, <code>func WriteLine(value: string) -&gt; void</code>],
+    [<code>Flush()</code>, <code>func Flush() -&gt; void</code>],
+    [<code>Close()</code>, <code>func Close() -&gt; void</code>],
+    [<code>Dispose()</code>, <code>func Dispose() -&gt; void</code>],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Description']}
+  rows={[
+    [<code>StreamReader.ReadLine()</code>, <em>none</em>, 'Reads bytes until a newline (0x0A) or EOF is reached.'],
+    [<code>StreamReader.ReadToEnd()</code>, <em>none</em>, 'Reads all remaining bytes and decodes them as UTF-8.'],
+    [<code>StreamReader.Read()</code>, <em>none</em>, 'Reads one complete UTF-8 codepoint and returns its Unicode scalar value.'],
+    [<code>StreamWriter.Write(value)</code>, <code>value: string</code>, 'Encodes the string as UTF-8 and writes it to the stream.'],
+    [<code>StreamWriter.WriteLine(value)</code>, <code>value: string</code>, 'Writes the string followed by a single newline (0x0A).'],
+    [<code>StreamWriter.Flush()</code>, <em>none</em>, 'Flushes the underlying stream if it supports flushing.'],
+    [<code>Close / Dispose</code>, <em>none</em>, 'Flushes, disposes the underlying stream, and marks the wrapper as disposed.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Meaning']}
+  rows={[
+    [<code>StreamReader.ReadLine()</code>, <code>string</code>, 'The line content without the trailing newline; empty string at EOF.'],
+    [<code>StreamReader.ReadToEnd()</code>, <code>string</code>, 'All remaining decoded text; empty string if the reader is already at EOF.'],
+    [<code>StreamReader.Read()</code>, <code>int</code>, 'The Unicode scalar value (0–0x10FFFF), or -1 at EOF.'],
+    [<code>StreamWriter.Write(value)</code>, <code>void</code>, 'Nothing. The bytes are forwarded to the underlying stream.'],
+    [<code>StreamWriter.WriteLine(value)</code>, <code>void</code>, 'Nothing. Appends a newline byte after the encoded string.'],
+    [<code>StreamWriter.Flush()</code>, <code>void</code>, 'Nothing. Delegates to the wrapped stream.'],
+    [<code>Close / Dispose</code>, <code>void</code>, 'Nothing.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">RuntimeException — Invalid UTF-8 sequence</strong>{' '}
+    <InlineCode>StreamReader.Read()</InlineCode> throws when the leading byte or its continuation
+    bytes do not form a valid UTF-8 codepoint.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">RuntimeException — Cannot access a disposed StreamReader</strong>{' '}
+    Any call after <InlineCode>Close()</InlineCode> or <InlineCode>Dispose()</InlineCode> fails.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">RuntimeException — Cannot access a disposed StreamWriter</strong>{' '}
+    Any call after <InlineCode>Close()</InlineCode> or <InlineCode>Dispose()</InlineCode> fails.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">RuntimeException — Stream does not support Read / Write</strong>{' '}
+    Thrown by the underlying byte stream if the wrapped object does not implement the expected
+    interface method.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">RuntimeException — Cannot access a closed stream</strong>{' '}
+    Operations on a closed underlying stream (for example, a disposed <InlineCode>MemoryStream</InlineCode>)
+    fail before the reader or writer can buffer data.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>UTF-8 only.</strong> The current implementation hard-codes UTF-8. There is no constructor
+  overload for selecting <InlineCode>Encoding.ASCII</InlineCode>, <InlineCode>Encoding.UTF8</InlineCode>,
+  or other encodings. Strings are converted through the runtime's wide-character/UTF-8 helpers before
+  being written or after being read.
+</Prose>
+
+<Prose>
+  <strong>Newline handling.</strong> <InlineCode>WriteLine</InlineCode> always appends a single{' '}
+  <InlineCode>\n</InlineCode> byte (0x0A), regardless of platform. <InlineCode>ReadLine</InlineCode>{' '}
+  stops at the first <InlineCode>\n</InlineCode> it encounters and does not include it in the result.
+  If a source uses <InlineCode>\r\n</InlineCode> line endings, the carriage return remains at the end
+  of the returned string unless you trim it yourself.
+</Prose>
+
+<Prose>
+  <strong>EOF conventions.</strong> <InlineCode>ReadLine</InlineCode> returns an empty string at EOF.
+  Because an empty string is also a valid line value, the standard idiom is to call it repeatedly
+  until the returned length is zero. <InlineCode>Read()</InlineCode> returns -1 at EOF, and{' '}
+  <InlineCode>ReadToEnd()</InlineCode> returns an empty string when no bytes remain.
+</Prose>
+
+<Prose>
+  <strong>Dispose cascades.</strong> <InlineCode>Close()</InlineCode> and{' '}
+  <InlineCode>Dispose()</InlineCode> are aliases for the same implementation on both classes. They
+  flush the writer, call <InlineCode>Dispose()</InlineCode> on the underlying stream, and then set
+  the wrapper's internal disposed flag. After disposal, both the wrapper and the wrapped stream are
+  unusable.
+</Prose>
+
+<Prose>
+  <strong>Buffering.</strong> <InlineCode>StreamWriter</InlineCode> does not maintain a separate
+  character buffer; it encodes each string and forwards the bytes immediately.{' '}
+  <InlineCode>StreamReader.Read()</InlineCode> allocates a temporary four-byte array to decode a
+  complete codepoint. <InlineCode>ReadLine</InlineCode> and <InlineCode>ReadToEnd</InlineCode> accumulate
+  bytes in native vectors and perform a single UTF-8 to wide-string conversion at the end.
+</Prose>
+
+<Callout tone="amber" title="Async wrappers not implemented">
+  <InlineCode>StreamReader</InlineCode> and <InlineCode>StreamWriter</InlineCode> do not expose async
+  members such as <InlineCode>ReadLineAsync</InlineCode> or <InlineCode>WriteLineAsync</InlineCode>.
+  If you need async I/O, use the <InlineCode>ReadAsync</InlineCode> / <InlineCode>WriteAsync</InlineCode>{' '}
+  methods on the underlying stream directly, or run the synchronous reader/writer methods inside an
+  async method.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Line-oriented read and write over MemoryStream.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ms: MemoryStream = new MemoryStream();
+
+    writer: StreamWriter = new StreamWriter(ms);
+    writer.WriteLine("hello");
+    writer.WriteLine("world");
+    writer.Flush();
+
+    // Rewind before reading; writing leaves the position at the end.
+    ms.Position = 0;
+
+    reader: StreamReader = new StreamReader(ms);
+    line1: string = reader.ReadLine();
+    line2: string = reader.ReadLine();
+    eof: string = reader.ReadLine();
+
+    println(line1);   // hello
+    println(line2);   // world
+    println(eof);     // ""  (empty string means EOF)
+
+    reader.Dispose();
+    writer.Dispose();
+}`}
+  language="csharp"
+  filename="stream_reader_writer_lines.shard"
+/>
+
+<Prose>
+  <strong>Reading the entire remaining content with ReadToEnd.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ms: MemoryStream = new MemoryStream();
+
+    writer: StreamWriter = new StreamWriter(ms);
+    writer.Write("alpha");
+    writer.WriteLine(" beta");
+    writer.Flush();
+
+    ms.Position = 0;
+
+    reader: StreamReader = new StreamReader(ms);
+    all: string = reader.ReadToEnd();
+
+    println(all);   // alpha beta\n
+
+    reader.Dispose();
+    writer.Dispose();
+}`}
+  language="csharp"
+  filename="stream_reader_writer_to_end.shard"
+/>
+
+<Prose>
+  <strong>Reading individual Unicode codepoints.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ms: MemoryStream = new MemoryStream();
+
+    writer: StreamWriter = new StreamWriter(ms);
+    writer.Write("AΩ🔥");
+    writer.Flush();
+
+    ms.Position = 0;
+
+    reader: StreamReader = new StreamReader(ms);
+
+    cp1: int = reader.Read();   // 'A'  -> 65
+    cp2: int = reader.Read();   // 'Ω'  -> 937
+    cp3: int = reader.Read();   // '🔥' -> 128293
+    cp4: int = reader.Read();   // EOF  -> -1
+
+    println(cp1);
+    println(cp2);
+    println(cp3);
+    println(cp4);
+
+    reader.Dispose();
+    writer.Dispose();
+}`}
+  language="csharp"
+  filename="stream_reader_codepoints.shard"
+/>
+
+<Prose>
+  <strong>Counting lines in a file.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+using filesystem;
+using async;
+
+namespace demo;
+
+public static async func CountLines(path: string) -> Task
+{
+    fs: FileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
+    defer fs.Dispose();
+
+    reader: StreamReader = new StreamReader(fs);
+    defer reader.Dispose();
+
+    count: int = 0;
+    while (true)
+    {
+        line: string = reader.ReadLine();
+        if (line == "")
+        {
+            break;
+        }
+
+        count = count + 1;
+    }
+
+    println("total lines: " + count);
+}
+
+public static func Main() -> void
+{
+    task: Task = CountLines("D:/temp/shard_input.txt");
+    Task.Wait(task);
+}`}
+  language="csharp"
+  filename="stream_reader_file_lines.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes and edge cases.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Mistake 1: Forgetting to rewind the MemoryStream before reading.
+    ms: MemoryStream = new MemoryStream();
+    writer: StreamWriter = new StreamWriter(ms);
+    writer.WriteLine("data");
+    writer.Flush();
+
+    // ms.Position is still at the end; ReadLine returns "" immediately.
+    readerAtEnd: StreamReader = new StreamReader(ms);
+    empty: string = readerAtEnd.ReadLine();
+    println("at end: '" + empty + "'");   // at end: ''
+    readerAtEnd.Dispose();
+
+    // Correct: rewind first.
+    ms.Position = 0;
+    reader: StreamReader = new StreamReader(ms);
+    line: string = reader.ReadLine();
+    println("rewound: '" + line + "'");   // rewound: 'data'
+    reader.Dispose();
+
+    // Mistake 2: Using a reader after disposing it.
+    ms2: MemoryStream = new MemoryStream();
+    reader2: StreamReader = new StreamReader(ms2);
+    reader2.Dispose();
+
+    // This would throw: Cannot access a disposed StreamReader.
+    // reader2.ReadLine();
+
+    // Mistake 3: Expecting ReadLine to strip \\r from \\r\\n files.
+    ms3: MemoryStream = new MemoryStream();
+    writer3: StreamWriter = new StreamWriter(ms3);
+    writer3.Write("windows\\r\\n");   // simulate a CRLF source
+    writer3.Flush();
+    ms3.Position = 0;
+
+    reader3: StreamReader = new StreamReader(ms3);
+    crlfLine: string = reader3.ReadLine();
+    println("last char code: " + crlfLine[crlfLine.Length - 1]);   // 13 ('\\r')
+    reader3.Dispose();
+
+    writer.Dispose();
+    writer3.Dispose();
+}`}
+  language="csharp"
+  filename="stream_reader_writer_edge_cases.shard"
+/>

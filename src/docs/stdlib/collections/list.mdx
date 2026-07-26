@@ -1,0 +1,376 @@
+---
+title: List<T>
+group: SHARD.COLLECTIONS
+groupOrder: 4
+order: 2
+slug: list
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>List&lt;T&gt;</InlineCode> is the primary dynamic array collection in{' '}
+  <InlineCode>shard.collections</InlineCode>. It stores elements of type{' '}
+  <InlineCode>T</InlineCode> in a contiguous internal array, supports indexed read/write access,
+  append, remove-at, and enumeration via <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Declare a list with an explicit element type, then construct it with the default or capacity
+  initializer.
+</Prose>
+
+<CodeBlock
+  code={`using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Empty list with no pre-allocated storage.
+    numbers: List<int> = new List<int>();
+
+    // Pre-allocate backing storage for four elements.
+    names: List<string> = new List<string>(4);
+}`}
+  language="csharp"
+  filename="list_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Constructor', 'Parameters', 'Description']}
+  rows={[
+    [<code>init()</code>, '—', 'Creates an empty list backed by a zero-length array.'],
+    [<code>init(capacity: int)</code>, <><InlineCode>capacity</InlineCode> — number of slots to pre-allocate.</>, 'Creates a list with a pre-allocated internal array. Negative values are clamped to 0.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Description']}
+  rows={[
+    [<code>T</code>, '—', 'The element type specified when the generic class is closed (for example, int, string, or a user-defined class).'],
+    [<code>Length</code>, '—', 'Read-only property. Returns the number of elements currently stored in the list.'],
+    [<code>[index: int]</code>, <><InlineCode>index</InlineCode> — zero-based position.</>, 'Indexer that reads or writes the element at the specified position.'],
+    [<code>Add(item: T)</code>, <><InlineCode>item</InlineCode> — value to append.</>, 'Appends an element to the end of the list.'],
+    [<code>ElementAt(index: int)</code>, <><InlineCode>index</InlineCode> — zero-based position.</>, 'Returns the element at the specified position without exposing the underlying array.'],
+    [<code>RemoveAt(index: int)</code>, <><InlineCode>index</InlineCode> — zero-based position.</>, 'Removes the element at the specified position and shifts later elements left.'],
+    [<code>Clear()</code>, '—', 'Discards all elements by replacing the internal array with a zero-length array.'],
+    [<code>GetEnumerator()</code>, '—', 'Returns a <InlineCode>ListEnumerator&lt;T&gt;</InlineCode> positioned before the first element.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<code>Length</code>, 'int', 'The current element count.'],
+    [<code>[index]</code>, 'T', 'The element stored at the supplied index.'],
+    [<code>Add(item)</code>, 'void', 'Nothing.'],
+    [<code>ElementAt(index)</code>, 'T', 'The element stored at the supplied index.'],
+    [<code>RemoveAt(index)</code>, 'void', 'Nothing.'],
+    [<code>Clear()</code>, 'void', 'Nothing.'],
+    [<code>GetEnumerator()</code>, 'ListEnumerator<T>', 'An enumerator that implements IEnumerator<T>.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Index out of bounds</strong> — Reading or writing an
+    indexer, calling <InlineCode>ElementAt</InlineCode>, or calling{' '}
+    <InlineCode>RemoveAt</InlineCode> with an index less than 0 or greater than or equal to{' '}
+    <InlineCode>Length</InlineCode> throws a runtime exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch</strong> — Passing a value whose type is not
+    assignable to <InlineCode>T</InlineCode> to <InlineCode>Add</InlineCode> or the indexer setter
+    fails at compile time.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Capacity clamping</strong> — A negative capacity passed to
+    the capacity constructor is silently clamped to 0; it does not throw.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Array-backed storage.</strong> <InlineCode>List&lt;T&gt;</InlineCode> owns a single
+  internal field, <InlineCode>_array</InlineCode>, that holds a <InlineCode>T[]</InlineCode>{' '}
+  allocated through the VM's garbage collector. The concrete element type is resolved from the
+  generic type argument at runtime.
+</Prose>
+
+<Prose>
+  <strong>Copy-on-mutation semantics.</strong> Both <InlineCode>Add</InlineCode> and{' '}
+  <InlineCode>RemoveAt</InlineCode> allocate a brand-new internal array sized to the new element
+  count and copy the surviving elements into it. The old array is replaced and becomes collectible.
+  This keeps the implementation simple and deterministic, but it means frequent appends or removals
+  in hot loops perform repeated allocations and copies.
+</Prose>
+
+<Callout tone="amber">
+  <InlineCode>Add</InlineCode> and <InlineCode>RemoveAt</InlineCode> are{' '}
+  <strong className="text-text-primary">O(n)</strong> in this implementation because they copy the
+  entire backing array. Pre-allocate with the capacity constructor when the final size is known, or
+  use <InlineCode>Queue&lt;T&gt;</InlineCode> / <InlineCode>Stack&lt;T&gt;</InlineCode> for
+  append/remove-heavy workloads.
+</Callout>
+
+<Prose>
+  <strong>Capacity versus length.</strong> The capacity constructor only pre-allocates the backing
+  array; <InlineCode>Length</InlineCode> still reports 0 until elements are added. There is currently
+  no <InlineCode>Capacity</InlineCode> property exposed to ShardScript code.
+</Prose>
+
+<Prose>
+  <strong>Enumeration.</strong> <InlineCode>List&lt;T&gt;</InlineCode> implements{' '}
+  <InlineCode>IEnumerable&lt;T&gt;</InlineCode> through <InlineCode>GetEnumerator</InlineCode>. The
+  returned <InlineCode>ListEnumerator&lt;T&gt;</InlineCode> captures the source array and the length
+  at creation time. You can iterate with <InlineCode>foreach</InlineCode> or drive the enumerator
+  manually with <InlineCode>MoveNext</InlineCode> and <InlineCode>Current</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Because the enumerator stores a direct reference to the array, mutating the list after creating an
+  enumerator will not change the sequence that enumerator produces. Always create a fresh enumerator
+  after modifying the list if you need to see the latest contents.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic construction, append, indexer, and removal.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Start with an empty list and grow it element by element.
+    list: List<int> = new List<int>();
+
+    list.Add(10);
+    list.Add(20);
+    list.Add(30);
+
+    println(list.Length);     // 3
+
+    // Read by index.
+    println(list[0]);         // 10
+
+    // Write by index.
+    list[1] = 99;
+    println(list[1]);         // 99
+
+    // Remove the middle element; later elements shift left.
+    list.RemoveAt(1);
+    println(list.Length);     // 2
+    println(list[0]);         // 10
+    println(list[1]);         // 30
+}`}
+  language="csharp"
+  filename="list_basic.shard"
+/>
+
+<Prose>
+  <strong>Capacity constructor and clearing.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Pre-allocate storage even though the logical length starts at zero.
+    words: List<string> = new List<string>(4);
+
+    words.Add("alpha");
+    words.Add("beta");
+    words.Add("gamma");
+
+    println(words.Length);    // 3
+
+    // Clear drops the backing array and starts fresh.
+    words.Clear();
+    println(words.Length);    // 0
+
+    // A negative capacity is clamped to zero rather than throwing.
+    clamped: List<int> = new List<int>(-5);
+    clamped.Add(1);
+    println(clamped.Length);  // 1
+}`}
+  language="csharp"
+  filename="list_capacity.shard"
+/>
+
+<Prose>
+  <strong>Enumeration with foreach and with a manual enumerator.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(7);
+    list.Add(8);
+    list.Add(9);
+
+    // Syntactic iteration over IEnumerable<T>.
+    foreach (n in list)
+    {
+        print(n);
+        print(" ");
+    }
+    println("");              // 7 8 9
+
+    // Manual IEnumerator<T> access.
+    e: IEnumerator<int> = list.GetEnumerator();
+    while (e.MoveNext())
+    {
+        print(e.Current);
+        print(" ");
+    }
+    println("");              // 7 8 9
+}`}
+  language="csharp"
+  filename="list_enumeration.shard"
+/>
+
+<Prose>
+  <strong>Using ElementAt and guarding against out-of-bounds access.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(100);
+    list.Add(200);
+
+    // ElementAt is equivalent to the indexer read but reads as a method call.
+    println(list.ElementAt(1));   // 200
+
+    // Always validate the index before accessing the list.
+    index: int = 5;
+    if (index >= 0 && index < list.Length)
+    {
+        println(list[index]);
+    }
+    else
+    {
+        println("index out of range");
+    }
+
+    // RemoveAt on an invalid index raises an exception.
+    try
+    {
+        list.RemoveAt(10);
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught out-of-bounds remove");
+    }
+}`}
+  language="csharp"
+  filename="list_safety.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<int> = new List<int>();
+    list.Add(1);
+    list.Add(2);
+
+    // Mistake 1: Lists expose Length, not Count.
+    println(list.Length);     // 2
+
+    // Mistake 2: Forgetting that RemoveAt shifts remaining elements.
+    list.RemoveAt(0);
+    println(list[0]);         // 2, not 1
+
+    // Mistake 3: Assuming Add returns the new element or the new length.
+    // It returns void; inspect Length afterwards if needed.
+    list.Add(3);
+    println(list.Length);     // 2
+}`}
+  language="csharp"
+  filename="list_mistakes.shard"
+/>
+
+<Prose>
+  <strong>Returning a List as IEnumerable.</strong> <InlineCode>List&lt;T&gt;</InlineCode> is the
+  standard concrete buffer used when materializing a lazy sequence.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+
+namespace demo;
+
+public delegate Transform<T, U>(value: T) -> U;
+
+public static func Select<T, U>(source: IEnumerable<T>, action: Transform<T, U>) -> IEnumerable<U>
+{
+    // Materialize the transformed sequence into a list.
+    temp: List<U> = new List<U>();
+
+    foreach (item in source)
+    {
+        temp.Add(action(item));
+    }
+
+    return temp;
+}
+
+public static func Main() -> void
+{
+    nums: int[] = [1, 2, 3, 4, 5];
+    doubled: IEnumerable<int> = nums.Select(lambda (a: int) -> int
+    {
+        return a * 2;
+    });
+
+    foreach (n in doubled)
+    {
+        println(n);           // 2, 4, 6, 8, 10
+    }
+}`}
+  language="csharp"
+  filename="list_linq.shard"
+/>

@@ -9,6 +9,7 @@ export interface DocArticle {
   slug: string
   title: string
   group: string
+  groupOrder: number
   order: number
   file: string
   section: 'getting-started' | 'syntax' | 'stdlib'
@@ -47,6 +48,7 @@ function scanDir(dir: string, section: 'getting-started' | 'syntax' | 'stdlib'):
           slug,
           title: (data.title as string) ?? slug,
           group: (data.group as string) ?? 'Uncategorized',
+          groupOrder: typeof data.groupOrder === 'number' ? data.groupOrder : 999,
           order: typeof data.order === 'number' ? data.order : 999,
           file: relative,
           section,
@@ -76,8 +78,13 @@ function groupArticles(articles: DocArticle[]): DocGroup[] {
     })
   }
 
-  // Stable sort by first order in each group
+  // Sort groups by groupOrder, then by first article order as a tie-breaker
   groups.sort((a, b) => {
+    const groupOrderA = articles.find((x) => x.group === a.title)?.groupOrder ?? 999
+    const groupOrderB = articles.find((x) => x.group === b.title)?.groupOrder ?? 999
+    if (groupOrderA !== groupOrderB) {
+      return groupOrderA - groupOrderB
+    }
     const firstA = articles.find((x) => x.group === a.title)?.order ?? 999
     const firstB = articles.find((x) => x.group === b.title)?.order ?? 999
     return firstA - firstB
@@ -110,6 +117,7 @@ export interface DocArticle {
   slug: string
   title: string
   group: string
+  groupOrder: number
   order: number
   file: string
   section: 'getting-started' | 'syntax' | 'stdlib'

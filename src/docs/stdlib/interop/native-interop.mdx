@@ -1,0 +1,583 @@
+---
+title: Native Interop
+group: SHARD.INTEROP
+groupOrder: 10
+order: 1
+slug: native-interop
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.cinterop</InlineCode> standard library exposes the namespace{' '}
+  <InlineCode>interop</InlineCode> with three static classes —{' '}
+  <InlineCode>NativeLibrary</InlineCode>, <InlineCode>Marshal</InlineCode>, and{' '}
+  <InlineCode>NativeCall</InlineCode> — for loading shared native libraries, allocating
+  and reading or writing unmanaged memory, and invoking raw C function pointers from
+  ShardScript.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Import the namespace with <InlineCode>using interop;</InlineCode>. All members are
+  static and are accessed through their declaring class:
+</Prose>
+
+<Prose>
+  <strong>NativeLibrary</strong> loads shared libraries and resolves exported symbols.
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [
+      <InlineCode>Load(path)</InlineCode>,
+      <><InlineCode>static func Load(path: string) -&gt; nint</InlineCode></>,
+      'Loads a shared library (DLL on Windows, .so on Linux) and returns an opaque handle.',
+    ],
+    [
+      <InlineCode>GetFunction(handle, name)</InlineCode>,
+      <><InlineCode>static func GetFunction(handle: nint, name: string) -&gt; nint</InlineCode></>,
+      'Returns the address of the named export, or zero if the symbol cannot be resolved.',
+    ],
+    [
+      <InlineCode>Free(handle)</InlineCode>,
+      <><InlineCode>static func Free(handle: nint) -&gt; void</InlineCode></>,
+      'Decrements the reference count of the loaded library. Passing zero is safe.',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>Marshal — memory management</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [
+      <InlineCode>Alloc(size)</InlineCode>,
+      <><InlineCode>static func Alloc(size: int) -&gt; nint</InlineCode></>,
+      'Allocates zero-initialized native memory.',
+    ],
+    [
+      <InlineCode>Realloc(ptr, size)</InlineCode>,
+      <><InlineCode>static func Realloc(ptr: nint, size: int) -&gt; nint</InlineCode></>,
+      'Resizes an existing native block.',
+    ],
+    [
+      <InlineCode>Free(ptr)</InlineCode>,
+      <><InlineCode>static func Free(ptr: nint) -&gt; void</InlineCode></>,
+      'Releases memory allocated by Alloc, Realloc, StringToAnsi, or StringToUnicode.',
+    ],
+    [
+      <InlineCode>Copy(source, destination, length)</InlineCode>,
+      <><InlineCode>static func Copy(source: nint, destination: nint, length: int) -&gt; void</InlineCode></>,
+      'Copies length bytes between native buffers. Regions may overlap.',
+    ],
+    [
+      <InlineCode>Fill(ptr, length, value)</InlineCode>,
+      <><InlineCode>static func Fill(ptr: nint, length: int, value: int) -&gt; void</InlineCode></>,
+      'Sets length bytes to the low byte of value.',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>Marshal — typed reads</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [<InlineCode>ReadByte(ptr, offset)</InlineCode>, <><InlineCode>static func ReadByte(ptr: nint, offset: int) -&gt; int</InlineCode></>, 'Reads one unsigned byte.'],
+    [<InlineCode>ReadInt16(ptr, offset)</InlineCode>, <><InlineCode>static func ReadInt16(ptr: nint, offset: int) -&gt; int</InlineCode></>, 'Reads one 16-bit signed integer.'],
+    [<InlineCode>ReadInt32(ptr, offset)</InlineCode>, <><InlineCode>static func ReadInt32(ptr: nint, offset: int) -&gt; int</InlineCode></>, 'Reads one 32-bit signed integer.'],
+    [<InlineCode>ReadInt64(ptr, offset)</InlineCode>, <><InlineCode>static func ReadInt64(ptr: nint, offset: int) -&gt; int</InlineCode></>, 'Reads one 64-bit signed integer.'],
+    [<InlineCode>ReadIntPtr(ptr, offset)</InlineCode>, <><InlineCode>static func ReadIntPtr(ptr: nint, offset: int) -&gt; nint</InlineCode></>, 'Reads one pointer-sized integer.'],
+    [<InlineCode>ReadFloat(ptr, offset)</InlineCode>, <><InlineCode>static func ReadFloat(ptr: nint, offset: int) -&gt; double</InlineCode></>, 'Reads one 32-bit IEEE-754 float.'],
+    [<InlineCode>ReadDouble(ptr, offset)</InlineCode>, <><InlineCode>static func ReadDouble(ptr: nint, offset: int) -&gt; double</InlineCode></>, 'Reads one 64-bit IEEE-754 double.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Marshal — typed writes</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [<InlineCode>WriteByte(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteByte(ptr: nint, offset: int, value: int) -&gt; void</InlineCode></>, 'Writes one unsigned byte.'],
+    [<InlineCode>WriteInt16(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteInt16(ptr: nint, offset: int, value: int) -&gt; void</InlineCode></>, 'Writes one 16-bit signed integer.'],
+    [<InlineCode>WriteInt32(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteInt32(ptr: nint, offset: int, value: int) -&gt; void</InlineCode></>, 'Writes one 32-bit signed integer.'],
+    [<InlineCode>WriteInt64(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteInt64(ptr: nint, offset: int, value: int) -&gt; void</InlineCode></>, 'Writes one 64-bit signed integer.'],
+    [<InlineCode>WriteIntPtr(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteIntPtr(ptr: nint, offset: int, value: nint) -&gt; void</InlineCode></>, 'Writes one pointer-sized integer.'],
+    [<InlineCode>WriteFloat(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteFloat(ptr: nint, offset: int, value: double) -&gt; void</InlineCode></>, 'Writes one 32-bit float.'],
+    [<InlineCode>WriteDouble(ptr, offset, value)</InlineCode>, <><InlineCode>static func WriteDouble(ptr: nint, offset: int, value: double) -&gt; void</InlineCode></>, 'Writes one 64-bit double.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Marshal — string marshalling</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [
+      <InlineCode>StringFromAnsi(ptr)</InlineCode>,
+      <><InlineCode>static func StringFromAnsi(ptr: nint) -&gt; string</InlineCode></>,
+      'Converts a NUL-terminated ANSI byte buffer to a ShardScript string.',
+    ],
+    [
+      <InlineCode>StringFromUnicode(ptr)</InlineCode>,
+      <><InlineCode>static func StringFromUnicode(ptr: nint) -&gt; string</InlineCode></>,
+      'Converts a NUL-terminated UTF-16 buffer to a ShardScript string.',
+    ],
+    [
+      <InlineCode>StringToAnsi(value)</InlineCode>,
+      <><InlineCode>static func StringToAnsi(value: string) -&gt; nint</InlineCode></>,
+      'Encodes a string to a NUL-terminated ANSI buffer that the caller must free.',
+    ],
+    [
+      <InlineCode>StringToUnicode(value)</InlineCode>,
+      <><InlineCode>static func StringToUnicode(value: string) -&gt; nint</InlineCode></>,
+      'Encodes a string to a NUL-terminated UTF-16 buffer that the caller must free.',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>Marshal — pointer arithmetic and introspection</strong>
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Description']}
+  rows={[
+    [
+      <InlineCode>Add(ptr, offset)</InlineCode>,
+      <><InlineCode>static func Add(ptr: nint, offset: int) -&gt; nint</InlineCode></>,
+      'Returns a new pointer offset by the given number of bytes.',
+    ],
+    [
+      <InlineCode>IntPtrSize</InlineCode>,
+      <><InlineCode>static prop IntPtrSize: int</InlineCode></>,
+      'Returns the size of a native pointer on the current platform (4 or 8).',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>NativeCall — invoke raw C function pointers</strong>
+</Prose>
+
+<DocsTable
+  headers={['Family', 'Return Type', 'Argument Types']}
+  rows={[
+    [
+      <InlineCode>Call(function, [a], [b], [c], [d])</InlineCode>,
+      <InlineCode>int</InlineCode>,
+      'function: nint; a, b, c, d: any. Use when the C function returns a 32-bit integer.',
+    ],
+    [
+      <InlineCode>CallI64(function, [a], [b], [c], [d])</InlineCode>,
+      <InlineCode>int</InlineCode>,
+      'function: nint; a, b, c, d: any. Use when the C function returns a 64-bit integer.',
+    ],
+    [
+      <InlineCode>CallN(function, [a], [b], [c], [d])</InlineCode>,
+      <InlineCode>nint</InlineCode>,
+      'function: nint; a, b, c, d: any. Use when the C function returns a pointer.',
+    ],
+    [
+      <InlineCode>CallVoid(function, [a], [b], [c], [d])</InlineCode>,
+      <InlineCode>void</InlineCode>,
+      'function: nint; a, b, c, d: any. Use when the C function returns void.',
+    ],
+    [
+      <InlineCode>CallDouble(function, [a], [b], [c], [d])</InlineCode>,
+      <InlineCode>double</InlineCode>,
+      'function: nint; a, b, c, d: double. Use when the C function takes and returns double.',
+    ],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>path</InlineCode>, <InlineCode>string</InlineCode>, 'Platform-specific library path or name. On Windows this is passed to LoadLibraryW; on Linux it is narrowed for dlopen.'],
+    [<InlineCode>handle</InlineCode>, <InlineCode>nint</InlineCode>, 'Opaque library handle returned by NativeLibrary.Load.'],
+    [<InlineCode>name</InlineCode>, <InlineCode>string</InlineCode>, 'Export name to resolve. Non-ASCII characters are narrowed to bytes before lookup.'],
+    [<InlineCode>ptr</InlineCode>, <InlineCode>nint</InlineCode>, 'A native memory address. May be zero only for methods that explicitly allow it.'],
+    [<InlineCode>source</InlineCode>, <InlineCode>nint</InlineCode>, 'Source native address for Copy. Must be non-null when length is greater than zero.'],
+    [<InlineCode>destination</InlineCode>, <InlineCode>nint</InlineCode>, 'Destination native address for Copy. Must be non-null when length is greater than zero.'],
+    [<InlineCode>offset</InlineCode>, <InlineCode>int</InlineCode>, 'Byte offset from the base pointer. May be negative for Add.'],
+    [<InlineCode>size</InlineCode>, <InlineCode>int</InlineCode>, 'Number of bytes to allocate or resize. Zero may return a non-null sentinel or null.'],
+    [<InlineCode>length</InlineCode>, <InlineCode>int</InlineCode>, 'Number of bytes to copy, fill, read, or write. Must be non-negative.'],
+    [<InlineCode>value</InlineCode>, <InlineCode>int</InlineCode>, 'Integer value to write. The low byte, 16 bits, 32 bits, or full 64 bits are stored as appropriate.'],
+    [<InlineCode>function</InlineCode>, <InlineCode>nint</InlineCode>, 'Address of the C function to invoke. Must not be zero.'],
+    [<InlineCode>a, b, c, d</InlineCode>, <InlineCode>any</InlineCode>, 'Arguments passed as raw 64-bit words. Integer and pointer values share the same inline layout and can be used interchangeably.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<InlineCode>Load(path)</InlineCode>, <InlineCode>nint</InlineCode>, 'An opaque library handle. Never returns zero on success.'],
+    [<InlineCode>GetFunction(handle, name)</InlineCode>, <InlineCode>nint</InlineCode>, 'The exported function address, or zero if the export is absent.'],
+    [<InlineCode>Free(handle)</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>Alloc(size)</InlineCode>, <InlineCode>nint</InlineCode>, 'Address of the allocated block, or zero on allocation failure.'],
+    [<InlineCode>Realloc(ptr, size)</InlineCode>, <InlineCode>nint</InlineCode>, 'Address of the resized block, which may differ from ptr.'],
+    [<InlineCode>Free(ptr)</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>Copy(...)</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>Fill(...)</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>ReadByte / ReadInt16 / ReadInt32 / ReadInt64</InlineCode>, <InlineCode>int</InlineCode>, 'The integer value read from memory.'],
+    [<InlineCode>ReadIntPtr</InlineCode>, <InlineCode>nint</InlineCode>, 'The pointer-sized value read from memory.'],
+    [<InlineCode>ReadFloat / ReadDouble</InlineCode>, <InlineCode>double</InlineCode>, 'The floating-point value read from memory.'],
+    [<InlineCode>WriteByte / WriteInt16 / WriteInt32 / WriteInt64 / WriteIntPtr / WriteFloat / WriteDouble</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>StringFromAnsi / StringFromUnicode</InlineCode>, <InlineCode>string</InlineCode>, 'A new managed string.'],
+    [<InlineCode>StringToAnsi / StringToUnicode</InlineCode>, <InlineCode>nint</InlineCode>, 'A native buffer that the caller must later free.'],
+    [<InlineCode>Add(ptr, offset)</InlineCode>, <InlineCode>nint</InlineCode>, 'The byte-offset pointer.'],
+    [<InlineCode>IntPtrSize</InlineCode>, <InlineCode>int</InlineCode>, 'Size of a native pointer in bytes.'],
+    [<InlineCode>Call / CallI64</InlineCode>, <InlineCode>int</InlineCode>, 'Integer return value from the C function.'],
+    [<InlineCode>CallN</InlineCode>, <InlineCode>nint</InlineCode>, 'Pointer return value from the C function.'],
+    [<InlineCode>CallVoid</InlineCode>, <InlineCode>void</InlineCode>, 'No value is returned.'],
+    [<InlineCode>CallDouble</InlineCode>, <InlineCode>double</InlineCode>, 'Double return value from the C function.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Library load failure</strong> —{' '}
+    <InlineCode>NativeLibrary.Load</InlineCode> throws a runtime exception when the
+    operating system cannot load the library. The message includes the Windows error
+    code or the POSIX <InlineCode>dlerror</InlineCode> text.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null library handle</strong> — Passing zero
+    to <InlineCode>NativeLibrary.GetFunction</InlineCode> throws a runtime exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null function pointer</strong> — Every{' '}
+    <InlineCode>NativeCall</InlineCode> method throws a runtime exception when the
+    function address is zero.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null pointer access</strong> — Marshal read,
+    write, and string-conversion methods throw a runtime exception when the supplied
+    pointer is zero and the operation length is non-zero.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Namespace import required</strong> — The{' '}
+    <InlineCode>interop</InlineCode> namespace must be imported with{' '}
+    <InlineCode>using interop;</InlineCode>. Without it the static classes are not
+    visible.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Mismatched return family</strong> — Using the
+    wrong <InlineCode>Call*</InlineCode> overload for the C function signature produces
+    undefined behavior, including truncated pointer values or corrupted floating-point
+    results.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Platform loaders.</strong> On Windows, <InlineCode>NativeLibrary.Load</InlineCode>{' '}
+  calls <InlineCode>LoadLibraryW</InlineCode> with the wide path you supply. On Linux it
+  calls <InlineCode>dlopen</InlineCode> with <InlineCode>RTLD_NOW | RTLD_LOCAL</InlineCode>{' '}
+  after narrowing the path to a multibyte string. Library search order follows the
+  operating-system rules: the application directory, the PATH on Windows, and
+  LD_LIBRARY_PATH on Linux.
+</Prose>
+
+<Prose>
+  <strong>Symbol names.</strong> <InlineCode>NativeLibrary.GetFunction</InlineCode>{' '}
+  narrows the export name to ASCII bytes before calling{' '}
+  <InlineCode>GetProcAddress</InlineCode> or <InlineCode>dlsym</InlineCode>. Unicode
+  names outside the ASCII range may fail to resolve even when the export exists.
+</Prose>
+
+<Prose>
+  <strong>Memory ownership.</strong> Buffers returned by{' '}
+  <InlineCode>StringToAnsi</InlineCode> and <InlineCode>StringToUnicode</InlineCode> are
+  allocated with the C runtime allocator and must be released with{' '}
+  <InlineCode>Marshal.Free</InlineCode>. Failing to free them leaks native memory. The
+  <InlineCode>defer</InlineCode> statement is the recommended way to pair allocation and
+  cleanup.
+</Prose>
+
+<Prose>
+  <strong>Typed reads and writes are unchecked.</strong> The{' '}
+  <InlineCode>Marshal.Read*</InlineCode> and <InlineCode>Marshal.Write*</InlineCode>{' '}
+  families perform a raw <InlineCode>memcpy</InlineCode> at the computed byte address.
+  They do not validate the allocation bounds, alignment, or type. Reading past the end
+  of an allocation produces undefined behavior.
+</Prose>
+
+<Prose>
+  <strong>String encoding.</strong> <InlineCode>StringToAnsi</InlineCode> and{' '}
+  <InlineCode>StringFromAnsi</InlineCode> use the active ANSI code page on Windows
+  (<InlineCode>CP_ACP</InlineCode>) and the current locale multibyte encoding on Linux.
+  <InlineCode>StringToUnicode</InlineCode> and{' '}
+  <InlineCode>StringFromUnicode</InlineCode> use NUL-terminated UTF-16, matching the
+  Win32 <InlineCode>LPCWSTR</InlineCode> layout.
+</Prose>
+
+<Prose>
+  <strong>Calling convention and ABI.</strong> <InlineCode>NativeCall</InlineCode> relies
+  on the platform C ABI. The integer/pointer families pass every argument as a raw
+  64-bit word, which matches the integer and pointer register layout on common 64-bit
+  platforms. <InlineCode>CallDouble</InlineCode> passes and returns{' '}
+  <InlineCode>double</InlineCode> values through floating-point registers. There is no
+  support for selecting <InlineCode>stdcall</InlineCode>, <InlineCode>cdecl</InlineCode>,
+  or other conventions, and no support for variadic functions.
+</Prose>
+
+<Prose>
+  <strong>Pointer arithmetic.</strong> <InlineCode>Marshal.Add</InlineCode> interprets
+  the offset as bytes. Adding <InlineCode>Marshal.IntPtrSize</InlineCode> advances by one
+  pointer slot, and adding two advances by one UTF-16 code unit when iterating a Unicode
+  buffer.
+</Prose>
+
+<Callout tone="blue">
+  Always pair <InlineCode>NativeLibrary.Load</InlineCode> with{' '}
+  <InlineCode>NativeLibrary.Free</InlineCode> and pair every native string allocation
+  with <InlineCode>Marshal.Free</InlineCode>. Use <InlineCode>defer</InlineCode> so
+  cleanup runs even when an exception is thrown.
+</Callout>
+
+<Callout tone="amber" title="Not implemented">
+  The <InlineCode>Marshal.Alloc(size)</InlineCode> overload registered by the runtime
+  does not match its native callback, which expects two arguments. Do not rely on this
+  overload for native allocation. Allocate buffers through{' '}
+  <InlineCode>StringToAnsi</InlineCode>/<InlineCode>StringToUnicode</InlineCode> or host
+  bindings until a corrected overload is exposed. Struct, union, and array marshalling,
+  calling-convention selection, and variadic native calls are also not exposed.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Loading a library and handling failure.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    try
+    {
+        lib: nint = NativeLibrary.Load("mylib.dll");
+        defer NativeLibrary.Free(lib);
+
+        println("library loaded successfully");
+    }
+    catch (ex: RuntimeException)
+    {
+        println("failed to load library: " + ex.Message);
+    }
+}`}
+  language="csharp"
+  filename="interop_load.shard"
+/>
+
+<Prose>
+  <strong>Resolving an export and guarding against a missing symbol.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    lib: nint = NativeLibrary.Load("user32.dll");
+    defer NativeLibrary.Free(lib);
+
+    messageBoxW: nint = NativeLibrary.GetFunction(lib, "MessageBoxW");
+    if (messageBoxW == 0 as nint)
+    {
+        println("export not found");
+        return;
+    }
+
+    println("resolved MessageBoxW at " + messageBoxW);
+}`}
+  language="csharp"
+  filename="interop_resolve.shard"
+/>
+
+<Prose>
+  <strong>Calling MessageBoxW on Windows with UTF-16 string marshalling.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    user32: nint = NativeLibrary.Load("user32.dll");
+    defer NativeLibrary.Free(user32);
+
+    messageBoxW: nint = NativeLibrary.GetFunction(user32, "MessageBoxW");
+    if (messageBoxW == 0 as nint)
+    {
+        println("MessageBoxW not found");
+        return;
+    }
+
+    text: nint = Marshal.StringToUnicode("Hello from ShardScript!");
+    defer Marshal.Free(text);
+
+    caption: nint = Marshal.StringToUnicode("Native Interop");
+    defer Marshal.Free(caption);
+
+    // hWnd = 0, uType = 0 (MB_OK)
+    result: int = NativeCall.Call(messageBoxW, 0, text, caption, 0);
+    println("dialog result: " + result);
+}`}
+  language="csharp"
+  filename="interop_messagebox.shard"
+/>
+
+<Prose>
+  <strong>Reading and writing typed values in a native ANSI buffer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    ansi: nint = Marshal.StringToAnsi("hello");
+    defer Marshal.Free(ansi);
+
+    first: int = Marshal.ReadByte(ansi, 0);
+    println("first byte: " + first);
+
+    // Overwrite the first byte with an uppercase 'H' (ASCII 72).
+    Marshal.WriteByte(ansi, 0, 72);
+
+    back: string = Marshal.StringFromAnsi(ansi);
+    println("modified string: " + back);
+}`}
+  language="csharp"
+  filename="interop_typed_io.shard"
+/>
+
+<Prose>
+  <strong>Pointer arithmetic over a UTF-16 buffer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    text: nint = Marshal.StringToUnicode("AB");
+    defer Marshal.Free(text);
+
+    a: int = Marshal.ReadInt16(text, 0);
+    println("first code unit: " + a);
+
+    // Advance by one UTF-16 code unit (2 bytes).
+    next: nint = Marshal.Add(text, 2);
+    b: int = Marshal.ReadInt16(next, 0);
+    println("second code unit: " + b);
+
+    println("pointer size on this platform: " + Marshal.IntPtrSize);
+}`}
+  language="csharp"
+  filename="interop_pointer_math.shard"
+/>
+
+<Prose>
+  <strong>Invoking a native function that returns double.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // This example assumes mylib.dll exports:
+    //     double AddDoubles(double a, double b);
+    lib: nint = NativeLibrary.Load("mylib.dll");
+    defer NativeLibrary.Free(lib);
+
+    addDoubles: nint = NativeLibrary.GetFunction(lib, "AddDoubles");
+    if (addDoubles == 0 as nint)
+    {
+        println("AddDoubles not found");
+        return;
+    }
+
+    sum: double = NativeCall.CallDouble(addDoubles, 1.5, 2.5);
+    println("sum: " + sum);
+}`}
+  language="csharp"
+  filename="interop_double.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: using the wrong NativeCall return family.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using interop;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    lib: nint = NativeLibrary.Load("mylib.dll");
+    defer NativeLibrary.Free(lib);
+
+    getHandle: nint = NativeLibrary.GetFunction(lib, "GetHandle");
+    if (getHandle == 0 as nint)
+    {
+        println("GetHandle not found");
+        return;
+    }
+
+    // WRONG: Call reads only a 32-bit return value and sign-extends it.
+    // On a 64-bit platform this truncates a pointer.
+    // truncated: int = NativeCall.Call(getHandle);
+
+    // CORRECT: the C function returns a pointer, so use CallN.
+    handle: nint = NativeCall.CallN(getHandle);
+    println("handle: " + handle);
+}`}
+  language="csharp"
+  filename="interop_wrong_family.shard"
+/>

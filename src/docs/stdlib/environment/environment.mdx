@@ -1,0 +1,363 @@
+---
+title: Environment
+group: SHARD.ENVIRONMENT
+groupOrder: 2
+order: 1
+slug: environment
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.environment</InlineCode> library exposes a static <InlineCode>Environment</InlineCode>{' '}
+  class in the <InlineCode>environment</InlineCode> namespace for reading and writing the current process's
+  operating-system environment variables. Reads return an empty string when a variable is absent, and writes
+  affect only the calling process and any child processes launched afterward.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Access is provided through a static delimiter operator and two explicit static methods:
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Signature', 'Access']}
+  rows={[
+    [
+      <InlineCode>Environment.NAME</InlineCode>,
+      <><InlineCode>Environment.</InlineCode><em>name</em> <InlineCode>:</InlineCode> <InlineCode>string</InlineCode></>,
+      'Static delimiter operator; name is an identifier passed as a string.',
+    ],
+    [
+      <InlineCode>Environment["name"]</InlineCode>,
+      <><InlineCode>Environment[</InlineCode><em>name</em><InlineCode>]</InlineCode> <InlineCode>-&gt; string</InlineCode></>,
+      'Static delimiter operator with a string expression.',
+    ],
+    [
+      <InlineCode>GetVariable(name)</InlineCode>,
+      <><InlineCode>static func GetVariable(name: string) -&gt; string</InlineCode></>,
+      'Explicit static method.',
+    ],
+    [
+      <InlineCode>SetVariable(name, value)</InlineCode>,
+      <><InlineCode>static func SetVariable(name: string, value: string) -&gt; void</InlineCode></>,
+      'Explicit static method.',
+    ],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>name</InlineCode>,
+      'string',
+      'The environment variable name. On Windows the lookup is case-insensitive; on Linux it is case-sensitive.',
+    ],
+    [
+      <InlineCode>value</InlineCode>,
+      'string',
+      'The value to assign. An empty string clears the variable on Windows and sets it to an empty value on Linux.',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member', 'Return Type', 'Description']}
+  rows={[
+    [<InlineCode>Environment.NAME</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
+    [<InlineCode>Environment["name"]</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
+    [<InlineCode>GetVariable(name)</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
+    [<InlineCode>SetVariable(name, value)</InlineCode>, 'void', 'No value is returned.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compile-time name resolution</strong> — The{' '}
+    <InlineCode>environment</InlineCode> namespace must be imported with{' '}
+    <InlineCode>using environment;</InlineCode> before <InlineCode>Environment</InlineCode> can be referenced.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument type mismatch</strong> — Both <InlineCode>name</InlineCode>{' '}
+    and <InlineCode>value</InlineCode> must be <InlineCode>string</InlineCode>. Passing other primitive types
+    or reference types fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing variable is not an error</strong> — Reading a non-existent
+    variable returns <InlineCode>""</InlineCode>. It does not throw and does not return{' '}
+    <InlineCode>null</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Process-local mutations.</strong> <InlineCode>SetVariable</InlineCode> updates the environment block
+  of the current process. The change is visible to child processes started after the call, but it does not modify
+  the parent shell, system registry, or any other running process. There is no mechanism to broadcast environment
+  changes to existing processes.
+</Prose>
+
+<Prose>
+  <strong>Platform differences.</strong> On Windows, environment variable names are case-insensitive and the
+  implementation uses the wide-character APIs <InlineCode>_wgetenv</InlineCode> and{' '}
+  <InlineCode>_wputenv_s</InlineCode>. On Linux, names are case-sensitive and the implementation uses{' '}
+  <InlineCode>std::getenv</InlineCode> and <InlineCode>setenv</InlineCode>. Always use canonical casing for
+  cross-platform variables such as <InlineCode>PATH</InlineCode>, <InlineCode>HOME</InlineCode>, and{' '}
+  <InlineCode>TEMP</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Delimiter operator.</strong> <InlineCode>Environment.NAME</InlineCode> is not a field access; it is a
+  static delimiter-operator overload that passes the identifier <InlineCode>NAME</InlineCode> as a string argument.
+  To read a variable whose name is stored in another string, call <InlineCode>GetVariable(varName)</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Missing variables return an empty string. Test for absence with <InlineCode>value == ""</InlineCode>, not with a
+  null check.
+</Callout>
+
+<Callout tone="amber" title="Not implemented">
+  <InlineCode>ExpandEnvironmentVariables</InlineCode> and .NET-style names such as{' '}
+  <InlineCode>GetEnvironmentVariable</InlineCode> / <InlineCode>SetEnvironmentVariable</InlineCode> are not exposed
+  by <InlineCode>shard.environment</InlineCode>. Expand variable references manually with{' '}
+  <InlineCode>strings.Replace</InlineCode> or read each variable separately.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic read via the delimiter operator and explicit methods.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Delimiter operator: the identifier is passed as the variable name.
+    user: string = Environment.USERNAME;
+    println(user);
+
+    // Bracket form is equivalent when the key is a string literal.
+    path: string = Environment["PATH"];
+    println(path);
+
+    // Explicit method form is identical in behavior.
+    home: string = Environment.GetVariable("HOME");
+    println(home);
+}`}
+  language="csharp"
+  filename="environment_basic.shard"
+/>
+
+<Prose>
+  <strong>Writing a value and reading it back.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    Environment.SetVariable("SHARD_DEMO", "hello from shard");
+
+    value: string = Environment.SHARD_DEMO;
+    println(value);   // hello from shard
+
+    // Clean up so the change does not leak to child processes.
+    Environment.SetVariable("SHARD_DEMO", "");
+}`}
+  language="csharp"
+  filename="environment_write.shard"
+/>
+
+<Prose>
+  <strong>Supplying a default when a variable is missing.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    port: string = Environment.PORT;
+
+    if (port == "")
+    {
+        // No override was supplied; use the production-safe default.
+        port = "8080";
+    }
+
+    println(port);
+}`}
+  language="csharp"
+  filename="environment_default.shard"
+/>
+
+<Prose>
+  <strong>Reading a dynamic name with <InlineCode>GetVariable</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The name is chosen at runtime, so the delimiter operator cannot be used.
+    suffix: string = "STAGE";
+    fullName: string = "APP_" + suffix;
+
+    stage: string = Environment.GetVariable(fullName);
+    if (stage == "")
+    {
+        stage = "development";
+    }
+
+    println(stage);
+}`}
+  language="csharp"
+  filename="environment_dynamic.shard"
+/>
+
+<Prose>
+  <strong>Platform case-sensitivity and cross-portable keys.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // On Windows these three resolve to the same variable.
+    // On Linux they are distinct variables.
+    a: string = Environment.PATH;
+    b: string = Environment.Path;
+    c: string = Environment.path;
+
+    println(a);
+    println(b);
+    println(c);
+
+    // Prefer canonical casing for code that runs on both platforms.
+    home: string = Environment.HOME;
+    temp: string = Environment.TEMP;
+    println(home);
+    println(temp);
+}`}
+  language="csharp"
+  filename="environment_case.shard"
+/>
+
+<Prose>
+  <strong>Configuration and secrets pattern.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Required secret: fail fast when it is missing.
+    apiKey: string = Environment.API_KEY;
+    if (apiKey == "")
+    {
+        println("ERROR: API_KEY is not set");
+        return;
+    }
+
+    // Optional configuration: use a default when absent.
+    timeoutMs: string = Environment.TIMEOUT_MS;
+    if (timeoutMs == "")
+    {
+        timeoutMs = "5000";
+    }
+
+    // Feature flag: treat any non-empty value as enabled.
+    verbose: bool = Environment.VERBOSE != "";
+
+    // Never log the secret value itself.
+    println("API_KEY is configured");
+    println("timeout: " + timeoutMs);
+    println("verbose: " + verbose);
+}`}
+  language="csharp"
+  filename="environment_config.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: expecting <InlineCode>null</InlineCode> for a missing variable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // WRONG: Environment never returns null.
+    // if (Environment.MISSING == null) { ... }
+
+    // CORRECT: test for the empty string.
+    value: string = Environment.MISSING;
+    if (value == "")
+    {
+        println("MISSING is not set");
+    }
+}`}
+  language="csharp"
+  filename="environment_missing.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: expecting changes to persist outside the process.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using environment;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // This affects only the current process and future children.
+    Environment.SetVariable("SHARD_TEMP", "/tmp/shard");
+
+    // It does NOT modify the parent shell, the Windows registry, or ~/.profile.
+    // Launch a child process after this point to see the new value.
+    println(Environment.SHARD_TEMP);
+}`}
+  language="csharp"
+  filename="environment_scope.shard"
+/>

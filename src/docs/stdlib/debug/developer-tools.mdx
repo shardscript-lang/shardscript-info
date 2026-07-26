@@ -1,0 +1,335 @@
+---
+title: Developer Tools
+group: SHARD.DEBUG
+groupOrder: 3
+order: 1
+slug: developer-tools
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.debug</InlineCode> library exposes four top-level static functions in the
+  <InlineCode>debug</InlineCode> namespace for runtime introspection and diagnostic output:
+  <InlineCode>typeof</InlineCode>, <InlineCode>sizeof</InlineCode>, <InlineCode>PrintStackFrameInfo</InlineCode>,
+  and <InlineCode>PrintGcInfo</InlineCode>. They are native callbacks, not instance methods, and are
+  intended for debugging and profiling rather than production logic.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Every member is registered with <InlineCode>LINK_STATIC</InlineCode> directly on the
+  <InlineCode>debug</InlineCode> namespace. After <InlineCode>using debug;</InlineCode> the functions
+  are called by name; otherwise they can be qualified as <InlineCode>debug.typeof(x)</InlineCode>,
+  <InlineCode>debug.sizeof(x)</InlineCode>, and so on.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Direct call after importing the namespace.
+    println(typeof(42));
+
+    // Fully-qualified call.
+    println(debug.sizeof(42));
+}`}
+  language="csharp"
+  filename="debug_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Function', 'Signature']}
+  rows={[
+    [<code>typeof</code>, <><InlineCode>typeof(instance: any) -&gt; string</InlineCode></>],
+    [<code>sizeof</code>, <><InlineCode>sizeof(instance: any) -&gt; int</InlineCode></>],
+    [<code>PrintGcInfo</code>, <><InlineCode>PrintGcInfo() -&gt; void</InlineCode></>],
+    [<code>PrintStackFrameInfo</code>, <><InlineCode>PrintStackFrameInfo() -&gt; void</InlineCode></>],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Function', 'Parameter', 'Type', 'Description']}
+  rows={[
+    [<code>typeof</code>, <code>instance</code>, <code>any</code>, 'The value whose runtime type name is requested.'],
+    [<code>sizeof</code>, <code>instance</code>, <code>any</code>, 'The value whose payload size is requested.'],
+    [<code>PrintGcInfo</code>, <em>none</em>, <em>none</em>, 'Takes no arguments.'],
+    [<code>PrintStackFrameInfo</code>, <em>none</em>, <em>none</em>, 'Takes no arguments.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Function', 'Return Type', 'Description']}
+  rows={[
+    [<code>typeof</code>, <code>string</code>, "The instance's runtime type name as stored in its type-info pointer."],
+    [<code>sizeof</code>, <code>int</code>, "The instance's payload size in bytes from the TypeShape / TypeSymbol."],
+    [<code>PrintGcInfo</code>, <code>void</code>, 'Writes a dump of every live ObjectInstance to native stdout.'],
+    [<code>PrintStackFrameInfo</code>, <code>void</code>, 'Writes a dump of locals from the calling stack frame to native stdout.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Null argument to typeof</strong> — Passing{' '}
+    <InlineCode>null</InlineCode> throws a <InlineCode>RuntimeException</InlineCode> with the message{' '}
+    <InlineCode>"cannot get type of null instance"</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null argument to sizeof</strong> — Passing{' '}
+    <InlineCode>null</InlineCode> throws a <InlineCode>RuntimeException</InlineCode> with the message{' '}
+    <InlineCode>"cannot get size of null instance"</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Output channel mismatch</strong> —{' '}
+    <InlineCode>PrintGcInfo</InlineCode> and <InlineCode>PrintStackFrameInfo</InlineCode> write through
+    native <InlineCode>std::wcout</InlineCode>, not through the <InlineCode>stdio</InlineCode> library.
+    Their output appears on the process stdout, but it is not returned as a string and cannot be
+    captured with <InlineCode>println</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Top-level static functions.</strong> Unlike most standard-library APIs that live on a class
+  such as <InlineCode>Math</InlineCode> or <InlineCode>Environment</InlineCode>, the debug helpers are
+  attached directly to the <InlineCode>debug</InlineCode> namespace via{' '}
+  <InlineCode>debug.AddMethod(...)</InlineCode>. They accept <InlineCode>TYPE_ANY</InlineCode>, so any
+  ShardScript value can be passed to <InlineCode>typeof</InlineCode> and <InlineCode>sizeof</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>typeof returns the symbol name, not the full name.</strong> The function reads{' '}
+  <InlineCode>instance-&gt;getInfo()-&gt;Name</InlineCode>. For user-defined classes this is the
+  identifier from the <InlineCode>class</InlineCode> declaration, not the namespace-qualified full
+  name. For generic instances it returns the underlying type name without type arguments; for example,
+  a <InlineCode>List&lt;int&gt;</InlineCode> reports <InlineCode>List</InlineCode>. For primitives the
+  internal symbol names are returned:
+</Prose>
+
+<DocsTable
+  headers={['ShardScript type', 'typeof result']}
+  rows={[
+    [<code>bool</code>, <code>Boolean</code>],
+    [<code>int</code>, <code>Integer</code>],
+    [<code>double</code>, <code>Double</code>],
+    [<code>char</code>, <code>Char</code>],
+    [<code>byte</code>, <code>Byte</code>],
+    [<code>string</code>, <code>String</code>],
+    [<code>T[]</code>, <code>Array</code>],
+  ]}
+/>
+
+<Prose>
+  <strong>sizeof reports the type payload, not the total GC allocation.</strong> The value comes from
+  <InlineCode>instance-&gt;getInfo()-&gt;MemoryBytesSize</InlineCode>, which is the size recorded by the
+  layout pass. For classes this includes every field slot. For arrays it includes the length field plus
+  all element slots. It does <em>not</em> include the fixed <InlineCode>ObjectInstance</InlineCode> header
+  that the GC attaches to every heap object, nor does it include external allocations such as the
+  character buffer owned by a <InlineCode>String</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>PrintGcInfo walks the entire GC heap.</strong> It iterates{' '}
+  <InlineCode>Collector.Heap</InlineCode> and prints the raw pointer, type name, and reference counter for
+  every live object, followed by the total count. The dump includes compiler-generated objects such as
+  async state-machine instances and delegate closures, not just values created by user code.
+</Prose>
+
+<Prose>
+  <strong>PrintStackFrameInfo is intended to dump caller locals.</strong> The implementation reads the
+  previous stack frame and iterates over its evaluation-stack locals. Because the helper derives the
+  local count from its own <InlineCode>MethodSymbol</InlineCode> rather than the caller's, it currently
+  reports zero locals in most real-world cases.
+</Prose>
+
+<Callout tone="amber" title="PrintStackFrameInfo limitation">
+  In the current <InlineCode>shard.debug</InlineCode> build, <InlineCode>PrintStackFrameInfo</InlineCode>{' '}
+  prints a header and then reports <InlineCode>Total count : 0</InlineCode>. It does not yet list the
+  caller's local variables. Use it only as a placeholder; for detailed inspection, prefer{' '}
+  <InlineCode>PrintGcInfo</InlineCode> or the VM disassembler.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>typeof and sizeof on primitives and a user-defined class.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public class Point
+{
+    public X: double;
+    public Y: double;
+}
+
+public static func Main() -> void
+{
+    i: int = 42;
+    d: double = 3.14;
+    s: string = "shard";
+    b: bool = true;
+
+    p: Point = new Point();
+    p.X = 1.0;
+    p.Y = 2.0;
+
+    // typeof returns the runtime type name stored in the instance type info.
+    println(typeof(i));   // Integer
+    println(typeof(d));   // Double
+    println(typeof(s));   // String
+    println(typeof(b));   // Boolean
+    println(typeof(p));   // Point
+
+    // sizeof returns the payload size recorded in the type shape.
+    println(sizeof(i));   // 8
+    println(sizeof(d));   // 8
+    println(sizeof(s));   // 16  (length field + data pointer)
+    println(sizeof(b));   // 1
+    println(sizeof(p));   // 16  (two double fields)
+}`}
+  language="csharp"
+  filename="debug_type_and_size.shard"
+/>
+
+<Prose>
+  <strong>typeof and sizeof on arrays and generic collections.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    nums: int[] = [10, 20, 30];
+    list: List<int> = new List<int>();
+    list.Add(100);
+
+    // Arrays report the element container type, not the element type.
+    println(typeof(nums));   // Array
+
+    // Generic instances report the underlying type name without type arguments.
+    println(typeof(list));   // List
+
+    // sizeof for an array includes the length field plus every element slot.
+    println(sizeof(nums));   // 32 on 64-bit platforms (8 + 3 * 8)
+
+    // sizeof for a List measures the class payload, not the managed array behind it.
+    println(sizeof(list));   // implementation-defined
+}`}
+  language="csharp"
+  filename="debug_collections.shard"
+/>
+
+<Prose>
+  <strong>Dumping the GC heap with PrintGcInfo.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Allocate a few objects so the heap dump is non-empty.
+    a: string = "first";
+    b: string = "second";
+    c: object = new object();
+
+    // Dump every live ObjectInstance to native stdout.
+    PrintGcInfo();
+
+    println("done");
+}`}
+  language="csharp"
+  filename="debug_gc_info.shard"
+/>
+
+<Prose>
+  <strong>Handling null safely and avoiding common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    o: object = null;
+
+    // typeof(null) and sizeof(null) throw before returning.
+    // Guard against null when the value is not guaranteed to exist.
+    if (o != null)
+    {
+        println(typeof(o));
+        println(sizeof(o));
+    }
+    else
+    {
+        println("value is null; skipping introspection");
+    }
+
+    // Do not use sizeof() to measure the total GC heap or a string's character data.
+    // It reports only the type payload stored in the type shape.
+}`}
+  language="csharp"
+  filename="debug_null_safety.shard"
+/>
+
+<Prose>
+  <strong>PrintStackFrameInfo and its current behavior.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using debug;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    name: string = "shard";
+    count: int = 7;
+
+    // Currently reports zero locals because the helper uses its own local count.
+    PrintStackFrameInfo();
+
+    // Keep the locals alive so they are not optimized away.
+    println(name);
+    println(count);
+}`}
+  language="csharp"
+  filename="debug_stack_frame.shard"
+/>
+
+<Callout tone="blue">
+  Use <InlineCode>typeof</InlineCode> and <InlineCode>sizeof</InlineCode> for quick runtime assertions and
+  diagnostics. Keep <InlineCode>PrintGcInfo</InlineCode> calls out of hot paths: it acquires the heap
+  vector and prints one line per live object, which is <InlineCode>O(n)</InlineCode> in the number of
+  allocated objects.
+</Callout>
