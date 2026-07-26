@@ -132,6 +132,10 @@ const manifest: DocManifest = {
         {
           "slug": "generics",
           "title": "Generic Types"
+        },
+        {
+          "slug": "operator-overloading",
+          "title": "Operator Overloading"
         }
       ]
     },
@@ -567,6 +571,15 @@ const manifest: DocManifest = {
       "groupOrder": 3,
       "order": 7,
       "file": "syntax/object-oriented/07-generics.mdx",
+      "section": "syntax"
+    },
+    "operator-overloading": {
+      "slug": "operator-overloading",
+      "title": "Operator Overloading",
+      "group": "Object-Oriented Programming",
+      "groupOrder": 3,
+      "order": 8,
+      "file": "syntax/object-oriented/08-operator-overloading.mdx",
       "section": "syntax"
     },
     "lambda-expressions": {

@@ -1,0 +1,469 @@
+---
+title: Operator Overloading
+group: Object-Oriented Programming
+groupOrder: 3
+order: 8
+slug: operator-overloading
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript lets a class or struct redefine the behavior of built-in operators by declaring{' '}
+  <InlineCode>operator</InlineCode> members. Overloaded operators are resolved at compile time using
+  the static types of their operands, and they follow the same visibility and linking rules as
+  methods.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  An operator member is declared inside a class or struct with the{' '}
+  <InlineCode>operator</InlineCode> keyword, an operator token, a parameter list, an arrow return
+  type, and a body:
+</Prose>
+
+<CodeBlock
+  code={`public class Vector2
+{
+    public x: int;
+    public y: int;
+
+    public init(x: int, y: int)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    public static operator +(a: Vector2, b: Vector2) -> Vector2
+    {
+        return new Vector2(a.x + b.x, a.y + b.y);
+    }
+}`}
+  language="csharp"
+  filename="operator_overload_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Operator category', 'Declaration form', 'Parameter count']}
+  rows={[
+    [
+      'Binary arithmetic and bitwise',
+      <><InlineCode>public static operator </InlineCode><em>op</em><InlineCode>(left: T, right: U) -&gt; R</InlineCode></>,
+      '2',
+    ],
+    [
+      'Unary',
+      <><InlineCode>public static operator </InlineCode><em>op</em><InlineCode>(operand: T) -&gt; R</InlineCode></>,
+      '1',
+    ],
+    [
+      'Comparison',
+      <><InlineCode>public static operator </InlineCode><em>op</em><InlineCode>(left: T, right: U) -&gt; bool</InlineCode></>,
+      '2',
+    ],
+    [
+      'Conversion',
+      <><InlineCode>public static operator as(source: T) -&gt; U</InlineCode></>,
+      '1',
+    ],
+    [
+      'Access (delimiter)',
+      <><InlineCode>public operator .(name: string) -&gt; R</InlineCode></>,
+      '1',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>Overloadable operators.</strong> The compiler accepts the following operator tokens in an
+  operator declaration:
+</Prose>
+
+<DocsTable
+  headers={['Category', 'Operators']}
+  rows={[
+    ['Arithmetic', '+, -, *, /, %, **'],
+    ['Compound assignment', '+=, -=, *=, /=, %=, **='],
+    ['Bitwise / shift', '|, &, |=, &=, >>, <<'],
+    ['Comparison', '==, !=, >, >=, <, <='],
+    ['Unary', '++, --, !'],
+    ['Conversion', 'as'],
+    ['Access', '.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <><em>left</em> / <em>operand</em> / <em>source</em></>,
+      'Any declared type',
+      'The first operand. For binary operators this is the left-hand side. For conversion operators it is the value being converted.',
+    ],
+    [
+      <><em>right</em></>,
+      'Any declared type',
+      'The right-hand side of a binary operator.',
+    ],
+    [
+      <><em>name</em> (access operator)</>,
+      'string',
+      'The identifier that appears after the dot in a member-access expression.',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Operator', 'Return type convention', 'Description']}
+  rows={[
+    ['Arithmetic / bitwise', 'User-defined', 'Typically the same type as the operands, but any type is allowed.'],
+    ['Unary', 'User-defined', 'The result of applying the operator to the single operand.'],
+    ['Comparison', 'bool', 'Comparison operators conventionally return bool, matching built-in comparisons.'],
+    ['as', 'The target type', 'Returns a value of the type named in the cast expression.'],
+    ['.', 'User-defined', 'The value produced by the access expression.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Must be declared inside a type</strong> — Operator overloads
+    can only appear as members of a class or struct. Namespace-level operator declarations are not
+    allowed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Must be public</strong> — The compiler reports an error if
+    an operator overload is not declared <InlineCode>public</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Most operators must be static</strong> — Arithmetic,
+    bitwise, comparison, unary, and conversion operators must use <InlineCode>static</InlineCode>. The
+    access operator <InlineCode>.</InlineCode> is the only operator that may be an instance member.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Cannot overload operators in static types</strong> — A
+    static class or struct cannot declare operator overloads, except for the access operator.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Wrong parameter count</strong> — Binary operators require
+    exactly two parameters; unary operators and <InlineCode>as</InlineCode> require exactly one. The
+    access operator requires exactly one <InlineCode>string</InlineCode> parameter.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Must have a body</strong> — Abstract or extern operator
+    overloads are not supported.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Non-overloadable token</strong> — Using a token that is not
+    in the overloadable set, such as <InlineCode>operator =</InlineCode> or{' '}
+    <InlineCode>operator &&</InlineCode>, fails during parsing.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Resolution rules.</strong> Operator overloads are selected using the compile-time types of
+  the operands. The compiler looks for an overload on the left-hand type whose parameter list matches
+  the operand types. If no match is found, it reports a semantic error rather than falling back to a
+  built-in operator.
+</Prose>
+
+<Prose>
+  <strong>Static vs instance.</strong> All overloadable operators except <InlineCode>.</InlineCode>{' '}
+  are static. This matches the design of most binary operators in ShardScript: the operands are passed
+  explicitly, and there is no implicit receiver. The access operator is instance because it is invoked
+  on a receiver expression such as <InlineCode>obj.field</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Compound assignment.</strong> Overloading <InlineCode>+=</InlineCode> does not automatically
+  provide <InlineCode>+</InlineCode>, and vice versa. Each compound-assignment operator is a separate
+  overload that is resolved independently.
+</Prose>
+
+<Prose>
+  <strong>Conversion operator.</strong> <InlineCode>operator as</InlineCode> lets a type participate in
+  cast expressions. The return type of the operator is the type the compiler will treat the expression
+  as. Both narrowing and widening conversions can be expressed, but the operator is responsible for
+  producing a valid value of the target type.
+</Prose>
+
+<Prose>
+  <strong>Access operator.</strong> <InlineCode>operator .</InlineCode> intercepts member access where
+  the member name is not a real declared field, property, or method. The identifier is passed as a
+  string, allowing dynamic dispatch based on the name. A type that declares this operator cannot also
+  declare public fields.
+</Prose>
+
+<Callout tone="blue">
+  Keep overloaded operators intuitive. Overloading <InlineCode>+</InlineCode> to mean something other
+  than addition-like combination, or overloading comparison operators inconsistently, makes code harder
+  to reason about.
+</Callout>
+
+<Callout tone="amber" title="No short-circuiting logical operators">
+  The logical operators <InlineCode>&amp;&amp;</InlineCode> and <InlineCode>||</InlineCode> are not
+  overloadable. The overloadable <InlineCode>&amp;</InlineCode> and <InlineCode>|</InlineCode> are
+  bitwise/combined operators and do not short-circuit.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Binary arithmetic overload.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Vector2
+{
+    public x: int;
+    public y: int;
+
+    public init(x: int, y: int)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    public static operator +(a: Vector2, b: Vector2) -> Vector2
+    {
+        return new Vector2(a.x + b.x, a.y + b.y);
+    }
+
+    public static operator -(a: Vector2, b: Vector2) -> Vector2
+    {
+        return new Vector2(a.x - b.x, a.y - b.y);
+    }
+}
+
+public static func Main() -> void
+{
+    v1: Vector2 = new Vector2(1, 2);
+    v2: Vector2 = new Vector2(3, 4);
+
+    sum: Vector2 = v1 + v2;
+    println(sum.x);   // 4
+    println(sum.y);   // 6
+}`}
+  language="csharp"
+  filename="operator_arithmetic.shard"
+/>
+
+<Prose>
+  <strong>Comparison overload.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Box
+{
+    public value: int;
+
+    public init(value: int)
+    {
+        this.value = value;
+    }
+
+    public static operator ==(a: Box, b: Box) -> bool
+    {
+        return a.value == b.value;
+    }
+
+    public static operator !=(a: Box, b: Box) -> bool
+    {
+        return a.value != b.value;
+    }
+}
+
+public static func Main() -> void
+{
+    a: Box = new Box(5);
+    b: Box = new Box(5);
+
+    if (a == b)
+    {
+        println("equal");
+    }
+}`}
+  language="csharp"
+  filename="operator_comparison.shard"
+/>
+
+<Prose>
+  <strong>Unary overload.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Vector2
+{
+    public x: int;
+    public y: int;
+
+    public init(x: int, y: int)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    public static operator !(v: Vector2) -> bool
+    {
+        return v.x == 0 && v.y == 0;
+    }
+}
+
+public static func Main() -> void
+{
+    zero: Vector2 = new Vector2(0, 0);
+    nonZero: Vector2 = new Vector2(1, 0);
+
+    if (!zero)
+    {
+        println("zero vector");
+    }
+
+    if (!nonZero)
+    {
+        println("this will not print");
+    }
+}`}
+  language="csharp"
+  filename="operator_unary.shard"
+/>
+
+<Prose>
+  <strong>Conversion with <InlineCode>as</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Widget
+{
+    public name: string;
+
+    public init(name: string)
+    {
+        this.name = name;
+    }
+}
+
+public class Box
+{
+    public label: string;
+
+    public init(label: string)
+    {
+        this.label = label;
+    }
+
+    public static operator as(w: Widget) -> Box
+    {
+        return new Box(w.name);
+    }
+}
+
+public static func Main() -> void
+{
+    w: Widget = new Widget("main-widget");
+    b: Box = w as Box;
+
+    println(b.label);   // main-widget
+}`}
+  language="csharp"
+  filename="operator_as.shard"
+/>
+
+<Prose>
+  <strong>Access operator for dynamic members.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Dynamic
+{
+    public value: int;
+
+    public init(value: int)
+    {
+        this.value = value;
+    }
+
+    public operator .(name: string) -> string
+    {
+        return name + ":" + this.value;
+    }
+}
+
+public static func Main() -> void
+{
+    d: Dynamic = new Dynamic(42);
+    println(d.foo);   // foo:42
+    println(d.bar);   // bar:42
+}`}
+  language="csharp"
+  filename="operator_access.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: omitting <InlineCode>static</InlineCode> on a binary operator.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Box
+{
+    public value: int;
+
+    public init(value: int)
+    {
+        this.value = value;
+    }
+
+    // WRONG: binary operators must be static.
+    // public operator +(a: Box, b: Box) -> Box { ... }
+
+    // CORRECT:
+    public static operator +(a: Box, b: Box) -> Box
+    {
+        return new Box(a.value + b.value);
+    }
+}
+
+public static func Main() -> void
+{
+    a: Box = new Box(1);
+    b: Box = new Box(2);
+    c: Box = a + b;
+
+    println(c.value);   // 3
+}`}
+  language="csharp"
+  filename="operator_static.shard"
+/>

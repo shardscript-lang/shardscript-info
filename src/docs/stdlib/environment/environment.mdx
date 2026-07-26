@@ -31,14 +31,9 @@ type: Reference
       'Static delimiter operator; name is an identifier passed as a string.',
     ],
     [
-      <InlineCode>Environment["name"]</InlineCode>,
-      <><InlineCode>Environment[</InlineCode><em>name</em><InlineCode>]</InlineCode> <InlineCode>-&gt; string</InlineCode></>,
-      'Static delimiter operator with a string expression.',
-    ],
-    [
       <InlineCode>GetVariable(name)</InlineCode>,
       <><InlineCode>static func GetVariable(name: string) -&gt; string</InlineCode></>,
-      'Explicit static method.',
+      'Explicit static method for variable names known only at runtime.',
     ],
     [
       <InlineCode>SetVariable(name, value)</InlineCode>,
@@ -72,7 +67,6 @@ type: Reference
   headers={['Member', 'Return Type', 'Description']}
   rows={[
     [<InlineCode>Environment.NAME</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
-    [<InlineCode>Environment["name"]</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
     [<InlineCode>GetVariable(name)</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
     [<InlineCode>SetVariable(name, value)</InlineCode>, 'void', 'No value is returned.'],
   ]}
@@ -152,11 +146,10 @@ public static func Main() -> void
     user: string = Environment.USERNAME;
     println(user);
 
-    // Bracket form is equivalent when the key is a string literal.
-    path: string = Environment["PATH"];
+    // Explicit method form is identical in behavior for literal names.
+    path: string = Environment.GetVariable("PATH");
     println(path);
 
-    // Explicit method form is identical in behavior.
     home: string = Environment.GetVariable("HOME");
     println(home);
 }`}
