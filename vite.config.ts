@@ -7,7 +7,7 @@ import { inspectAttr } from 'kimi-plugin-inspect-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/shardscript-info/',
   plugins: [
     inspectAttr(),
     { enforce: 'pre', ...mdx({ remarkPlugins: [remarkFrontmatter] }) },

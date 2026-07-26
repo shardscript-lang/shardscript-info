@@ -15,13 +15,21 @@ groupOrder: 1
   language server.
 </Prose>
 
-<H2>Install from a Release (Windows)</H2>
+<H2>Install from a Release</H2>
 
 <Prose>
-  The fastest way to get ShardScript on Windows is to run the installer PowerShell script from the
-  latest GitHub release. The script downloads the prebuilt Windows archive, extracts it into{' '}
-  <InlineCode>%ProgramFiles%\ShardScript</InlineCode>, and creates the{' '}
-  <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable pointing at that directory.
+  Prebuilt binaries are published for Windows and Linux on the{' '}
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.4.0" className="underline">0.4.0 release</a>{' '}
+  page. The installer scripts below download the matching archive, extract it into a system-wide directory,
+  and set up the <InlineCode>SHARDSCRIPT</InlineCode> environment variable.
+</Prose>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Windows</h3>
+
+<Prose>
+  The PowerShell installer extracts the Windows archive into{' '}
+  <InlineCode>%ProgramFiles%\ShardScript</InlineCode> and creates the{' '}
+  <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable.
 </Prose>
 
 <CodeBlock
@@ -38,22 +46,52 @@ Invoke-WebRequest -Uri "https://shardscript-lang.github.io/shardscript-info/inst
 # One-liner with PATH registration
 & ([scriptblock]::Create((irm https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1))) -AddToPath`}
   language="powershell"
-  filename="install.ps1"
+  filename="install-windows.ps1"
 />
 
 <Prose>
-  After the script finishes, open a new terminal so the updated environment variables take effect. The
-  interpreter will be located at <InlineCode>%ProgramFiles%\ShardScript\shard.exe</InlineCode> and the
-  standard shards will be in the <InlineCode>system</InlineCode> folder beside it.
+  After the script finishes, open a new terminal. The interpreter will be located at{' '}
+  <InlineCode>%ProgramFiles%\ShardScript\shard.exe</InlineCode> and the standard shards will be in the{' '}
+  <InlineCode>system</InlineCode> folder beside it.
 </Prose>
 
-<Callout tone="blue" title="What the script does">
-  The installer requires Administrator privileges because it writes to{' '}
-  <InlineCode>%ProgramFiles%</InlineCode> and updates machine-level environment variables. It downloads
-  <InlineCode>shardscript-0.4.0-windows.zip</InlineCode> from the{' '}
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Linux</h3>
+
+<Prose>
+  The Bash installer extracts the Linux archive into <InlineCode>/opt/shardscript</InlineCode>, symlinks{' '}
+  <InlineCode>shard</InlineCode> into <InlineCode>/usr/local/bin</InlineCode> so it is on the default PATH,
+  and writes <InlineCode>SHARDSCRIPT</InlineCode> to <InlineCode>/etc/profile.d/shardscript.sh</InlineCode>{' '}
+  for all users.
+</Prose>
+
+<CodeBlock
+  code={`# Option A: one-liner (run as root or with sudo)
+curl -fsSL https://shardscript-lang.github.io/shardscript-info/install-shardscript.sh | sudo bash
+
+# Option B: download the script first so you can inspect it
+curl -fsSL https://shardscript-lang.github.io/shardscript-info/install-shardscript.sh -o install-shardscript.sh
+sudo bash install-shardscript.sh`}
+  language="bash"
+  filename="install-linux.sh"
+/>
+
+<Prose>
+  After the script finishes, open a new terminal or run{' '}
+  <InlineCode>source /etc/profile.d/shardscript.sh</InlineCode>. The interpreter will be located at{' '}
+  <InlineCode>/opt/shardscript/shard</InlineCode>, the standard shards will be in{' '}
+  <InlineCode>/opt/shardscript/system</InlineCode>, and the <InlineCode>shard</InlineCode> command will be
+  available from any prompt.
+</Prose>
+
+<Callout tone="blue" title="What the scripts do">
+  Both installers require root/Administrator privileges because they write to system directories. They
+  download <InlineCode>shardscript-0.4.0-windows.zip</InlineCode> or{' '}
+  <InlineCode>shardscript-0.4.0-linux.tar.gz</InlineCode> from the{' '}
   <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.4.0" className="underline">0.4.0 release</a>,
-  expands the archive, sets <InlineCode>SHARDSCRIPT</InlineCode> to the install root, and optionally appends
-  that root to <InlineCode>PATH</InlineCode>.
+  extract the archive, set <InlineCode>SHARDSCRIPT</InlineCode> to the install root, and make the{' '}
+  <InlineCode>shard</InlineCode> command available. The Windows script optionally appends the install root to
+  machine <InlineCode>PATH</InlineCode>; the Linux script creates a symlink in{' '}
+  <InlineCode>/usr/local/bin</InlineCode> instead.
 </Callout>
 
 <H2>Building the Interpreter</H2>

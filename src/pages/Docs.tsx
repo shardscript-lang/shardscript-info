@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, Suspense, lazy } from 'react'
 import type { ComponentType } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Search, ChevronDown } from 'lucide-react'
 import ScrollReveal from '../components/ScrollReveal'
 import MdxPage from '../components/docs/MdxPage'
@@ -76,18 +76,41 @@ function ArticleLoader({ file }: ArticleLoaderProps) {
 export default function Docs() {
   const location = useLocation()
   const navigate = useNavigate()
+  const params = useParams()
+
+  const parseDocPath = (path: string): { mode: DocSection; slug: string } | null => {
+    const normalized = path.replace(/^\//, '').replace(/\/$/, '')
+    const match = normalized.match(/^(getting-started|syntax|stdlib)\/([^/]+)$/)
+    if (!match) {
+      return null
+    }
+    const mode = match[1] as DocSection
+    const slug = decodeURIComponent(match[2])
+    if (findArticle(slug)) {
+      return { mode, slug }
+    }
+    return { mode, slug: firstSlug(mode) }
+  }
 
   const getInitialState = (): { mode: DocSection; slug: string } => {
-    const hash = location.hash
-    const match = hash.match(/^#\/docs\/(getting-started|syntax|stdlib)\/([^/]+)$/)
-    if (match) {
-      const mode = match[1] as DocSection
-      const slug = decodeURIComponent(match[2])
+    // Prefer the clean pathname (/shardscript-info/docs/<section>/<slug>).
+    const docsPath = (params['*'] ?? '').trim()
+    const parsedPath = docsPath ? parseDocPath(docsPath) : null
+    if (parsedPath) {
+      return parsedPath
+    }
+
+    // Fall back to the legacy hash format (#/docs/<section>/<slug>).
+    const hashMatch = location.hash.match(/^#\/docs\/(getting-started|syntax|stdlib)\/([^/]+)$/)
+    if (hashMatch) {
+      const mode = hashMatch[1] as DocSection
+      const slug = decodeURIComponent(hashMatch[2])
       if (findArticle(slug)) {
         return { mode, slug }
       }
       return { mode, slug: firstSlug(mode) }
     }
+
     return { mode: 'getting-started', slug: firstSlug('getting-started') }
   }
 
@@ -103,9 +126,9 @@ export default function Docs() {
   const activeGroup = findGroup(docMode, activeSlug)
 
   useEffect(() => {
-    const hash = `#/docs/${docMode}/${encodeURIComponent(activeSlug)}`
-    if (location.hash !== hash) {
-      navigate(hash, { replace: true })
+    const expectedPath = `/shardscript-info/docs/${docMode}/${encodeURIComponent(activeSlug)}`
+    if (location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true })
     }
   }, [activeSlug, docMode])
 
