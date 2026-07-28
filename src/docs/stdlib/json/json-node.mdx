@@ -68,7 +68,7 @@ public static func Main() -> void
   headers={['Member', 'Return Type', 'Return Value']}
   rows={[
     [<code>Parse(text)</code>, 'JsonNode', 'The root node of the parsed JSON document.'],
-    [<code>Kind</code>, 'string', 'One of: "null", "bool", "number", "string", "array", "object".'],
+    [<code>Kind</code>, 'JsonNodeKind', 'One of: Null, Boolean, Number, String, Array, Object.'],
     [<code>IsNull</code>, 'bool', 'True if the node is null or missing.'],
     [<code>IsObject</code>, 'bool', 'True if the node is a JSON object.'],
     [<code>IsArray</code>, 'bool', 'True if the node is a JSON array.'],
@@ -125,11 +125,11 @@ public static func Main() -> void
 
 <Prose>
   <strong>Type inspection.</strong> Always inspect a node's kind before assuming its shape.
-  <InlineCode>Kind()</InlineCode> returns stable string labels, while the convenience predicates
-  <InlineCode>IsNull</InlineCode>, <InlineCode>IsObject</InlineCode>, and{' '}
+  <InlineCode>Kind</InlineCode> returns a <InlineCode>JsonNodeKind</InlineCode> value, while the
+  convenience predicates <InlineCode>IsNull</InlineCode>, <InlineCode>IsObject</InlineCode>, and{' '}
   <InlineCode>IsArray</InlineCode> cover the most common checks. A missing key or out-of-bounds
   access returns the VM's <InlineCode>null</InlineCode> instance, so{' '}
-  <InlineCode>node.Get("missing").IsNull()</InlineCode> is true.
+  <InlineCode>node.Get("missing").IsNull</InlineCode> is true.
 </Prose>
 
 <Prose>
@@ -137,7 +137,7 @@ public static func Main() -> void
   they return zero-like defaults for mismatched kinds rather than throwing. This makes them useful
   for loosely-structured data, but it also means typos in keys silently produce 0 or empty strings.
   Use <InlineCode>Contains</InlineCode> or <InlineCode>Kind</InlineCode> when you need to distinguish
-  between "missing", "null", and "present but zero".
+  between missing, null, and present-but-zero values.
 </Prose>
 
 <Prose>
@@ -224,11 +224,11 @@ public static func Main() -> void
     text: string = "{\"a\":[1,2,3],\"b\":\"hi\",\"c\":null,\"d\":true,\"e\":-2.5e1}";
     root: JsonNode = JsonNode.Parse(text);
 
-    println(root.Kind());                   // object
+    println(root.Kind);                     // Object
     println(root.Get("b").AsString());      // hi
     println(root.Get("a").Length());        // 3
     println(root.Get("a").At(2).AsInt());   // 3
-    println(root.Get("c").IsNull());        // true
+    println(root.Get("c").IsNull);          // true
     println(root.Get("d").AsBool());        // true
     println(root.Get("e").AsDouble());      // -25.0
     println(root.Contains("a"));            // true
@@ -327,13 +327,13 @@ public static func Main() -> void
 
     // Correct: check existence and kind before extraction.
     target: JsonNode = root.Get("value");
-    if (!target.IsNull() && target.Kind() == "number")
+    if (!target.IsNull && target.Kind == JsonNodeKind.Number)
     {
         println("value is present: " + target.AsInt());
     }
 
     // Check for null vs missing with IsNull.
-    if (root.Get("missing").IsNull())
+    if (root.Get("missing").IsNull)
     {
         println("missing is null or absent");
     }
