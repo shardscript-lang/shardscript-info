@@ -60,6 +60,10 @@ const manifest: DocManifest = {
           "title": "Primitive Types"
         },
         {
+          "slug": "enums",
+          "title": "Enums"
+        },
+        {
           "slug": "operators",
           "title": "Operators"
         },
@@ -434,7 +438,7 @@ const manifest: DocManifest = {
       "title": "Operators",
       "group": "Fundamentals",
       "groupOrder": 1,
-      "order": 4,
+      "order": 5,
       "file": "syntax/fundamentals/04-operators.mdx",
       "section": "syntax"
     },
@@ -443,7 +447,7 @@ const manifest: DocManifest = {
       "title": "Strings and Interpolation",
       "group": "Fundamentals",
       "groupOrder": 1,
-      "order": 5,
+      "order": 6,
       "file": "syntax/fundamentals/05-strings-and-interpolation.mdx",
       "section": "syntax"
     },
@@ -452,7 +456,7 @@ const manifest: DocManifest = {
       "title": "Arrays",
       "group": "Fundamentals",
       "groupOrder": 1,
-      "order": 6,
+      "order": 7,
       "file": "syntax/fundamentals/06-arrays.mdx",
       "section": "syntax"
     },
@@ -461,8 +465,17 @@ const manifest: DocManifest = {
       "title": "Lists and Dictionaries",
       "group": "Fundamentals",
       "groupOrder": 1,
-      "order": 7,
+      "order": 8,
       "file": "syntax/fundamentals/07-lists-and-dictionaries.mdx",
+      "section": "syntax"
+    },
+    "enums": {
+      "slug": "enums",
+      "title": "Enums",
+      "group": "Fundamentals",
+      "groupOrder": 1,
+      "order": 4,
+      "file": "syntax/fundamentals/04-enums.mdx",
       "section": "syntax"
     },
     "conditionals": {

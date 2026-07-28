@@ -341,7 +341,7 @@ public static func Main() -> void
     // Array bounds return null nodes, not errors.
     arr: JsonNode = JsonNode.Parse("[10,20]");
     bad: JsonNode = arr.At(99);
-    println(bad.IsNull());    // true
+    println(bad.IsNull);      // true
 }`}
   language="csharp"
   filename="jsonnode_defensive.shard"
@@ -368,7 +368,7 @@ public static func Main() -> void
     println(node.Active as bool);      // true
 
     // Missing members produce a null node rather than throwing.
-    println(node.Missing.IsNull());    // true
+    println(node.Missing.IsNull);      // true
     println(node.Missing as int);      // 0
 
     // Array elements still use At(index).
@@ -424,6 +424,6 @@ public static func Main() -> void
   an empty string. For example, <InlineCode>JsonNode.Parse("42").AsString()</InlineCode> returns
   the string <InlineCode>&quot;42&quot;</InlineCode> and{' '}
   <InlineCode>JsonNode.Parse("[1,2]").AsString()</InlineCode> returns the string
-  <InlineCode>&quot;[1,2]&quot;</InlineCode>. Use <InlineCode>Kind()</InlineCode> first if you need
+  <InlineCode>&quot;[1,2]&quot;</InlineCode>. Use <InlineCode>Kind</InlineCode> first if you need
   to distinguish strings from other types.
 </Callout>

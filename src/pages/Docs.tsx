@@ -48,7 +48,7 @@ function ArticleLoader({ file }: ArticleLoaderProps) {
     const loader = mdxModules[key]
     if (!loader) {
       const MissingModule = () => (
-        <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-6">
+        <div className="bg-[#1B1B1E] border border-[#353539] rounded-card p-6">
           <p className="text-text-secondary">Could not load article module: {file}</p>
         </div>
       )
@@ -61,10 +61,10 @@ function ArticleLoader({ file }: ArticleLoaderProps) {
     <Suspense
       fallback={
         <div className="space-y-6 animate-pulse">
-          <div className="h-8 bg-[#2D2D45] rounded w-2/3" />
-          <div className="h-4 bg-[#2D2D45] rounded w-full" />
-          <div className="h-4 bg-[#2D2D45] rounded w-5/6" />
-          <div className="h-32 bg-[#2D2D45] rounded w-full" />
+          <div className="h-8 bg-[#252529] rounded w-2/3" />
+          <div className="h-4 bg-[#252529] rounded w-full" />
+          <div className="h-4 bg-[#252529] rounded w-5/6" />
+          <div className="h-32 bg-[#252529] rounded w-full" />
         </div>
       }
     >
@@ -169,8 +169,8 @@ export default function Docs() {
   }, [docMode, activeGroup, activeArticle, activeSlug])
 
   return (
-    <div className="bg-[#1E1E2E] min-h-screen">
-      <div className="lg:hidden fixed top-[72px] left-0 right-0 z-30 bg-[#252538] border-b border-[#3A3A50] px-6 py-3">
+    <div className="bg-[#1F1F23] min-h-screen">
+      <div className="lg:hidden fixed top-[72px] left-0 right-0 z-30 bg-[#1B1B1E] border-b border-[#353539] px-6 py-3">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="flex items-center gap-2 text-text-secondary font-inter text-sm"
@@ -185,19 +185,19 @@ export default function Docs() {
 
       <div className="flex pt-[70px]">
         <aside
-          className={`fixed lg:sticky top-[72px] left-0 w-[360px] h-[calc(100vh-72px)] bg-[#252538] border-r border-[#3A3A50] overflow-y-auto z-20 transition-transform duration-300 ${
+          className={`fixed lg:sticky top-[72px] left-0 w-[360px] h-[calc(100vh-72px)] bg-[#1B1B1E] border-r border-[#353539] overflow-y-auto z-20 transition-transform duration-300 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
         >
           <div className="p-0">
-            <div className="flex gap-1 mb-5 bg-[#1E1E2E] m-4 rounded-card p-1 border border-[#3A3A50]">
+            <div className="flex gap-1 mb-5 bg-[#151518] m-4 rounded-card p-1 border border-[#353539]">
               {(Object.keys(SECTION_LABELS) as DocSection[]).map((section) => (
                 <button
                   key={section}
                   onClick={() => switchMode(section)}
                   className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
                     docMode === section
-                      ? 'bg-burgundy text-white shadow-md'
+                      ? 'bg-[#4A5568] text-white shadow-md'
                       : 'text-text-muted hover:text-text-secondary'
                   }`}
                 >
@@ -213,7 +213,7 @@ export default function Docs() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#2D2D45] border border-[#3A3A50] rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted font-inter focus:outline-none focus:border-burgundy focus:shadow-glowBurgundy transition-all duration-300"
+                className="w-full bg-[#252529] border border-[#353539] rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted font-inter focus:outline-none focus:border-[#5A6A82] focus:shadow-[0_0_40px_rgba(90,106,130,0.25)] transition-all duration-300"
               />
             </div>
 
@@ -222,7 +222,7 @@ export default function Docs() {
                 <div key={group.title}>
                   <button
                     onClick={() => toggleGroup(group.title)}
-                    className="w-full flex items-center justify-between underline pl-2 pr-3 py-2 text-base font-semibold text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary bg-[rgba(30,30,46,0.5)] transition-colors duration-200"
+                    className="w-full flex items-center justify-between underline pl-2 pr-3 py-2 text-base font-semibold text-text-secondary hover:bg-[rgba(90,106,130,0.1)] hover:text-text-primary bg-[rgba(30,30,34,0.6)] transition-colors duration-200"
                   >
                     <span className="truncate">{group.title}</span>
                     <ChevronDown
@@ -244,8 +244,8 @@ export default function Docs() {
                           }}
                           className={`w-full text-left pl-7 pr-5 py-2 text-sm font-inter rounded transition-all duration-200 ${
                             activeSlug === item.slug
-                              ? 'bg-[rgba(100,110,160,0.15)] text-[#7A8AB5] border-l-[3px] border-l-burgundy'
-                              : 'text-text-secondary hover:bg-[rgba(155,45,48,0.1)] hover:text-text-primary'
+                              ? 'bg-[rgba(100,110,130,0.12)] text-[#7F90A8] border-l-[3px] border-l-[#5A6A82]'
+                              : 'text-text-secondary hover:bg-[rgba(90,106,130,0.1)] hover:text-text-primary'
                           }`}
                         >
                           {item.title}
@@ -290,7 +290,7 @@ export default function Docs() {
               {activeArticle ? (
                 <ArticleLoader file={activeArticle.file} />
               ) : (
-                <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-6">
+                <div className="bg-[#1B1B1E] border border-[#353539] rounded-card p-6">
                   <p className="text-text-secondary">
                     This article has not been migrated yet. Slug: <code>{activeSlug}</code>
                   </p>
@@ -311,7 +311,7 @@ export default function Docs() {
                 onClick={() => setActiveSlug(item.slug)}
                 className={`block w-full text-left text-sm py-1 transition-colors duration-200 ${
                   activeSlug === item.slug
-                    ? 'text-[#7A8AB5] font-medium'
+                    ? 'text-[#7F90A8] font-medium'
                     : 'text-text-muted hover:text-text-secondary'
                 }`}
               >
@@ -319,7 +319,7 @@ export default function Docs() {
               </button>
             ))}
           </div>
-          <div className="mt-8 pt-6 border-t border-[#3A3A50]">
+          <div className="mt-8 pt-6 border-t border-[#353539]">
             <p className="text-xs font-medium tracking-[0.05em] uppercase text-text-muted mb-3">
               REFERENCE
             </p>

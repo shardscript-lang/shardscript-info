@@ -24,9 +24,11 @@ Prism.languages.shardscript = {
   number: {
     pattern: /\b0x[\da-fA-F]+|\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/,
   },
+  'class-name': /(?<!\.)\b[A-Z][A-Za-z_0-9]*\b(?!\()/,
+  function: /\b[A-Za-z_]\w*(?=\()/,
   operator: /\*\*|\+\+|--|->|==|!=|<=|>=|&&|\|\||[-+*/%=<>!&|^~]=?|\.\./,
   punctuation: /[{}[\];(),.:]/,
-  function: /\b[A-Za-z_]\w*(?=\()/,
+  identifier: /\b[A-Za-z_]\w*\b/,
 }
 
 interface CodeBlockProps {
@@ -58,9 +60,9 @@ export default function CodeBlock({
   }
 
   return (
-    <div className="mb-4 rounded-code overflow-hidden border border-[#333350] bg-[#0D0D18] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+    <div className="mb-4 rounded-code overflow-hidden border border-[#2E2E32] bg-[#0F0F12] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 bg-[#2D2D45] border-b border-[#3A3A50]">
+      <div className="flex items-center justify-between px-5 py-3 bg-[#252529] border-b border-[#2E2E32]">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-[#B83A3A]" />
           <div className="w-3 h-3 rounded-full bg-[#C4852E]" />
@@ -104,27 +106,27 @@ export default function CodeBlock({
                     <span className="table-cell">
                       {line.map((token, key) => {
                         const tokenProps = getTokenProps({ token })
-                        // Override colors for high contrast on the dark code background.
+                        // Visual Studio C# dark theme colors.
                         const tokenStyle = { ...tokenProps.style }
-                        if (token.types.includes('keyword')) {
-                          tokenStyle.color = '#F0C674'
-                        } else if (token.types.includes('builtin')) {
-                          tokenStyle.color = '#81A2BE'
-                        } else if (token.types.includes('string') || token.types.includes('char')) {
-                          tokenStyle.color = '#B5BD68'
-                        } else if (token.types.includes('function')) {
-                          tokenStyle.color = '#DE935F'
-                        } else if (token.types.includes('comment')) {
-                          tokenStyle.color = '#969896'
+                        if (token.types.includes('comment')) {
+                          tokenStyle.color = '#6A9955'
                           tokenStyle.fontStyle = 'italic'
-                        } else if (token.types.includes('class-name')) {
-                          tokenStyle.color = '#8ABEB7'
+                        } else if (token.types.includes('keyword')) {
+                          tokenStyle.color = '#569CD6'
+                        } else if (token.types.includes('builtin')) {
+                          tokenStyle.color = '#569CD6'
+                        } else if (token.types.includes('function')) {
+                          tokenStyle.color = '#DCDCAA'
+                        } else if (token.types.includes('string') || token.types.includes('char')) {
+                          tokenStyle.color = '#CE9178'
                         } else if (token.types.includes('number')) {
-                          tokenStyle.color = '#DE935F'
-                        } else if (token.types.includes('operator')) {
-                          tokenStyle.color = '#C5C8C6'
-                        } else if (token.types.includes('punctuation')) {
-                          tokenStyle.color = '#C5C8C6'
+                          tokenStyle.color = '#B5CEA8'
+                        } else if (token.types.includes('class-name')) {
+                          tokenStyle.color = '#46B67B'
+                        } else if (token.types.includes('identifier')) {
+                          tokenStyle.color = '#71BBFB'
+                        } else if (token.types.includes('operator') || token.types.includes('punctuation')) {
+                          tokenStyle.color = '#D4D4D4'
                         }
                         return (
                           <span key={key} {...tokenProps} style={tokenStyle} />

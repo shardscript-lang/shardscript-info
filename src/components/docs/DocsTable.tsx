@@ -7,10 +7,10 @@ interface DocsTableProps {
 
 export default function DocsTable({ headers, rows }: DocsTableProps) {
   return (
-    <div className="overflow-x-auto mb-4">
-      <table className="w-full border border-[#3A3A50] rounded-card overflow-hidden">
+    <div className="overflow-x-auto mb-4 rounded-card border border-[#353539]">
+      <table className="w-full border-separate border-spacing-0">
         <thead>
-          <tr className="bg-[#2D2D45]">
+          <tr className="bg-[#2A2A2E]">
             {headers.map((h, i) => (
               <th
                 key={i}
@@ -23,7 +23,7 @@ export default function DocsTable({ headers, rows }: DocsTableProps) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? 'bg-[#1E1E2E]' : 'bg-[#252538]'}>
+            <tr key={i} className={i % 2 === 0 ? 'bg-[#1E1E22]' : 'bg-[#252529]'}>
               {row.map((cell, j) => (
                 <td key={j} className="px-4 py-3 text-sm text-text-secondary">
                   {cell}

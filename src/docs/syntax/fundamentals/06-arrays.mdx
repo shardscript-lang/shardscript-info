@@ -1,7 +1,7 @@
 ---
 title: Arrays
 group: Fundamentals
-order: 6
+order: 7
 slug: arrays
 type: Reference
 groupOrder: 1
@@ -21,8 +21,9 @@ groupOrder: 1
 <Prose>
   Arrays store a fixed number of elements of a single type <InlineCode>T</InlineCode>,
   accessed by a zero-based <InlineCode>int</InlineCode> index. They are created with
-  literals such as <InlineCode>[1, 2, 3]</InlineCode> or by assigning a range such as{' '}
-  <InlineCode>1..5</InlineCode>. The element type, length, index, and enumerable
+  literals such as <InlineCode>[1, 2, 3]</InlineCode>, by assigning a range such as{' '}
+  <InlineCode>1..5</InlineCode>, or with sized creation such as{' '}
+  <InlineCode>new int[10]</InlineCode>. The element type, length, index, and enumerable
   behavior are all verified by the compiler; out-of-bounds access produces a
   runtime exception.
 </Prose>
@@ -35,6 +36,7 @@ groupOrder: 1
     ['Array type', <code>T[]</code>, 'A fixed-size array whose element type is T.'],
     ['Array literal', <code>[expr1, expr2, ...]</code>, 'Creates a new array containing the given elements.'],
     ['Empty literal', <code>[]</code>, 'An array literal with no elements (requires a target type for inference).'],
+    ['Sized creation', <code>new T[size]</code>, 'Creates a new array of T with the given number of elements, zero-initialized.'],
     ['Range-to-array', <code>lower..upper</code>, 'Produces an int[] from lower (inclusive) to upper (exclusive).'],
     ['Inclusive range', <code>lower..&upper</code>, 'Produces an int[] from lower (inclusive) to upper (inclusive).'],
     ['Indexer get', <code>array[index]</code>, 'Reads the element at the zero-based index.'],
@@ -72,6 +74,10 @@ groupOrder: 1
   <Bullet>
     <InlineCode>item</InlineCode> — the loop variable introduced by{' '}
     <InlineCode>foreach</InlineCode>. Its type is inferred from the array's element type.
+  </Bullet>
+  <Bullet>
+    <InlineCode>size</InlineCode> — an <InlineCode>int</InlineCode> expression that specifies how
+    many elements the new array should hold. The expression is evaluated once at creation time.
   </Bullet>
 </ul>
 
@@ -114,6 +120,11 @@ groupOrder: 1
     index outside <InlineCode>0 .. Length - 1</InlineCode> throws.
   </Bullet>
   <Bullet>
+    <strong>Compile error — non-int array size:</strong>{' '}
+    <InlineCode>new T[size]</InlineCode> requires <InlineCode>size</InlineCode> to be an{' '}
+    <InlineCode>int</InlineCode> expression.
+  </Bullet>
+  <Bullet>
     <strong>Runtime error — null array access:</strong> indexing or reading{' '}
     <InlineCode>Length</InlineCode> on a <InlineCode>null</InlineCode> array reference
     throws a null-reference exception.
@@ -127,6 +138,14 @@ groupOrder: 1
   cannot change. For a dynamically sized sequence, use{' '}
   <InlineCode>List&lt;T&gt;</InlineCode> from the <InlineCode>collections</InlineCode>{' '}
   shard.
+</Prose>
+
+<Prose>
+  <strong>Sized creation.</strong> The expression <InlineCode>new T[size]</InlineCode> allocates a
+  fixed-length array whose element type is <InlineCode>T</InlineCode>. The size expression must
+  evaluate to <InlineCode>int</InlineCode>. Value-type elements are zero-initialized; reference-type
+  elements are initialized to <InlineCode>null</InlineCode>. This is useful when you know the
+  required length ahead of time and intend to fill the array element by element.
 </Prose>
 
 <Prose>
@@ -193,6 +212,35 @@ public static func Main() -> void
 }`}
   language="csharp"
   filename="arrays_basic.shard"
+/>
+
+<Prose>
+  <strong>Sized creation with new</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Create a fixed-size int array and fill it.
+    values: int[] = new int[4];
+    values[0] = 10;
+    values[1] = 20;
+    values[2] = 30;
+    values[3] = 40;
+
+    println(values.Length);     // 4
+    println(values[0]);         // 10
+
+    // Reference-type elements start as null.
+    objects: object[] = new object[3];
+    println(objects[0] == null); // true
+}`}
+  language="csharp"
+  filename="arrays_sized_creation.shard"
 />
 
 <Prose>
