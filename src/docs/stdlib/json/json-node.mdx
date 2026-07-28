@@ -68,10 +68,10 @@ public static func Main() -> void
   headers={['Member', 'Return Type', 'Return Value']}
   rows={[
     [<code>Parse(text)</code>, 'JsonNode', 'The root node of the parsed JSON document.'],
-    [<code>Kind()</code>, 'string', 'One of: "null", "bool", "number", "string", "array", "object".'],
-    [<code>IsNull()</code>, 'bool', 'True if the node is null or missing.'],
-    [<code>IsObject()</code>, 'bool', 'True if the node is a JSON object.'],
-    [<code>IsArray()</code>, 'bool', 'True if the node is a JSON array.'],
+    [<code>Kind</code>, 'string', 'One of: "null", "bool", "number", "string", "array", "object".'],
+    [<code>IsNull</code>, 'bool', 'True if the node is null or missing.'],
+    [<code>IsObject</code>, 'bool', 'True if the node is a JSON object.'],
+    [<code>IsArray</code>, 'bool', 'True if the node is a JSON array.'],
     [<code>AsInt()</code>, 'int', 'Integer value; non-number types return 0.'],
     [<code>AsDouble()</code>, 'double', 'Floating-point value; non-number types return 0.0.'],
     [<code>AsBool()</code>, 'bool', 'Boolean value; numbers test != 0, others return false.'],
