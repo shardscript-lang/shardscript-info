@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Suspense, lazy } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react'
 import type { ComponentType } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Search, ChevronDown } from 'lucide-react'
@@ -121,6 +121,21 @@ export default function Docs() {
   const [activeSlug, setActiveSlug] = useState(initialState.slug)
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const categoryRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+        setCategoryOpen(false)
+      }
+    }
+
+    if (categoryOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [categoryOpen])
 
   const activeArticle = findArticle(activeSlug)
   const activeGroup = findGroup(docMode, activeSlug)
@@ -190,20 +205,42 @@ export default function Docs() {
           }`}
         >
           <div className="p-0">
-            <div className="flex gap-1 mb-5 bg-[#151518] m-4 rounded-card p-1 border border-[#353539]">
-              {(Object.keys(SECTION_LABELS) as DocSection[]).map((section) => (
-                <button
-                  key={section}
-                  onClick={() => switchMode(section)}
-                  className={`flex-1 py-2 text-xs font-medium font-inter rounded-md transition-all duration-200 ${
-                    docMode === section
-                      ? 'bg-[#4A5568] text-white shadow-md'
-                      : 'text-text-muted hover:text-text-secondary'
-                  }`}
-                >
-                  {SECTION_LABELS[section]}
-                </button>
-              ))}
+            <div className="relative m-4 mb-5" ref={categoryRef}>
+              <button
+                onClick={() => setCategoryOpen(!categoryOpen)}
+                className="w-full flex items-center justify-between bg-[#151518] border border-[#353539] rounded-card px-4 py-2.5 text-sm font-medium font-inter text-text-primary hover:border-[#5A6A82] transition-all duration-200"
+                aria-haspopup="listbox"
+                aria-expanded={categoryOpen}
+              >
+                {SECTION_LABELS[docMode]}
+                <ChevronDown
+                  size={16}
+                  className={`text-text-muted transition-transform duration-200 ${categoryOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {categoryOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1B1B1E] border border-[#353539] rounded-card shadow-lg overflow-hidden z-30">
+                  {(Object.keys(SECTION_LABELS) as DocSection[]).map((section) => (
+                    <button
+                      key={section}
+                      onClick={() => {
+                        switchMode(section)
+                        setCategoryOpen(false)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm font-inter transition-colors duration-200 ${
+                        docMode === section
+                          ? 'bg-[rgba(100,110,130,0.12)] text-[#7F90A8]'
+                          : 'text-text-secondary hover:bg-[rgba(90,106,130,0.1)] hover:text-text-primary'
+                      }`}
+                      role="option"
+                      aria-selected={docMode === section}
+                    >
+                      {SECTION_LABELS[section]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="relative mb-6 m-4">
