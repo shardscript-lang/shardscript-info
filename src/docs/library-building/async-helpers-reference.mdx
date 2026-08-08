@@ -1,0 +1,567 @@
+---
+title: Async Helpers Reference
+group: Advanced Topics
+order: 6
+slug: async-helpers-reference
+groupOrder: 5
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The async helpers declared in <InlineCode>{'<shard/runtime/NativeAsync.hpp>'}</InlineCode> let a native
+  callback return ShardScript <InlineCode>async.Task</InlineCode> and{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> objects without manually allocating the task instance,
+  setting state fields, or resuming awaiters. They are built on top of the libuv event loop and the
+  ShardScript garbage collector.
+</Prose>
+
+<H2>DoAsync — Summary</H2>
+
+<Prose>
+  Starts an asynchronous operation and returns a pending <InlineCode>async.Task</InlineCode>. The
+  supplied work lambda receives an <InlineCode>AsyncScope</InlineCode> that it uses to complete, fault,
+  delay, run thread-pool work, or await other ShardScript awaitables.
+</Prose>
+
+<H2>DoAsync — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+shard::ObjectInstance* shard::DoAsync(
+    const shard::CallState& context,
+    std::function<void(shard::AsyncScope)> work);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>DoAsync — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>context</InlineCode>, <InlineCode>const shard::CallState&amp;</InlineCode>, 'The callback state passed to the native method.'],
+    [<InlineCode>work</InlineCode>, <InlineCode>std::function&lt;void(shard::AsyncScope)&gt;</InlineCode>, 'A lambda that schedules the async work and eventually calls Complete or Fail on the scope.'],
+  ]}
+/>
+
+<H2>DoAsync — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> that represents a pending{' '}
+  <InlineCode>async.Task</InlineCode>. The task is rooted by the event loop until the work lambda
+  completes or faults it.
+</Prose>
+
+<H2>DoAsync — Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    If the work lambda throws before scheduling a completion, the exception is propagated through the
+    runtime and the task is typically faulted by the VM.
+  </Bullet>
+  <Bullet>
+    If the work lambda never calls <InlineCode>Complete</InlineCode> or <InlineCode>Fail</InlineCode>,
+    the task remains pending. When the VM stops, the task is faulted automatically with a runtime
+    halt message.
+  </Bullet>
+</ul>
+
+<H2>DoAsync — Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <InlineCode>DoAsync</InlineCode> allocates a <InlineCode>Task</InlineCode> instance, marks it pending,
+  roots it in the event loop, and then invokes the work lambda. The lambda should not perform blocking
+  I/O on the event-loop thread; use <InlineCode>AsyncScope::RunOnThreadPool</InlineCode> for blocking
+  work and resume on the loop thread in its completion callback.
+</Prose>
+
+<Prose>
+  Any managed object used inside an async continuation must be pinned with{' '}
+  <InlineCode>ObjectRef</InlineCode>. Once the original native callback returns, the call frame no
+  longer keeps the arguments alive.
+</Prose>
+
+<H2>DoAsync — Examples</H2>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+#include <shard/runtime/NativeAsync.hpp>
+
+using namespace shard;
+
+static ObjectInstance* delayed_void(const CallState& context) noexcept
+{
+    std::int64_t milliseconds = context.Args[0]->AsInteger();
+
+    return DoAsync(context, [milliseconds](AsyncScope async)
+    {
+        async.Delay(milliseconds, [async]() mutable
+        {
+            async.Complete();
+        });
+    });
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"demo");
+
+    ns.AddClass(L"Clock", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"Delay", TYPE_VOID, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"milliseconds", TYPE_INT)
+            .SetCallback(&delayed_void);
+    });
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>DoValueTask&lt;T&gt; — Summary</H2>
+
+<Prose>
+  Starts an asynchronous operation that produces a single value and returns a pending{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode>. The work lambda receives an{' '}
+  <InlineCode>AsyncValueScope&lt;T&gt;</InlineCode> and completes it by calling{' '}
+  <InlineCode>Complete(T value)</InlineCode>.
+</Prose>
+
+<H2>DoValueTask&lt;T&gt; — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+template <typename T>
+shard::ObjectInstance* shard::DoValueTask(
+    const shard::CallState& context,
+    std::function<void(shard::AsyncValueScope<T>)> work);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>DoValueTask&lt;T&gt; — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>T</InlineCode>, 'a supported value or reference type', 'The result type of the ValueTask.'],
+    [<InlineCode>context</InlineCode>, <InlineCode>const shard::CallState&amp;</InlineCode>, 'The callback state passed to the native method.'],
+    [<InlineCode>work</InlineCode>, <InlineCode>std::function&lt;void(shard::AsyncValueScope&lt;T&gt;)&gt;</InlineCode>, 'A lambda that schedules the work and calls Complete with the result value.'],
+  ]}
+/>
+
+<H2>DoValueTask&lt;T&gt; — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> that represents a pending{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode>. The result type is inferred from the template
+  argument.
+</Prose>
+
+<H2>DoValueTask&lt;T&gt; — Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Throws at compile time if <InlineCode>T</InlineCode> is not one of the supported types. An
+    unsupported type falls back to <InlineCode>Any</InlineCode> and may produce a{' '}
+    <InlineCode>ValueTask&lt;any&gt;</InlineCode> that does not match the registered return type.
+  </Bullet>
+  <Bullet>
+    Throws or faults the task if the work lambda throws before completing.
+  </Bullet>
+</ul>
+
+<H2>DoValueTask&lt;T&gt; — Remarks</H2>
+
+<Prose>
+  Supported result types are <InlineCode>std::int64_t</InlineCode>,{' '}
+  <InlineCode>std::uint8_t</InlineCode>, <InlineCode>double</InlineCode>, <InlineCode>bool</InlineCode>,
+  <InlineCode>wchar_t</InlineCode>, <InlineCode>std::wstring</InlineCode>,{' '}
+  <InlineCode>const wchar_t*</InlineCode>, and <InlineCode>ObjectInstance*</InlineCode> (including{' '}
+  <InlineCode>const ObjectInstance*</InlineCode>). The helper boxes the value through the garbage
+  collector before storing it in the task result field.
+</Prose>
+
+<H2>DoValueTask&lt;T&gt; — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* delayed_value(const CallState& context) noexcept
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    std::int64_t milliseconds = context.Args[1]->AsInteger();
+
+    return DoValueTask<std::int64_t>(context, [value, milliseconds](AsyncValueScope<std::int64_t> async)
+    {
+        async.Delay(milliseconds, [async, value]() mutable
+        {
+            async.Complete(value);
+        });
+    });
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>CompletedTask — Summary</H2>
+
+<Prose>
+  Returns an <InlineCode>async.Task</InlineCode> that is already in the completed state. Use it when a
+  native callback has no real asynchronous work to perform but must still return a{' '}
+  <InlineCode>Task</InlineCode> to satisfy its registered signature.
+</Prose>
+
+<H2>CompletedTask — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+shard::ObjectInstance* shard::CompletedTask(const shard::CallState& context);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>CompletedTask — Parameters / Arguments</H2>
+
+<Prose>
+  Takes only the callback state. No additional arguments are required.
+</Prose>
+
+<H2>CompletedTask — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> representing a completed{' '}
+  <InlineCode>async.Task</InlineCode>.
+</Prose>
+
+<H2>CompletedTask — Exceptions / Errors</H2>
+
+<Prose>
+  This helper does not throw. Allocation failures are handled by the garbage collector and reported
+  through the runtime.
+</Prose>
+
+<H2>CompletedTask — Remarks</H2>
+
+<Prose>
+  The returned task has no continuation scheduled. Awaiting it completes synchronously because the
+  state field is already set to <InlineCode>AsyncState::COMPLETED</InlineCode>.
+</Prose>
+
+<H2>CompletedTask — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* noop_async(const CallState& context) noexcept
+{
+    return CompletedTask(context);
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>CompletedValueTask&lt;T&gt; — Summary</H2>
+
+<Prose>
+  Returns an <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> that is already completed with the
+  supplied value. Use it for synchronous fast paths inside an otherwise async API.
+</Prose>
+
+<H2>CompletedValueTask&lt;T&gt; — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+template <typename T>
+shard::ObjectInstance* shard::CompletedValueTask(
+    const shard::CallState& context,
+    T value);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>CompletedValueTask&lt;T&gt; — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>T</InlineCode>, 'a supported value or reference type', 'The result type of the ValueTask.'],
+    [<InlineCode>context</InlineCode>, <InlineCode>const shard::CallState&amp;</InlineCode>, 'The callback state passed to the native method.'],
+    [<InlineCode>value</InlineCode>, <InlineCode>T</InlineCode>, 'The value to store in the completed task.'],
+  ]}
+/>
+
+<H2>CompletedValueTask&lt;T&gt; — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> representing a completed{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> with the result field populated.
+</Prose>
+
+<H2>CompletedValueTask&lt;T&gt; — Exceptions / Errors</H2>
+
+<Prose>
+  This helper does not throw. An unsupported type for <InlineCode>T</InlineCode> falls back to{' '}
+  <InlineCode>Any</InlineCode> and may produce a type mismatch at the call site.
+</Prose>
+
+<H2>CompletedValueTask&lt;T&gt; — Remarks</H2>
+
+<Prose>
+  The supported types are the same as for <InlineCode>DoValueTask&lt;T&gt;</InlineCode>. The value is
+  boxed through the garbage collector before being stored in the task result field.
+</Prose>
+
+<H2>CompletedValueTask&lt;T&gt; — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* cached_value(const CallState& context) noexcept
+{
+    return CompletedValueTask<std::int64_t>(context, 42);
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>FaultedTask — Summary</H2>
+
+<Prose>
+  Returns an <InlineCode>async.Task</InlineCode> that is already in the faulted state. Two overloads
+  are provided: one that builds a <InlineCode>RuntimeException</InlineCode> from a message, and one
+  that accepts an existing exception object.
+</Prose>
+
+<H2>FaultedTask — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+shard::ObjectInstance* shard::FaultedTask(
+    const shard::CallState& context,
+    const std::wstring& message);
+
+shard::ObjectInstance* shard::FaultedTask(
+    const shard::CallState& context,
+    shard::ObjectInstance* exception);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>FaultedTask — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>context</InlineCode>, <InlineCode>const shard::CallState&amp;</InlineCode>, 'The callback state passed to the native method.'],
+    [<InlineCode>message</InlineCode>, <InlineCode>const std::wstring&amp;</InlineCode>, 'The exception message stored in a new RuntimeException.'],
+    [<InlineCode>exception</InlineCode>, <InlineCode>shard::ObjectInstance*</InlineCode>, 'An existing exception object. Null is stored as NullInstance.'],
+  ]}
+/>
+
+<H2>FaultedTask — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> representing a faulted{' '}
+  <InlineCode>async.Task</InlineCode> with the exception field populated.
+</Prose>
+
+<H2>FaultedTask — Exceptions / Errors</H2>
+
+<Prose>
+  This helper does not throw. If <InlineCode>exception</InlineCode> is <InlineCode>nullptr</InlineCode>,
+  the helper stores <InlineCode>GarbageCollector::NullInstance</InlineCode> in the exception field.
+</Prose>
+
+<H2>FaultedTask — Remarks</H2>
+
+<Prose>
+  The message overload is the most common way to fail a task from native code. It internally calls{' '}
+  <InlineCode>CreateRuntimeException</InlineCode> to build a managed{' '}
+  <InlineCode>RuntimeException</InlineCode> instance.
+</Prose>
+
+<H2>FaultedTask — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* always_fails(const CallState& context) noexcept
+{
+    return FaultedTask(context, L"native operation is not supported");
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>CreateRuntimeException — Summary</H2>
+
+<Prose>
+  Constructs a managed <InlineCode>RuntimeException</InlineCode> instance with the supplied message and
+  an empty stack trace. It is the same helper used by <InlineCode>FaultedTask</InlineCode> and by{' '}
+  <InlineCode>AsyncScope::Fail(const std::wstring&amp;)</InlineCode>.
+</Prose>
+
+<H2>CreateRuntimeException — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+shard::ObjectInstance* shard::CreateRuntimeException(
+    shard::GarbageCollector& collector,
+    const std::wstring& message);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>CreateRuntimeException — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>collector</InlineCode>, <InlineCode>shard::GarbageCollector&amp;</InlineCode>, 'The garbage collector used to allocate the exception instance and box the message.'],
+    [<InlineCode>message</InlineCode>, <InlineCode>const std::wstring&amp;</InlineCode>, 'The exception message stored in the RuntimeException.Message field.'],
+  ]}
+/>
+
+<H2>CreateRuntimeException — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> that represents a new{' '}
+  <InlineCode>RuntimeException</InlineCode> object. The object is owned by the garbage collector.
+</Prose>
+
+<H2>CreateRuntimeException — Exceptions / Errors</H2>
+
+<Prose>
+  This helper does not throw. Allocation failures are reported by the garbage collector through the
+  runtime.
+</Prose>
+
+<H2>CreateRuntimeException — Remarks</H2>
+
+<Prose>
+  Use <InlineCode>CreateRuntimeException</InlineCode> when you need an exception object independently
+  of the async helpers, for example when implementing a custom error callback or when passing an
+  exception to <InlineCode>AsyncScope::Fail(ObjectInstance*)</InlineCode>.
+</Prose>
+
+<H2>CreateRuntimeException — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* validate_positive(const CallState& context) noexcept
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+
+    if (value <= 0)
+    {
+        ObjectInstance* exception = CreateRuntimeException(
+            context.Collector,
+            L"value must be greater than zero");
+
+        return FaultedTask(context, exception);
+    }
+
+    return CompletedValueTask<std::int64_t>(context, value);
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<H2>FaultedValueTask&lt;T&gt; — Summary</H2>
+
+<Prose>
+  Returns an <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> that is already in the faulted state. The
+  helper builds a <InlineCode>RuntimeException</InlineCode> from the supplied message and faults a value task
+  of the requested result type.
+</Prose>
+
+<H2>FaultedValueTask&lt;T&gt; — Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeAsync.hpp>
+
+template <typename T>
+shard::ObjectInstance* shard::FaultedValueTask(
+    const shard::CallState& context,
+    const std::wstring& message);`}
+  language="cpp"
+  filename="NativeAsync.hpp"
+/>
+
+<H2>FaultedValueTask&lt;T&gt; — Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>T</InlineCode>, 'a supported value or reference type', 'The result type of the ValueTask.'],
+    [<InlineCode>context</InlineCode>, <InlineCode>const shard::CallState&amp;</InlineCode>, 'The callback state passed to the native method.'],
+    [<InlineCode>message</InlineCode>, <InlineCode>const std::wstring&amp;</InlineCode>, 'The exception message stored in a new RuntimeException.'],
+  ]}
+/>
+
+<H2>FaultedValueTask&lt;T&gt; — Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>shard::ObjectInstance*</InlineCode> representing a faulted{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> with the exception field populated.
+</Prose>
+
+<H2>FaultedValueTask&lt;T&gt; — Exceptions / Errors</H2>
+
+<Prose>
+  This helper does not throw. It internally creates a <InlineCode>RuntimeException</InlineCode> and stores
+  it in the faulted task's exception field.
+</Prose>
+
+<H2>FaultedValueTask&lt;T&gt; — Remarks</H2>
+
+<Prose>
+  Use <InlineCode>FaultedValueTask&lt;T&gt;</InlineCode> when a callback that returns a value task needs to
+  fail synchronously, for example when argument validation fails before any async work is scheduled. The
+  supported types for <InlineCode>T</InlineCode> are the same as for{' '}
+  <InlineCode>DoValueTask&lt;T&gt;</InlineCode>.
+</Prose>
+
+<H2>FaultedValueTask&lt;T&gt; — Examples</H2>
+
+<CodeBlock
+  code={`static ObjectInstance* read_fails(const CallState& context) noexcept
+{
+    return FaultedValueTask<std::int64_t>(context, L"native read operation is not supported");
+}`}
+  language="cpp"
+  filename="asyncdemo.cpp"
+/>
+
+<Callout tone="blue" title="Completing the helper set">
+  <InlineCode>FaultedValueTask&lt;T&gt;</InlineCode> is also available in{' '}
+  <InlineCode>{'<shard/runtime/NativeAsync.hpp>'}</InlineCode>. It behaves like{' '}
+  <InlineCode>FaultedTask</InlineCode> but allocates and faults a{' '}
+  <InlineCode>ValueTask&lt;T&gt;</InlineCode> with a <InlineCode>RuntimeException</InlineCode>.
+</Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/async-await-native</InlineCode> — using async/await in native libraries.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/example-async-io</InlineCode> — file and stream async I/O examples.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/callback-contract-overview</InlineCode> — the native callback contract.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/headers-quick-reference</InlineCode> — header locations for async helpers.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/runtime/NativeAsync.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/runtime/NativeAsync.hpp</InlineCode>.
+</Prose>

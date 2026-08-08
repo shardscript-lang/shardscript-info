@@ -1,0 +1,376 @@
+---
+title: Header Reference
+group: "Core API & Entry Point"
+order: 2
+slug: headers-quick-reference
+groupOrder: 2
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript native libraries are authored in C++ and compiled into a shared
+  library that exports <InlineCode>ShardLib_GetMetadata</InlineCode> and{' '}
+  <InlineCode>ShardLib_EntryPoint</InlineCode>. The public headers live under the
+  ShardScript include directory and expose the macros, symbol-registration API,
+  runtime callback contract, and garbage-collection helpers that a library needs
+  in order to register types and methods with the VM.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Every header is included with the standard C++ preprocessor directive. Paths that
+  start with <InlineCode>shard/</InlineCode> are sub-headers under the ShardScript
+  include tree; <InlineCode>ShardScript.hpp</InlineCode> is the umbrella header that
+  pulls in the most commonly used ones.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>`}
+  language="cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  The table below lists every header a native library is likely to include, the
+  symbols it provides, and the situation in which you should add it. Start with the
+  minimal include set and add headers only when the code you are writing needs the
+  types they declare.
+</Prose>
+
+<DocsTable
+  headers={['Header', 'Purpose', 'When to add it']}
+  rows={[
+    [
+      <InlineCode>{'<ShardScript.hpp>'}</InlineCode>,
+      'Convenience umbrella header that transitively includes the most common registration and runtime headers.',
+      'Add to every .shard.cpp file as the first include.',
+    ],
+    [
+      <InlineCode>{'<shard/ShardScriptLIB.hpp>'}</InlineCode>,
+      'Defines the SHARDLIB_GETMETADATA and SHARDLIB_ENTRYPOINT export macros.',
+      'Add to every library that registers symbols; required for the two extern "C" exports.',
+    ],
+    [
+      <InlineCode>{'<shard/semantic/SymbolBuilder.hpp>'}</InlineCode>,
+      'SymbolBuilder<T> fluent API for registering namespaces, classes, structs, interfaces, enums, methods, properties, and operators.',
+      'Add when you register symbols inside SHARDLIB_ENTRYPOINT.',
+    ],
+    [
+      <InlineCode>{'<shard/runtime/MethodCallState.hpp>'}</InlineCode>,
+      'CallState and the native callback signature shard::ObjectInstance* Callback(const shard::CallState&).',
+      'Add when you write SetCallback callbacks or reference CallState directly.',
+    ],
+    [
+      <InlineCode>{'<shard/runtime/ObjectInstance.hpp>'}</InlineCode>,
+      'ObjectInstance for reading fields, array elements, string payloads, and primitive values.',
+      'Add when a callback inspects arguments, reads this, or manipulates arrays.',
+    ],
+    [
+      <InlineCode>{'<shard/runtime/GarbageCollector.hpp>'}</InlineCode>,
+      'GarbageCollector helpers for boxing values and allocating instances and arrays.',
+      'Add when a callback returns values via context.Collector or allocates managed objects.',
+    ],
+    [
+      <InlineCode>{'<shard/runtime/NativeAsync.hpp>'}</InlineCode>,
+      'DoAsync, DoValueTask<T>, CompletedTask, FaultedTask, and async scope helpers.',
+      'Add when a method returns async.Task or async.ValueTask<T>.',
+    ],
+    [
+      <InlineCode>{'<shard/runtime/NativeHelpers.hpp>'}</InlineCode>,
+      'GetArgs<T...>, NewObject, CallMethod, GetField, SetField, GetProperty, and SetProperty helpers.',
+      'Add when a callback constructs objects, invokes methods, reads fields, or reads primitive arguments by index.',
+    ],
+    [
+      <InlineCode>{'<shard/semantic/symbols/GenericTypeSymbol.hpp>'}</InlineCode>,
+      'GenericTypeSymbol and related symbols for generic classes and type parameters.',
+      'Add when registering or allocating generic types such as List<T> or Dictionary<K,V>.',
+    ],
+    [
+      <InlineCode>{'<shard/semantic/SymbolFactory.hpp>'}</InlineCode>,
+      'SymbolFactory for constructing array types, constructed generic types, and IEnumerable<T> at registration time.',
+      'Add when a field, parameter, or return type uses an array, generic instantiation, or IEnumerable<T>.',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  Including a header makes the declarations listed in its purpose available in the
+  current translation unit. The umbrella header <InlineCode>ShardScript.hpp</InlineCode>{' '}
+  is sufficient for the simplest libraries because it transitively pulls in
+  <InlineCode>SymbolBuilder.hpp</InlineCode>, <InlineCode>MethodCallState.hpp</InlineCode>,
+  <InlineCode>ObjectInstance.hpp</InlineCode>, and <InlineCode>GarbageCollector.hpp</InlineCode>.
+  Headers that are not pulled in transitively must be added explicitly:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Symbol registration</strong> —{' '}
+    <InlineCode>SymbolBuilder</InlineCode> specializations for{' '}
+    <InlineCode>NamespaceSymbol</InlineCode>, <InlineCode>ClassSymbol</InlineCode>,{' '}
+    <InlineCode>StructSymbol</InlineCode>, <InlineCode>InterfaceSymbol</InlineCode>, and{' '}
+    <InlineCode>EnumSymbol</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Callback context</strong> —{' '}
+    <InlineCode>CallState</InlineCode>, its <InlineCode>Args</InlineCode> span, and the
+    <InlineCode>Collector</InlineCode> reference used to box return values.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Object manipulation</strong> —{' '}
+    <InlineCode>ObjectInstance</InlineCode> methods for field access, array elements,
+    and primitive conversion helpers such as <InlineCode>AsInteger</InlineCode> and{' '}
+    <InlineCode>AsString</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Async helpers</strong> —{' '}
+    <InlineCode>DoAsync</InlineCode> and <InlineCode>DoValueTask&lt;T&gt;</InlineCode>
+    when the corresponding header is included.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native helpers</strong> —{' '}
+    <InlineCode>GetArgs&lt;T...&gt;</InlineCode>, <InlineCode>NewObject</InlineCode>,{' '}
+    <InlineCode>CallMethod</InlineCode>, <InlineCode>GetField</InlineCode>,{' '}
+    <InlineCode>SetField</InlineCode>, <InlineCode>GetProperty</InlineCode>, and{' '}
+    <InlineCode>SetProperty</InlineCode> when the helpers header is included.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Generic factories</strong> —{' '}
+    <InlineCode>SymbolFactory::GenericType</InlineCode>,{' '}
+    <InlineCode>SymbolFactory::Array</InlineCode>, and{' '}
+    <InlineCode>SymbolFactory::EnumerableOf</InlineCode> when the factory header is included.
+  </Bullet>
+</ul>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">SHARDLIB_GETMETADATA is undefined</strong>{' '}
+    — You forgot to include <InlineCode>{'<shard/ShardScriptLIB.hpp>'}</InlineCode>.
+    The macro is required to produce the <InlineCode>ShardLib_GetMetadata</InlineCode>{' '}
+    export.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">SymbolBuilder is not a template</strong>{' '}
+    — You are registering symbols but did not include the symbol builder header
+    explicitly or transitively. Include <InlineCode>{'<ShardScript.hpp>'}</InlineCode>{' '}
+    or <InlineCode>{'<shard/semantic/SymbolBuilder.hpp>'}</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">CallState has no member named Args</strong>{' '}
+    — You referenced <InlineCode>context.Args</InlineCode> without including the
+    callback-state header. Include <InlineCode>{'<ShardScript.hpp>'}</InlineCode> or{' '}
+    <InlineCode>{'<shard/runtime/MethodCallState.hpp>'}</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">ObjectInstance is incomplete</strong>{' '}
+    — You forward-declared or missed the object header. Include{' '}
+    <InlineCode>{'<shard/runtime/ObjectInstance.hpp>'}</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">DoAsync was not declared</strong>{' '}
+    — You are implementing an async method but did not include{' '}
+    <InlineCode>{'<shard/runtime/NativeAsync.hpp>'}</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">GenericTypeSymbol is not a type</strong>{' '}
+    — You are declaring generic symbols without including{' '}
+    <InlineCode>{'<shard/semantic/symbols/GenericTypeSymbol.hpp>'}</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Minimal include set.</strong> The smallest practical library includes the
+  umbrella header and the library macro header. The umbrella header covers registration,
+  callback state, object manipulation, and garbage collection for the common case.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>When to add headers incrementally.</strong> Start with the minimal set above.
+  Add <InlineCode>{'<shard/runtime/NativeAsync.hpp>'}</InlineCode> as soon as you return
+  a Task or ValueTask. Add{' '}
+  <InlineCode>{'<shard/semantic/symbols/GenericTypeSymbol.hpp>'}</InlineCode> and{' '}
+  <InlineCode>{'<shard/semantic/SymbolFactory.hpp>'}</InlineCode> when you register or
+  allocate generic types. Keeping the include list close to what the file actually uses
+  makes the build graph easier to reason about and reduces recompilation when upstream
+  headers change.
+</Prose>
+
+<Prose>
+  <strong>Transitive includes.</strong> Because <InlineCode>ShardScript.hpp</InlineCode>{' '}
+  is an umbrella header, it may include headers that your file does not directly use.
+  Do not rely on transitive includes for symbols you reference explicitly; include the
+  corresponding sub-header directly. This protects your library from breaking if the
+  umbrella header's internal include set changes.
+</Prose>
+
+<Prose>
+  <strong>Include order.</strong> There is no required order among ShardScript headers,
+  but place system headers such as <InlineCode>{'<cstdint>'}</InlineCode> or{' '}
+  <InlineCode>{'<string>'}</InlineCode> before ShardScript headers, and place project
+  headers last. Use <InlineCode>using namespace shard;</InlineCode> only after the
+  includes, or qualify names with the <InlineCode>shard::</InlineCode> prefix.
+</Prose>
+
+<Callout tone="blue">
+  Always include <InlineCode>{'<shard/ShardScriptLIB.hpp>'}</InlineCode> in addition to
+  the umbrella header. The macros it defines are not optional: they create the two{' '}
+  <InlineCode>extern &quot;C&quot;</InlineCode> exports that the ShardScript loader looks
+  for when it loads your shared library.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Minimal library with only the umbrella and macro headers.</strong> This is the
+  smallest include set that still produces a valid native library. It is suitable for a
+  library that defines a namespace and a few static methods whose callbacks only need
+  primitive arguments and boxed return values.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.example";
+    lib.Description = L"Minimal header example";
+    lib.Version     = L"1.0.0";
+}
+
+static ObjectInstance* double_value(const CallState& context)
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    return context.Collector.FromValue(value * 2);
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"example");
+
+    ns.AddMethod(L"Double", TYPE_INT, LINK_STATIC)
+        .AddParameter(L"value", TYPE_INT)
+        .SetCallback(&double_value);
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>Typical library that works with objects and arrays.</strong> The umbrella header
+  already covers <InlineCode>ObjectInstance</InlineCode> and{' '}
+  <InlineCode>GarbageCollector</InlineCode>, so the extra headers are only the ones that
+  are not transitively included.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.containers";
+    lib.Description = L"Collection helpers";
+    lib.Version     = L"1.0.0";
+}
+
+static ObjectInstance* first_element(const CallState& context)
+{
+    ObjectInstance* array = context.Args[0];
+
+    if (array == nullptr || array == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(std::wstring());
+    }
+
+    ObjectInstance* first = array->GetElement(0, context.Frame);
+    return first;
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"containers");
+
+    ns.AddMethod(L"First", TYPE_ANY, LINK_STATIC)
+        .AddParameter(L"source", TYPE_ANY)
+        .SetCallback(&first_element);
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>Advanced library with async and generics.</strong> Add the async and generic
+  headers explicitly because they are not pulled in by the umbrella header.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+#include <shard/runtime/NativeAsync.hpp>
+#include <shard/semantic/symbols/GenericTypeSymbol.hpp>
+#include <shard/semantic/SymbolFactory.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.advanced";
+    lib.Description = L"Async and generic example";
+    lib.Version     = L"1.0.0";
+}
+
+static ObjectInstance* delayed_value(const CallState& context) noexcept
+{
+    return DoValueTask<std::int64_t>(context, [](AsyncValueScope<std::int64_t> async)
+    {
+        async.Delay(500, [async]() mutable
+        {
+            // Complete the task after the requested delay.
+            async.Complete(42);
+        });
+    });
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"advanced");
+
+    ns.AddMethod(L"DelayedValue", TYPE_ANY, LINK_STATIC)
+        .SetCallback(&delayed_value);
+}`}
+  language="cpp"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/shardlib-entrypoint</InlineCode> — library entry point macros.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/native-callback-helpers</InlineCode> — callback helper functions.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/async-helpers-reference</InlineCode> — async helper reference.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/runtime/NativeHelpers.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/runtime/NativeHelpers.hpp</InlineCode>.
+</Prose>

@@ -1,0 +1,358 @@
+---
+title: SHARDLIB_GETMETADATA & SHARDLIB_ENTRYPOINT
+group: "Core API & Entry Point"
+order: 1
+slug: shardlib-entrypoint
+groupOrder: 2
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> macros define the only
+  two symbols a native C++ ShardScript library must export. <InlineCode>SHARDLIB_GETMETADATA</InlineCode> fills the library
+  metadata record, including its name, description, version, and optional dependencies.
+  <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> registers every namespace, type, method, property, and operator that the
+  library exposes to ShardScript code. The build system compiles each <InlineCode>.shard.cpp</InlineCode> file into a
+  separate shared library, and the runtime resolves the exported C symbols at load time.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Place both macros at global scope in a single <InlineCode>.shard.cpp</InlineCode> source file. The preprocessor expands
+  each macro into an <InlineCode>extern "C"</InlineCode> function decorated with the platform visibility attribute
+  required for dynamic linking.
+</Prose>
+
+<DocsTable
+  headers={['Macro', 'Expanded export']}
+  rows={[
+    [
+      <InlineCode>SHARDLIB_GETMETADATA</InlineCode>,
+      <><InlineCode>extern "C" void ShardLib_GetMetadata(shard::ShardLibMetadata&amp; lib)</InlineCode></>,
+    ],
+    [
+      <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>,
+      <><InlineCode>extern "C" void ShardLib_EntryPoint(shard::CompilationContext&amp; context)</InlineCode></>,
+    ],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  <strong>ShardLibMetadata fields</strong>
+</Prose>
+
+<DocsTable
+  headers={['Field', 'Type', 'Required', 'Description']}
+  rows={[
+    [
+      <InlineCode>Name</InlineCode>,
+      <InlineCode>const wchar_t*</InlineCode>,
+      'Yes',
+      'Unique library identifier, for example L"shard.mylibrary".',
+    ],
+    [
+      <InlineCode>Description</InlineCode>,
+      <InlineCode>const wchar_t*</InlineCode>,
+      'No',
+      'Short human-readable summary of the library.',
+    ],
+    [
+      <InlineCode>Version</InlineCode>,
+      <InlineCode>const wchar_t*</InlineCode>,
+      'Yes',
+      'Semantic version of the library, for example L"1.0.0".',
+    ],
+    [
+      <InlineCode>Dependencies</InlineCode>,
+      <InlineCode>const ShardLibDependencyInfo*</InlineCode>,
+      'No',
+      'Pointer to the first element of a dependency array.',
+    ],
+    [
+      <InlineCode>DependenciesLength</InlineCode>,
+      <InlineCode>std::size_t</InlineCode>,
+      'No',
+      'Number of entries in the array pointed to by Dependencies.',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>ShardLibDependencyInfo fields</strong>
+</Prose>
+
+<DocsTable
+  headers={['Field', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>Name</InlineCode>,
+      <InlineCode>const wchar_t*</InlineCode>,
+      'Name of the required library, for example L"shard.streams".',
+    ],
+    [
+      <InlineCode>VersionExpression</InlineCode>,
+      <InlineCode>const wchar_t*</InlineCode>,
+      'Version constraint accepted by the loader, for example L"0.1.0" or L"^0.3.0".',
+    ],
+  ]}
+/>
+
+<Prose>
+  <strong>Entry point context</strong>
+</Prose>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [
+      <InlineCode>context</InlineCode>,
+      <InlineCode>shard::CompilationContext&amp;</InlineCode>,
+      'Registration context used to build NamespaceSymbol, ClassSymbol, MethodSymbol, and other semantic symbols.',
+    ],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Export', 'Return type', 'Description']}
+  rows={[
+    [
+      <InlineCode>ShardLib_GetMetadata</InlineCode>,
+      <InlineCode>void</InlineCode>,
+      'Fills the supplied ShardLibMetadata structure; no value is returned.',
+    ],
+    [
+      <InlineCode>ShardLib_EntryPoint</InlineCode>,
+      <InlineCode>void</InlineCode>,
+      'Registers symbols into the compilation context; no value is returned.',
+    ],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing export</strong> — A library that does not export both
+    <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode> is rejected by the
+    runtime loader with a runtime error naming the library path.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing metadata</strong> — Leaving <InlineCode>lib.Name</InlineCode> or
+    <InlineCode>lib.Version</InlineCode> as <InlineCode>nullptr</InlineCode> produces an invalid metadata record and may
+    cause the loader to skip the library.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unresolved dependency</strong> — If a dependency listed in
+    <InlineCode>lib.Dependencies</InlineCode> is not present, the runtime throws a load-order error before
+    <InlineCode>ShardLib_EntryPoint</InlineCode> is invoked.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Registration-time C++ exception</strong> — Throwing from inside
+    <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> aborts library load and propagates the exception message to the
+    ShardScript host.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Callback signature mismatch</strong> — Registering a native callback whose
+    signature is not <InlineCode>shard::ObjectInstance*(const shard::CallState&amp;)</InlineCode> results in undefined
+    behavior when the method is invoked.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Required headers.</strong> A minimal library includes <InlineCode>&lt;ShardScript.hpp&gt;</InlineCode>, which
+  transitively pulls in the registration and runtime helpers, and <InlineCode>&lt;shard/ShardScriptLIB.hpp&gt;</InlineCode>,
+  which declares the macros. Add specialized headers such as <InlineCode>&lt;shard/semantic/SymbolBuilder.hpp&gt;</InlineCode>
+  only when you need the corresponding fluent registration API.
+</Prose>
+
+<Prose>
+  <strong>One file per shared library.</strong> The CMake glob in <InlineCode>ShardScript.Framework/CMakeLists.txt</InlineCode>
+  builds every <InlineCode>*.shard.cpp</InlineCode> file into its own shared library. Keep one logical library per file so
+  the output name, metadata name, and exported symbols stay aligned.
+</Prose>
+
+<Prose>
+  <strong>C linkage and symbol names.</strong> The macros intentionally expand to <InlineCode>extern "C"</InlineCode>
+  functions named <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. Do not
+  define these functions manually or change their names; the runtime searches for exactly these exported names.
+</Prose>
+
+<Prose>
+  <strong>Dependency declaration.</strong> Declare every library you depend on inside
+  <InlineCode>SHARDLIB_GETMETADATA</InlineCode>. The loader uses the dependency list to enforce load order before calling
+  your entry point. The dependency array must remain valid for the lifetime of the shared library; store it in a
+  <InlineCode>static const</InlineCode> array or in another storage that is not destroyed when the function returns.
+</Prose>
+
+<Prose>
+  <strong>No global symbol registration.</strong> All calls to <InlineCode>SymbolBuilder</InlineCode> and related APIs must
+  happen inside <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>. Avoid global constructors or static initializers that touch
+  ShardScript symbols, because load order is not guaranteed.
+</Prose>
+
+<Callout tone="blue">
+  Keep dependency arrays alive for the lifetime of the module. Returning a pointer to a stack-allocated array from
+  <InlineCode>SHARDLIB_GETMETADATA</InlineCode> is a use-after-return bug that may corrupt the metadata seen by the
+  loader.
+</Callout>
+
+<Callout tone="amber" title="Platform differences">
+  On Windows the macros use <InlineCode>__declspec(dllexport)</InlineCode>; on GCC they use
+  <InlineCode>__attribute__((visibility("default")))</InlineCode>. The source code is identical on both platforms because
+  the macro hides the attribute.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Minimal native library.</strong> The following <InlineCode>math.shard.cpp</InlineCode> file declares a library
+  named <InlineCode>shard.minmath</InlineCode>, optionally depends on <InlineCode>shard.stdio</InlineCode>, and registers a
+  single static method that doubles an integer.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.minmath";
+    lib.Description = L"Minimal arithmetic helpers for ShardScript.";
+    lib.Version     = L"1.0.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.stdio", L"1.0.0" }
+    };
+
+    lib.Dependencies       = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}
+
+static ObjectInstance* DoubleValue(const CallState& context)
+{
+    // Read the first real argument; static methods have no implicit this.
+    std::int64_t value = context.Args[0]->AsInteger();
+    return context.Collector.FromValue(value * 2);
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> minmath(context, L"minmath");
+
+    minmath.AddMethod(L"Double", TYPE_INT, LINK_STATIC, ACS_PUBLIC)
+           .AddParameter(L"value", TYPE_INT)
+           .SetCallback(&DoubleValue);
+}`}
+  language="cpp"
+  filename="math.shard.cpp"
+/>
+
+<Prose>
+  <strong>ShardScript consumer.</strong> After the native library is built and discovered by the runtime, the registered
+  namespace and method are visible to ShardScript code.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using minmath;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    input: int  = 21;
+    result: int = minmath.Double(input);
+
+    println(result);   // 42
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Library with dependencies only.</strong> If a library exists only to bundle types that depend on another standard
+  library, declare the dependency in metadata and perform lazy cross-library lookups inside callbacks.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.depends";
+    lib.Description = L"Library that relies on shard.collections.";
+    lib.Version     = L"0.1.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.collections", L"^0.3.0" }
+    };
+
+    lib.Dependencies       = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}
+
+static TypeSymbol* g_listType = nullptr;
+
+static void EnsureListType(SymbolTable* table)
+{
+    if (g_listType != nullptr)
+    {
+        return;
+    }
+
+    // Lazy lookup avoids brittle static initialization order.
+    g_listType = SemanticModel::FindTypeByName(table, L"collections.List");
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> depends(context, L"depends");
+
+    depends.AddMethod(L"UseList", TYPE_VOID, LINK_STATIC, ACS_PUBLIC)
+           .SetCallback([](const CallState& context)
+           {
+               EnsureListType(context.GetSemanticModel().Table.get());
+
+               // Callback body omitted for brevity.
+               return nullptr;
+           });
+}`}
+  language="cpp"
+  filename="depends.shard.cpp"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/accessibility-and-linking</InlineCode> — linking and accessibility values.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/native-library-overview</InlineCode> — native library loading overview.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/library-build-setup</InlineCode> — CMake build setup.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/headers-quick-reference</InlineCode> — header quick reference.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/runtime/NativeLibrary.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/runtime/NativeLibrary.hpp</InlineCode>.
+</Prose>

@@ -12,7 +12,7 @@ export interface DocArticle {
   groupOrder: number
   order: number
   file: string
-  section: 'getting-started' | 'syntax' | 'stdlib'
+  section: 'getting-started' | 'syntax' | 'stdlib' | 'library-building'
 }
 
 export interface DocGroup {
@@ -24,13 +24,14 @@ export interface DocManifest {
   'getting-started': DocGroup[]
   syntax: DocGroup[]
   stdlib: DocGroup[]
+  'library-building': DocGroup[]
   articles: Record<string, DocArticle>
 }
 
 const docsRoot = path.resolve(__dirname, '../src/docs')
 const outputPath = path.resolve(__dirname, '../src/docs/manifest.ts')
 
-function scanDir(dir: string, section: 'getting-started' | 'syntax' | 'stdlib'): DocArticle[] {
+function scanDir(dir: string, section: 'getting-started' | 'syntax' | 'stdlib' | 'library-building'): DocArticle[] {
   const articles: DocArticle[] = []
 
   function walk(current: string) {
@@ -96,7 +97,8 @@ function groupArticles(articles: DocArticle[]): DocGroup[] {
 const gettingStartedArticles = scanDir(path.join(docsRoot, 'getting-started'), 'getting-started')
 const syntaxArticles = scanDir(path.join(docsRoot, 'syntax'), 'syntax')
 const stdlibArticles = scanDir(path.join(docsRoot, 'stdlib'), 'stdlib')
-const allArticles = [...gettingStartedArticles, ...syntaxArticles, ...stdlibArticles]
+const libraryBuildingArticles = scanDir(path.join(docsRoot, 'library-building'), 'library-building')
+const allArticles = [...gettingStartedArticles, ...syntaxArticles, ...stdlibArticles, ...libraryBuildingArticles]
 
 const articlesRecord: Record<string, DocArticle> = {}
 for (const article of allArticles) {
@@ -107,6 +109,7 @@ const manifest: DocManifest = {
   'getting-started': groupArticles(gettingStartedArticles),
   syntax: groupArticles(syntaxArticles),
   stdlib: groupArticles(stdlibArticles),
+  'library-building': groupArticles(libraryBuildingArticles),
   articles: articlesRecord,
 }
 
@@ -120,7 +123,7 @@ export interface DocArticle {
   groupOrder: number
   order: number
   file: string
-  section: 'getting-started' | 'syntax' | 'stdlib'
+  section: 'getting-started' | 'syntax' | 'stdlib' | 'library-building'
 }
 
 export interface DocGroup {
@@ -132,6 +135,7 @@ export interface DocManifest {
   'getting-started': DocGroup[]
   syntax: DocGroup[]
   stdlib: DocGroup[]
+  'library-building': DocGroup[]
   articles: Record<string, DocArticle>
 }
 

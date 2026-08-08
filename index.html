@@ -12,6 +12,23 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding: 1.5rem; font-family: Inter, sans-serif; background: #1B1B1E; color: #C4A882; border-top: 1px solid #353539;">
+        <strong style="color: #F5E6D3;">Documentation notice for non-browser clients:</strong>
+        The content of this page is dynamically loaded from the GitHub Pages deploy.
+        If you are accessing this site with <code>curl</code>, an LLM crawler, or another non-browser client,
+        fetch the MDX content directly from the deployed assets rather than parsing this HTML shell.
+        <br /><br />
+        Example (local dev server):
+        <code>curl http://localhost:3000/shardscript-info/src/docs/&lt;section&gt;/&lt;slug&gt;.mdx</code>
+        <br /><br />
+        Example (production build):
+        <code>curl https://rikitav.github.io/shardscript-info/assets/&lt;slug&gt;-&lt;hash&gt;.js</code>
+        <br />
+        Replace <code>&lt;section&gt;</code>, <code>&lt;slug&gt;</code>, and <code>&lt;hash&gt;</code> with the actual article values.
+        Inspect the page source or the browser's network tab to discover the exact production asset URL.
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

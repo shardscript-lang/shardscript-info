@@ -1,0 +1,392 @@
+---
+title: Working with Arrays
+group: Runtime Callback Contract
+order: 6
+slug: working-with-arrays
+groupOrder: 4
+---
+
+<Prose>
+  Native libraries frequently need to allocate, fill, read, and traverse ShardScript arrays from C++.
+  The runtime exposes four operations for this: <InlineCode>AllocateArray</InlineCode>,{' '}
+  <InlineCode>SetElement</InlineCode>, <InlineCode>GetElement</InlineCode>, and{' '}
+  <InlineCode>GetArrayLength</InlineCode>. This guide shows how to use them in a standalone shared
+  library that is built outside the ShardScript repository.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A built ShardScript runtime shared library and the headers in{' '}
+    <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    A C++20 toolchain and CMake 3.20 or later.
+  </Bullet>
+  <Bullet>
+    Basic familiarity with <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and{' '}
+    <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Build a native shared library called <InlineCode>array_helpers</InlineCode> that exposes three static
+  helpers on the <InlineCode>arrayhelpers.ArrayHelpers</InlineCode> class: one that allocates and fills
+  an <InlineCode>int[]</InlineCode>, one that sums the elements of an <InlineCode>int[]</InlineCode>, and
+  one that returns a reversed copy of an <InlineCode>int[]</InlineCode>.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Understand the array API.</strong>
+</Prose>
+
+<Prose>
+  The garbage collector creates arrays through <InlineCode>context.Collector.AllocateArray</InlineCode>.
+  Once allocated, elements are read or written with <InlineCode>GetElement</InlineCode> and{' '}
+  <InlineCode>SetElement</InlineCode>, both of which accept the current frame so generic array types can
+  be resolved. <InlineCode>GetArrayLength</InlineCode> returns the number of elements as a scalar count.
+</Prose>
+
+<DocsTable
+  headers={['Operation', 'C++ call', 'Purpose']}
+  rows={[
+    ['Allocate', 'context.Collector.AllocateArray(TYPE_INT, length)', 'Creates a new array of the given element type and length.'],
+    ['Write', 'arr->SetElement(index, value, context.Frame)', 'Stores a boxed value at the specified index.'],
+    ['Read', 'arr->GetElement(index, context.Frame)', 'Returns the boxed value at the specified index.'],
+    ['Length', 'arr->GetArrayLength()', 'Returns the number of elements as std::size_t.'],
+  ]}
+/>
+
+<Prose>
+  <strong>2. Create the library source file.</strong>
+</Prose>
+
+<Prose>
+  Make a new directory for the project and add <InlineCode>array_helpers.cpp</InlineCode>. This file is a
+  normal C++ translation unit; the resulting shared library exports the two required C-linkage symbols
+  through the <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>{' '}
+  macros.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+// Allocates a new int[] and fills it with start, start+1, ..., start+count-1.
+ObjectInstance* ArrayHelpers_FillRange(const CallState& context)
+{
+    std::int64_t start = context.Args[0]->AsInteger();
+    std::int64_t count = context.Args[1]->AsInteger();
+
+    // Reject negative sizes instead of silently underflowing.
+    if (count < 0)
+    {
+        return context.Collector.AllocateArray(TYPE_INT, 0);
+    }
+
+    std::size_t length = static_cast<std::size_t>(count);
+    ObjectInstance* arr = context.Collector.AllocateArray(TYPE_INT, length);
+
+    for (std::size_t i = 0; i < length; i++)
+    {
+        std::int64_t value = start + static_cast<std::int64_t>(i);
+        arr->SetElement(i, context.Collector.FromValue(value), context.Frame);
+    }
+
+    return arr;
+}
+
+// Sums every element of the incoming int[] using GetElement.
+ObjectInstance* ArrayHelpers_Sum(const CallState& context)
+{
+    ObjectInstance* arr = context.Args[0];
+
+    // Treat null as an empty array so the caller gets a defined result.
+    if (arr == nullptr || arr == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(0);
+    }
+
+    std::int64_t sum = 0;
+    std::size_t length = arr->GetArrayLength();
+
+    for (std::size_t i = 0; i < length; i++)
+    {
+        ObjectInstance* element = arr->GetElement(i, context.Frame);
+        if (element != nullptr)
+        {
+            sum += element->AsInteger();
+        }
+    }
+
+    return context.Collector.FromValue(sum);
+}
+
+// Returns a new int[] containing the elements of the source array in reverse order.
+ObjectInstance* ArrayHelpers_Reverse(const CallState& context)
+{
+    ObjectInstance* source = context.Args[0];
+
+    if (source == nullptr || source == GarbageCollector::NullInstance)
+    {
+        return context.Collector.AllocateArray(TYPE_INT, 0);
+    }
+
+    std::size_t length = source->GetArrayLength();
+    ObjectInstance* result = context.Collector.AllocateArray(TYPE_INT, length);
+
+    for (std::size_t i = 0; i < length; i++)
+    {
+        std::size_t sourceIndex = length - i - 1;
+        ObjectInstance* value = source->GetElement(sourceIndex, context.Frame);
+        result->SetElement(i, value, context.Frame);
+    }
+
+    return result;
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.arrayhelpers";
+    lib.Description = L"Array manipulation helpers";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolFactory factory(context.GetSemanticModel().Table.get());
+    TypeSymbol* intArrayType = factory.Array(TYPE_INT);
+
+    SymbolBuilder<NamespaceSymbol> arrayHelpers(context, L"arrayhelpers");
+
+    arrayHelpers.AddClass(L"ArrayHelpers", ACS_PUBLIC, LINK_STATIC, [intArrayType](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"FillRange", intArrayType, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"start", TYPE_INT)
+            .AddParameter(L"count", TYPE_INT)
+            .SetCallback(&ArrayHelpers_FillRange);
+
+        type.AddMethod(L"Sum", TYPE_INT, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"values", intArrayType)
+            .SetCallback(&ArrayHelpers_Sum);
+
+        type.AddMethod(L"Reverse", intArrayType, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"values", intArrayType)
+            .SetCallback(&ArrayHelpers_Reverse);
+    });
+}`}
+  language="cpp"
+  filename="array_helpers.cpp"
+/>
+
+<Callout tone="blue" title="Why pass context.Frame to GetElement and SetElement">
+  The frame carries generic type arguments. Even for a concrete <InlineCode>int[]</InlineCode> the runtime
+  uses the frame to validate the array shape, so always pass <InlineCode>context.Frame</InlineCode> unless
+  the underlying API explicitly defaults it.
+</Callout>
+
+<Prose>
+  <strong>3. Add a standalone CMake build script.</strong>
+</Prose>
+
+<Prose>
+  Because a native library is just a shared library with the two exported symbols, you can build it with a
+  normal CMake target. The example below locates the ShardScript runtime, adds the include directory, and
+  links the library. Adjust <InlineCode>SHARDSCRIPT_ROOT</InlineCode> to point at your ShardScript checkout
+  or install prefix.
+</Prose>
+
+<CodeBlock
+  code={`cmake_minimum_required(VERSION 3.20)
+project(ArrayHelpers CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(SHARDSCRIPT_ROOT "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript"
+    CACHE PATH "Root of the ShardScript repository or install prefix")
+
+find_library(SHARDSCRIPT_LIB
+    NAMES ShardScript libShardScript
+    PATHS "\${SHARDSCRIPT_ROOT}/build/bin" "\${SHARDSCRIPT_ROOT}/lib"
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+add_library(array_helpers SHARED array_helpers.cpp)
+
+set_target_properties(array_helpers PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+target_include_directories(array_helpers PRIVATE "\${SHARDSCRIPT_ROOT}/ShardScript/include")
+target_link_libraries(array_helpers PRIVATE \${SHARDSCRIPT_LIB})`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  <strong>4. Build the shared library.</strong>
+</Prose>
+
+<CodeBlock
+  code={`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel`}
+  language="bash"
+/>
+
+<Prose>
+  The build emits a shared library next to the build tree:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    On Windows: <InlineCode>build/array_helpers.dll</InlineCode>
+  </Bullet>
+  <Bullet>
+    On Linux: <InlineCode>build/libarray_helpers.so</InlineCode>
+  </Bullet>
+  <Bullet>
+    On macOS: <InlineCode>build/libarray_helpers.dylib</InlineCode>
+  </Bullet>
+</ul>
+
+<Prose>
+  <strong>5. Write a ShardScript program that consumes the library.</strong>
+</Prose>
+
+<Prose>
+  Create <InlineCode>app.shard</InlineCode> in the same directory. Import the namespace, call each helper,
+  and print the results.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using arrayhelpers;
+
+namespace demo;
+
+public static func PrintArray(label: string, values: int[]) -> void
+{
+    print(label + ": [");
+
+    for (i: int = 0; i < values.Length; i = i + 1)
+    {
+        if (i > 0)
+        {
+            print(", ");
+        }
+
+        print(values[i]);
+    }
+
+    println("]");
+}
+
+public static func Main() -> void
+{
+    int[] numbers = ArrayHelpers.FillRange(1, 5);
+    int total = ArrayHelpers.Sum(numbers);
+    int[] reversed = ArrayHelpers.Reverse(numbers);
+
+    PrintArray("Numbers", numbers);
+    println("Sum: " + total);
+    PrintArray("Reversed", reversed);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  <strong>6. Run the program with the new library.</strong>
+</Prose>
+
+<Prose>
+  Pass the compiled shared library to the interpreter with the <InlineCode>-l</InlineCode> flag.
+</Prose>
+
+<CodeBlock
+  code={`# Windows
+shard app.shard -l build/array_helpers.dll
+
+# Linux
+shard app.shard -l build/libarray_helpers.so
+
+# macOS
+shard app.shard -l build/libarray_helpers.dylib`}
+  language="bash"
+/>
+
+<H2>Verification</H2>
+
+<Prose>
+  The program should print the filled array, its sum, and the reversed copy.
+</Prose>
+
+<Prose>
+  <InlineCode>Numbers: [1, 2, 3, 4, 5]</InlineCode>
+</Prose>
+
+<Prose>
+  <InlineCode>Sum: 15</InlineCode>
+</Prose>
+
+<Prose>
+  <InlineCode>Reversed: [5, 4, 3, 2, 1]</InlineCode>
+</Prose>
+
+<Callout tone="green" title="Success criteria">
+  If all three lines appear, the native callbacks correctly allocated the array, wrote each element, read
+  elements with <InlineCode>GetElement</InlineCode>, and returned the new arrays to ShardScript.
+</Callout>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Index out of range.</strong>{' '}
+    <InlineCode>SetElement</InlineCode> and <InlineCode>GetElement</InlineCode> do not grow the array. Always
+    allocate the target length with <InlineCode>AllocateArray</InlineCode> first, or guard the index with{' '}
+    <InlineCode>GetArrayLength</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null pointer in callback.</strong> Arguments can be{' '}
+    <InlineCode>GarbageCollector::NullInstance</InlineCode> when the caller passes <InlineCode>null</InlineCode>.
+    Guard reference arguments before dereferencing them.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Generic array type mismatch.</strong> For arrays of a generic type
+    parameter, register the parameter type with <InlineCode>factory.Array(typeParam)</InlineCode> and use{' '}
+    <InlineCode>{'context.Frame->TypeArguments'}</InlineCode> at runtime to resolve the concrete element type before
+    allocating.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Library fails to load.</strong> Confirm the shared library exports
+    <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. On Windows,
+    either set <InlineCode>WINDOWS_EXPORT_ALL_SYMBOLS ON</InlineCode> or mark the two macro blocks with explicit
+    dllexport attributes.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/reading-arguments</InlineCode> — reading arguments.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/returning-values</InlineCode> — returning values.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/example-generic-collections</InlineCode> — collection implementation example.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/generic-types-and-type-parameters</InlineCode> — generic array types.
+  </Bullet>
+</ul>

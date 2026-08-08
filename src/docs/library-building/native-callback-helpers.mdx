@@ -1,0 +1,240 @@
+---
+title: Native Callback Helpers
+group: Runtime Callback Contract
+order: 8
+slug: native-callback-helpers
+groupOrder: 4
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>GetArgs&lt;T...&gt;</InlineCode> is a variadic template helper declared in{' '}
+  <InlineCode>{'<shard/runtime/NativeHelpers.hpp>'}</InlineCode> that unpacks the borrowed
+  arguments in a <InlineCode>CallState</InlineCode> into a typed{' '}
+  <InlineCode>std::tuple&lt;T...&gt;</InlineCode>. It checks the argument count, guards against
+  null pointers, and dispatches each element to the correct <InlineCode>ObjectInstance</InlineCode>{' '}
+  reader for the requested C++ type.
+</Prose>
+
+<H2>Syntax</H2>
+
+<CodeBlock
+  code={`#include <shard/runtime/NativeHelpers.hpp>
+
+std::tuple<TArgs...> shard::GetArgs<TArgs...>(const shard::CallState& context);`}
+  language="cpp"
+  filename="NativeHelpers.hpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  The <InlineCode>context</InlineCode> argument is the callback state passed to every native method.
+  The template parameters <InlineCode>TArgs...</InlineCode> must be a supported type combination and
+  must appear in the same order as the registered parameters.
+</Prose>
+
+<DocsTable
+  headers={['Template parameter', 'C++ type', 'ShardScript type', 'How it is read']}
+  rows={[
+    [<InlineCode>bool</InlineCode>, <InlineCode>bool</InlineCode>, <InlineCode>bool</InlineCode>, <InlineCode>AsBoolean()</InlineCode>],
+    [<InlineCode>std::int64_t</InlineCode>, <InlineCode>std::int64_t</InlineCode>, <InlineCode>int</InlineCode>, <InlineCode>AsInteger()</InlineCode>],
+    [<InlineCode>double</InlineCode>, <InlineCode>double</InlineCode>, <InlineCode>double</InlineCode>, <InlineCode>AsDouble()</InlineCode>],
+    [<InlineCode>wchar_t</InlineCode>, <InlineCode>wchar_t</InlineCode>, <InlineCode>char</InlineCode>, <InlineCode>AsCharacter()</InlineCode>],
+    [<InlineCode>std::uint8_t</InlineCode>, <InlineCode>std::uint8_t</InlineCode>, <InlineCode>byte</InlineCode>, <InlineCode>AsByte()</InlineCode>],
+    [<InlineCode>const wchar_t*</InlineCode>, <InlineCode>const wchar_t*</InlineCode>, <InlineCode>string</InlineCode>, <InlineCode>AsString()</InlineCode>],
+    [<InlineCode>std::wstring</InlineCode>, <InlineCode>std::wstring</InlineCode>, <InlineCode>string</InlineCode>, ['Copies ', <InlineCode>AsString()</InlineCode>, ' into a new ', <InlineCode>std::wstring</InlineCode>]],
+    [<InlineCode>ObjectInstance*</InlineCode>, <InlineCode>shard::ObjectInstance*</InlineCode>, 'any reference type', 'Returns the argument pointer as-is'],
+    [<InlineCode>T*</InlineCode>, 'any native pointer type', <InlineCode>nint</InlineCode>, ['Casts ', <InlineCode>AsNint()</InlineCode>, ' to ', <InlineCode>T*</InlineCode>]],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  Returns a <InlineCode>std::tuple&lt;TArgs...&gt;</InlineCode> whose elements are in the same order
+  as <InlineCode>context.Args</InlineCode> and the template arguments. Extract the values with{' '}
+  <InlineCode>std::tie</InlineCode> or <InlineCode>std::get</InlineCode>. The returned values are
+  borrowed from the caller; they are not owned by the helper.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Throws <InlineCode>std::runtime_error</InlineCode> when the number of template arguments does not
+    match <InlineCode>context.Args.size()</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Throws <InlineCode>std::runtime_error</InlineCode> when an argument index is out of range.
+  </Bullet>
+  <Bullet>
+    Throws <InlineCode>std::runtime_error</InlineCode> when an argument pointer is{' '}
+    <InlineCode>nullptr</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Throws <InlineCode>std::runtime_error</InlineCode> when a value-type argument resolves to{' '}
+    <InlineCode>GarbageCollector::NullInstance</InlineCode>. Only{' '}
+    <InlineCode>ObjectInstance*</InlineCode> and native pointer types allow null.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <InlineCode>GetArgs</InlineCode> is a convenience wrapper around the manual readers on{' '}
+  <InlineCode>ObjectInstance</InlineCode>. It does not change ownership: arguments remain borrowed from
+  the caller, and the returned tuple contains raw pointers or primitive copies.
+</Prose>
+
+<Prose>
+  Use <InlineCode>GetArgs</InlineCode> for simple static callbacks whose parameters are all primitive
+  values in registration order. For instance methods, do not use it for the real parameters, because{' '}
+  <InlineCode>context.Args[0]</InlineCode> is <InlineCode>this</InlineCode>. The template types would
+  shift by one position and read the wrong objects.
+</Prose>
+
+<Prose>
+  Do not use <InlineCode>GetArgs</InlineCode> for reference-typed arguments that may be null and need
+  special handling. A <InlineCode>const wchar_t*</InlineCode> or <InlineCode>std::wstring</InlineCode>{' '}
+  argument throws if the script passes <InlineCode>null</InlineCode>. Read such arguments manually so
+  you can return a safe default or a meaningful error.
+</Prose>
+
+<Prose>
+  The <InlineCode>std::wstring</InlineCode> overload copies the string payload, so the copy is safe to
+  keep after the callback returns. The <InlineCode>const wchar_t*</InlineCode> overload returns a view
+  into GC-managed memory; do not store that pointer past the next allocation or collection point.
+</Prose>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Callout tone="blue">
+  Native pointer extraction casts <InlineCode>AsNint()</InlineCode> to the requested type. The
+  ShardScript side must actually pass a <InlineCode>nint</InlineCode> value; the helper does not
+  validate that the pointer belongs to the expected C++ type.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  Read two <InlineCode>double</InlineCode> arguments for a static method.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+#include <shard/runtime/NativeHelpers.hpp>
+
+#include <cmath>
+
+using namespace shard;
+
+static ObjectInstance* hypotenuse(const CallState& context)
+{
+    double a = 0.0;
+    double b = 0.0;
+
+    std::tie(a, b) = GetArgs<double, double>(context);
+
+    double result = std::sqrt((a * a) + (b * b));
+    return context.Collector.FromValue(result);
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.mathdemo";
+    lib.Description = L"GetArgs demonstration";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"mathdemo");
+
+    ns.AddClass(L"Math", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"Hypotenuse", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"a", TYPE_DOUBLE)
+            .AddParameter(L"b", TYPE_DOUBLE)
+            .SetCallback(&hypotenuse);
+    });
+}`}
+  language="cpp"
+  filename="mathdemo.cpp"
+/>
+
+<Prose>
+  Read mixed primitive types in the order they were registered.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* power(const CallState& context)
+{
+    double base = 0.0;
+    std::int64_t exponent = 0;
+
+    std::tie(base, exponent) = GetArgs<double, std::int64_t>(context);
+
+    double result = std::pow(base, static_cast<double>(exponent));
+    return context.Collector.FromValue(result);
+}`}
+  language="cpp"
+  filename="mathdemo.cpp"
+/>
+
+<Prose>
+  The following ShardScript program loads the library and calls the static methods.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using mathdemo;
+
+namespace app;
+
+public class Program
+{
+    public static func Main() -> void
+    {
+        double h = Math.Hypotenuse(3.0, 4.0);
+        println("hypotenuse: " + h);
+
+        double p = Math.Power(2.0, 8);
+        println("power: " + p);
+    }
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/native-helpers-reference</InlineCode> — other helpers in{' '}
+    <InlineCode>{'<shard/runtime/NativeHelpers.hpp>'}</InlineCode> for object construction, method calls,
+    fields, and properties.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/callback-contract-overview</InlineCode> — the native callback contract.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/reading-arguments</InlineCode> — reading arguments.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/returning-values</InlineCode> — returning values.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/headers-quick-reference</InlineCode> — header locations.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/runtime/NativeHelpers.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/runtime/NativeHelpers.hpp</InlineCode>.
+</Prose>

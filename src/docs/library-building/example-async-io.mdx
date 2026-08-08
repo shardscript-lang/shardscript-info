@@ -1,0 +1,528 @@
+---
+title: "Example: File/Stream I/O"
+group: "Example Projects & Patterns"
+order: 3
+slug: example-async-io
+groupOrder: 7
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.streams</InlineCode> and <InlineCode>shard.filesystem</InlineCode> native libraries,
+  implemented in <InlineCode>system/streams.shard.cpp</InlineCode> and{' '}
+  <InlineCode>system/filesystem.shard.cpp</InlineCode>, are the reference implementation for I/O APIs in
+  ShardScript. They demonstrate how to expose stream interfaces, implement <InlineCode>MemoryStream</InlineCode>{' '}
+  over a managed byte array, wrap a native <InlineCode>std::fstream*</InlineCode> handle in{' '}
+  <InlineCode>FileStream</InlineCode>, and integrate cancellation tokens with async operations. The{' '}
+  <InlineCode>streams.shard.cpp</InlineCode> library registers the <InlineCode>io</InlineCode> namespace with the
+  <InlineCode>IStream</InlineCode>, <InlineCode>IReadableStream</InlineCode>, and{' '}
+  <InlineCode>IWritableStream</InlineCode> interfaces, a concrete <InlineCode>MemoryStream</InlineCode> class, and
+  helper types such as <InlineCode>StreamReader</InlineCode>, <InlineCode>StreamWriter</InlineCode>,{' '}
+  <InlineCode>BinaryReader</InlineCode>, and <InlineCode>BinaryWriter</InlineCode>. The{' '}
+  <InlineCode>filesystem.shard.cpp</InlineCode> library registers the <InlineCode>filesystem</InlineCode> namespace
+  with file and directory APIs, plus a <InlineCode>FileStream</InlineCode> implementation that stores a native C++
+  stream pointer as <InlineCode>nint</InlineCode> and performs asynchronous reads and writes through the runtime
+  event loop.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Every native library is a normal shared library that exports two C-linkage symbols. The{' '}
+  <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> macros produce
+  those exports and receive the runtime registration context. A library can consist of one source file or many,
+  can live inside <InlineCode>ShardScript.Framework</InlineCode> or in a separate project, and links against the
+  ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name = L"shard.mylibrary";
+    lib.Description = L"Description of the library";
+    lib.Version = L"1.0.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.streams", L"0.1.0" }
+    };
+
+    lib.Dependencies = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"mynamespace");
+
+    SymbolBuilder<InterfaceSymbol> iface = ns.AddInterface(L"IMyStream");
+    iface.Implements(TRAIT_DISPOSABLE);
+
+    SymbolBuilder<MethodSymbol> readMethod = iface.AddMethod(L"Read", TYPE_INT, LINK_INSTANCE);
+    readMethod.Get()->IsAbstract = true;
+    readMethod
+        .AddParameter(L"buffer", TYPE_BYTE.Array())
+        .AddParameter(L"offset", TYPE_INT)
+        .AddParameter(L"count", TYPE_INT);
+}`}
+  language="cpp"
+  filename="mylibrary.shard.cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  The stream and file APIs accept the same categories of arguments across both libraries.
+</Prose>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>buffer</InlineCode>, <InlineCode>byte[]</InlineCode>, 'Destination or source array for raw byte data.'],
+    [<InlineCode>offset</InlineCode>, <InlineCode>int</InlineCode>, 'Zero-based index into <InlineCode>buffer</InlineCode> where the operation starts.'],
+    [<InlineCode>count</InlineCode>, <InlineCode>int</InlineCode>, 'Number of bytes to read or write.'],
+    [<InlineCode>origin</InlineCode>, <InlineCode>io.SeekOrigin</InlineCode>, 'Origin for a seek operation: Begin, Current, or End.'],
+    [<InlineCode>cancellationToken</InlineCode>, <InlineCode>async.CancellationToken</InlineCode>, 'Optional token that can mark the operation as canceled.'],
+    [<InlineCode>path</InlineCode>, <InlineCode>string</InlineCode>, 'File or directory path passed to filesystem APIs.'],
+    [<InlineCode>mode</InlineCode>, <InlineCode>filesystem.FileMode</InlineCode>, 'File creation and open behavior.'],
+    [<InlineCode>access</InlineCode>, <InlineCode>filesystem.FileAccess</InlineCode>, 'Read, write, or read-write access.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  Return values follow the .NET-style stream contract so ShardScript code can consume them predictably.
+</Prose>
+
+<DocsTable
+  headers={['Member / Call', 'Return type', 'Description']}
+  rows={[
+    [<InlineCode>Stream.Read</InlineCode>, <InlineCode>int</InlineCode>, 'Number of bytes copied into <InlineCode>buffer</InlineCode>. Zero means end of stream.'],
+    [<InlineCode>Stream.ReadAsync</InlineCode>, <InlineCode>async.ValueTask&lt;int&gt;</InlineCode>, 'Asynchronous version of <InlineCode>Read</InlineCode>.'],
+    [<InlineCode>Stream.Write</InlineCode>, <InlineCode>void</InlineCode>, 'Writes bytes and advances the position.'],
+    [<InlineCode>Stream.WriteAsync</InlineCode>, <InlineCode>async.Task</InlineCode>, 'Asynchronous version of <InlineCode>Write</InlineCode>.'],
+    [<InlineCode>Stream.FlushAsync</InlineCode>, <InlineCode>async.Task</InlineCode>, 'Asynchronous flush.'],
+    [<InlineCode>Stream.Seek</InlineCode>, <InlineCode>int</InlineCode>, 'New position after seeking.'],
+    [<InlineCode>File.ReadAllText</InlineCode>, <InlineCode>string</InlineCode>, 'Full contents of a text file.'],
+    [<InlineCode>File.ReadAllTextAsync</InlineCode>, <InlineCode>async.ValueTask&lt;string&gt;</InlineCode>, 'Asynchronous text-file read.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Closed stream access</strong> — methods throw{' '}
+    <InlineCode>std::runtime_error</InlineCode> when the underlying stream is closed or disposed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid native handle</strong> — operations on a <InlineCode>FileStream</InlineCode>{' '}
+    with a null or freed <InlineCode>std::fstream*</InlineCode> handle raise a runtime error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Negative offsets or counts</strong> — argument validation rejects negative
+    values for <InlineCode>offset</InlineCode>, <InlineCode>count</InlineCode>, <InlineCode>capacity</InlineCode>, or{' '}
+    <InlineCode>length</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Cancellation</strong> — when a cancellation token is already flagged before the
+    operation starts, the returned task is faulted with an <InlineCode>Operation canceled</InlineCode> exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">File-system failures</strong> — missing files, permission errors, and copy/move
+    failures are surfaced as runtime errors.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Interface-based design.</strong> The stream library defines capability through interfaces rather than a
+  single base class. <InlineCode>IStream</InlineCode> extends <InlineCode>IDisposable</InlineCode> and declares{' '}
+  <InlineCode>Dispose()</InlineCode>. <InlineCode>IReadableStream</InlineCode> adds <InlineCode>Read</InlineCode> and{' '}
+  <InlineCode>ReadAsync</InlineCode>. <InlineCode>IWritableStream</InlineCode> adds <InlineCode>Write</InlineCode>,{' '}
+  <InlineCode>WriteAsync</InlineCode>, <InlineCode>Flush</InlineCode>, and <InlineCode>FlushAsync</InlineCode>. Both
+  overloads of each async method are registered: one without a cancellation token and one with a token. Concrete types
+  such as <InlineCode>MemoryStream</InlineCode> and <InlineCode>FileStream</InlineCode> implement the interfaces they
+  support.
+</Prose>
+
+<Prose>
+  <strong>MemoryStream buffer layout.</strong> <InlineCode>MemoryStream</InlineCode> stores its data in a private{' '}
+  <InlineCode>byte[]</InlineCode> field and tracks <InlineCode>_position</InlineCode>, <InlineCode>_length</InlineCode>,
+  and <InlineCode>_capacity</InlineCode> as separate integer fields. The implementation mirrors a typical managed
+  stream: reads are bounded by length, writes grow the buffer when capacity is exceeded, and a buffer created from an
+  external array is marked non-writable.
+</Prose>
+
+<Prose>
+  <strong>Native handles.</strong> <InlineCode>FileStream</InlineCode> keeps a <InlineCode>std::fstream*</InlineCode>{' '}
+  in a private <InlineCode>nint</InlineCode> field. The pointer is allocated with <InlineCode>new</InlineCode> when the
+  file opens and deleted when the stream is closed or disposed. Because the GC does not manage the C++ object, the
+  handle is stored with <InlineCode>Collector.FromNint(file, false)</InlineCode> so the runtime knows the library owns
+  the lifetime.
+</Prose>
+
+<Prose>
+  <strong>Async helpers.</strong> The stream library uses <InlineCode>shard::DoAsync</InlineCode> and{' '}
+  <InlineCode>shard::DoValueTask&lt;T&gt;</InlineCode> to produce <InlineCode>async.Task</InlineCode> and{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> instances. <InlineCode>MemoryStream</InlineCode> operations are
+  synchronous in nature, so its async callbacks perform the work immediately and return a completed value task. The
+  filesystem library moves blocking file work to the thread pool with <InlineCode>RunOnThreadPool</InlineCode> and
+  completes the task back on the event-loop thread.
+</Prose>
+
+<Prose>
+  <strong>Cancellation token inspection.</strong> Cancellation is cooperative. Before starting work, callbacks inspect
+  the token by reading <InlineCode>_source._canceled</InlineCode> from the <InlineCode>CancellationToken</InlineCode>
+  instance. If cancellation is requested, the callback returns a faulted task rather than beginning the operation. For
+  operations that run on the thread pool, cancellation is checked both before dispatch and again on the event-loop
+  callback before completion.
+</Prose>
+
+<Prose>
+  <strong>Cross-library symbol lookups.</strong> <InlineCode>filesystem.shard.cpp</InlineCode> depends on types defined
+  in <InlineCode>streams.shard.cpp</InlineCode> such as <InlineCode>io.IReadableStream</InlineCode>. It looks up those
+  symbols lazily inside an <InlineCode>EnsureStreamSymbols</InlineCode> helper instead of caching pointers during static
+  initialization, because load order between libraries is not guaranteed.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  The following snippets are adapted from the framework sources. They show the registration patterns and callback
+  implementation details that bring the stream and file APIs together.
+</Prose>
+
+<Prose>
+  <strong>Declare a dependency.</strong> <InlineCode>filesystem.shard.cpp</InlineCode> declares{' '}
+  <InlineCode>shard.streams</InlineCode> so the loader guarantees it is available before the entry point runs.
+</Prose>
+
+<CodeBlock
+  code={`SHARDLIB_GETMETADATA
+{
+    lib.Name = L"shard.io";
+    lib.Description = L"Native implementation of filesystem methods";
+    lib.Version = L"0.2.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.streams", L"0.1.0" }
+    };
+
+    lib.Dependencies = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}`}
+  language="cpp"
+  filename="filesystem.shard.cpp"
+/>
+
+<Prose>
+  <strong>Register stream interfaces.</strong> Interfaces are declared abstract, marked as implementing{' '}
+  <InlineCode>IDisposable</InlineCode>, and exposed globally so other libraries can implement them.
+</Prose>
+
+<CodeBlock
+  code={`SymbolFactory factory(context.GetSemanticModel().Table.get());
+TypeSymbol* byteArrayType = factory.Array(TYPE_BYTE);
+
+GenericTypeSymbol* valueTaskOfInt = factory.GenericType(
+    CLASS_VALUETASK,
+    { { L"T", TYPE_INT } });
+
+SymbolBuilder<NamespaceSymbol> ioNamespace(context, L"io");
+
+SymbolBuilder<InterfaceSymbol> streamInterface = ioNamespace.AddInterface(L"IStream");
+streamInterface.Implements(TRAIT_DISPOSABLE);
+
+SymbolBuilder<MethodSymbol> disposeMethod = streamInterface.AddMethod(L"Dispose", TYPE_VOID, LINK_INSTANCE);
+disposeMethod.Get()->IsAbstract = true;
+streamInterface.DeclareGlobal();
+
+SymbolBuilder<InterfaceSymbol> readableInterface = ioNamespace.AddInterface(L"IReadableStream");
+readableInterface.Implements(g_IStream);
+
+SymbolBuilder<MethodSymbol> readMethod = readableInterface.AddMethod(L"Read", TYPE_INT, LINK_INSTANCE);
+readMethod.Get()->IsAbstract = true;
+readMethod
+    .AddParameter(L"buffer", byteArrayType)
+    .AddParameter(L"offset", TYPE_INT)
+    .AddParameter(L"count", TYPE_INT);
+
+SymbolBuilder<MethodSymbol> readAsyncMethod = readableInterface.AddMethod(L"ReadAsync", valueTaskOfInt, LINK_INSTANCE);
+readAsyncMethod.Get()->IsAbstract = true;
+readAsyncMethod
+    .AddParameter(L"buffer", byteArrayType)
+    .AddParameter(L"offset", TYPE_INT)
+    .AddParameter(L"count", TYPE_INT);
+
+readableInterface.DeclareGlobal();`}
+  language="cpp"
+  filename="streams.shard.cpp"
+/>
+
+<Prose>
+  <strong>Register MemoryStream.</strong> The class implements both readable and writable interfaces, exposes multiple
+  constructors, and registers both cancellation-aware and cancellation-free async overloads.
+</Prose>
+
+<CodeBlock
+  code={`SymbolBuilder<ClassSymbol> memoryStreamClass = ioNamespace.AddClass(L"MemoryStream");
+g_MemoryStream = memoryStreamClass;
+memoryStreamClass.Implements(g_IReadableStream);
+memoryStreamClass.Implements(g_IWritableStream);
+memoryStreamClass.Implements(TRAIT_DISPOSABLE);
+
+g_MemoryStream_Buffer = memoryStreamClass
+    .AddField(L"_buffer", byteArrayType, LINK_INSTANCE, ACS_PRIVATE);
+
+g_MemoryStream_Position = memoryStreamClass
+    .AddField(L"_position", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
+
+g_MemoryStream_Length = memoryStreamClass
+    .AddField(L"_length", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
+
+g_MemoryStream_Capacity = memoryStreamClass
+    .AddField(L"_capacity", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
+
+g_MemoryStream_Writable = memoryStreamClass
+    .AddField(L"_writable", TYPE_BOOL, LINK_INSTANCE, ACS_PRIVATE);
+
+g_MemoryStream_IsOpen = memoryStreamClass
+    .AddField(L"_isOpen", TYPE_BOOL, LINK_INSTANCE, ACS_PRIVATE);
+
+memoryStreamClass.AddInit()
+    .SetCallback(&shard_memoryStream_InitDefault);
+
+memoryStreamClass.AddInit()
+    .AddParameter(L"buffer", byteArrayType)
+    .SetCallback(&shard_memoryStream_InitWithBuffer);
+
+memoryStreamClass.AddMethod(L"Read", TYPE_INT, LINK_INSTANCE)
+    .AddParameter(L"buffer", byteArrayType)
+    .AddParameter(L"offset", TYPE_INT)
+    .AddParameter(L"count", TYPE_INT)
+    .SetCallback(&shard_memoryStream_Read);
+
+memoryStreamClass.AddMethod(L"ReadAsync", valueTaskOfInt, LINK_INSTANCE)
+    .AddParameter(L"buffer", byteArrayType)
+    .AddParameter(L"offset", TYPE_INT)
+    .AddParameter(L"count", TYPE_INT)
+    .AddParameter(L"cancellationToken", g_CancellationToken)
+    .SetCallback(&shard_memoryStream_ReadAsync_Cancel);
+
+memoryStreamClass.AddMethod(L"WriteAsync", CLASS_TASK, LINK_INSTANCE)
+    .AddParameter(L"buffer", byteArrayType)
+    .AddParameter(L"offset", TYPE_INT)
+    .AddParameter(L"count", TYPE_INT)
+    .AddParameter(L"cancellationToken", g_CancellationToken)
+    .SetCallback(&shard_memoryStream_WriteAsync_Cancel);
+
+memoryStreamClass.DeclareGlobal();`}
+  language="cpp"
+  filename="streams.shard.cpp"
+/>
+
+<Prose>
+  <strong>Wrap and release a native handle.</strong> A <InlineCode>FileStream</InlineCode> opens a{' '}
+  <InlineCode>std::fstream</InlineCode>, stores the pointer in a managed <InlineCode>nint</InlineCode> field, and
+  deletes it on close.
+</Prose>
+
+<CodeBlock
+  code={`static std::fstream* GetFileHandle(ObjectInstance* instance)
+{
+    ObjectInstance* handle = instance->GetField(g_FileStream_Handle->SlotIndex);
+    if (handle == nullptr || handle == GarbageCollector::NullInstance)
+        return nullptr;
+
+    return static_cast<std::fstream*>(handle->AsNint());
+}
+
+static void CloseFileHandle(ObjectInstance* instance, GarbageCollector& gc)
+{
+    ObjectInstance* handle = instance->GetField(g_FileStream_Handle->SlotIndex);
+    if (handle != nullptr && handle != GarbageCollector::NullInstance)
+    {
+        void* ptr = handle->AsNint();
+        if (ptr != nullptr)
+            delete static_cast<std::fstream*>(ptr);
+    }
+
+    instance->SetField(g_FileStream_Handle->SlotIndex, gc.FromNint(nullptr, false));
+    instance->SetField(g_FileStream_IsOpen->SlotIndex, gc.FromValue(false));
+    instance->SetField(g_FileStream_CanRead->SlotIndex, gc.FromValue(false));
+    instance->SetField(g_FileStream_CanWrite->SlotIndex, gc.FromValue(false));
+}`}
+  language="cpp"
+  filename="filesystem.shard.cpp"
+/>
+
+<Prose>
+  <strong>Implement an async read with cancellation.</strong> The callback pins the instance and buffer with{' '}
+  <InlineCode>ObjectRef</InlineCode>, performs blocking work on the thread pool, then completes or faults the value
+  task on the event-loop thread.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* shard_fileStream_ReadAsync_Impl(const CallState& context, ObjectInstance* token)
+{
+    if (IsStreamCancellationRequested(token))
+    {
+        ObjectInstance* task = context.Collector.AllocateGeneric(
+            CLASS_VALUETASK,
+            std::vector<TypeSymbol*>{ TYPE_INT });
+
+        task->IsTaskLike = true;
+        SetTaskState(task, CLASS_VALUETASK_StateField, AsyncState::FAULTED, context.Collector);
+        task->SetField(
+            CLASS_VALUETASK_ExceptionField->SlotIndex,
+            shard::CreateRuntimeException(context.Collector, L"Operation canceled."));
+        return task;
+    }
+
+    ObjectInstance* instance = context.Args[0];
+    ObjectInstance* buffer = context.Args[1];
+    std::int64_t offset = context.Args[2]->AsInteger();
+    std::int64_t count = context.Args[3]->AsInteger();
+
+    struct State
+    {
+        ObjectRef InstanceRef;
+        ObjectRef BufferRef;
+        ObjectInstance* Token = nullptr;
+        std::int64_t Offset = 0;
+        std::int64_t Count = 0;
+        std::int64_t Result = 0;
+        bool Canceled = false;
+    };
+
+    std::shared_ptr<State> state = std::make_shared<State>();
+    state->InstanceRef = ObjectRef(instance);
+    state->BufferRef = ObjectRef(buffer);
+    state->Token = token;
+    state->Offset = offset;
+    state->Count = count;
+
+    return shard::DoValueTask<std::int64_t>(context, [state](shard::AsyncValueScope<std::int64_t> async)
+    {
+        shard::GarbageCollector* collector = &async.Collector();
+
+        async.RunOnThreadPool(
+            [state, collector]()
+            {
+                if (IsStreamCancellationRequested(state->Token))
+                {
+                    state->Canceled = true;
+                    return;
+                }
+
+                std::fstream* file = GetFileHandle(state->InstanceRef.Instance);
+                if (file == nullptr)
+                {
+                    state->Canceled = true;
+                    return;
+                }
+
+                std::vector<char> temp(static_cast<std::size_t>(state->Count));
+                file->read(temp.data(), static_cast<std::streamsize>(state->Count));
+                state->Result = static_cast<std::int64_t>(file->gcount());
+
+                for (std::int64_t i = 0; i < state->Result; ++i)
+                {
+                    state->BufferRef.Instance->SetElement(
+                        static_cast<std::size_t>(state->Offset + i),
+                        collector->FromValue(static_cast<std::uint8_t>(temp[static_cast<std::size_t>(i)])));
+                }
+            },
+            [stateScope = async.ShareState(), state]() mutable
+            {
+                shard::AsyncValueScope<std::int64_t> async(stateScope);
+
+                if (state->Canceled || IsStreamCancellationRequested(state->Token))
+                {
+                    async.Fail(L"Operation canceled.");
+                    return;
+                }
+
+                async.Complete(state->Result);
+            });
+    });
+}`}
+  language="cpp"
+  filename="filesystem.shard.cpp"
+/>
+
+<Prose>
+  <strong>Consume the APIs from ShardScript.</strong> The same stream abstractions work whether the backing store is
+  memory or a file on disk.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using io;
+using filesystem;
+
+namespace demo;
+
+public static async func Main() -> void
+{
+    // Write and read back from memory.
+    using (stream: MemoryStream = new MemoryStream())
+    {
+        writer: StreamWriter = new StreamWriter(stream);
+        writer.WriteLine("hello");
+        writer.Flush();
+
+        stream.Position = 0;
+        reader: StreamReader = new StreamReader(stream);
+        text: string = reader.ReadToEnd();
+        println(text);
+    }
+
+    // Copy a file asynchronously.
+    source: string = "input.txt";
+    dest: string = "output.txt";
+    await File.WriteAllTextAsync(source, "async content");
+    content: string = await File.ReadAllTextAsync(source);
+    println(content);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/async-await-native</InlineCode> — async/await in native libraries.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/async-helpers-reference</InlineCode> — async helper reference.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/example-generic-collections</InlineCode> — another framework library example.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>ShardScript.Framework/system/streams.shard.cpp</InlineCode>: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript.Framework/system/streams.shard.cpp</InlineCode>
+  </Bullet>
+  <Bullet>
+    <InlineCode>ShardScript.Framework/system/filesystem.shard.cpp</InlineCode>: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript.Framework/system/filesystem.shard.cpp</InlineCode>
+  </Bullet>
+</ul>

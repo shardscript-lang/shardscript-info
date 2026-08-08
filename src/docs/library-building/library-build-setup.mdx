@@ -1,0 +1,388 @@
+---
+title: Build Setup & CMake Integration
+group: Getting Started
+order: 3
+slug: library-build-setup
+groupOrder: 1
+---
+
+<Prose>
+  A ShardScript native library is any shared library that exports the two C-linkage symbols
+  <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be
+  built from one or more C++ source files, inside the ShardScript.Framework tree or in a completely
+  separate project. This guide focuses on the standalone-directory case: writing a normal CMake target,
+  locating the ShardScript headers, linking against the ShardScript shared library, choosing an output
+  directory, and loading the result at runtime.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    CMake 3.20 or later and a C++20 toolchain (MSVC on Windows, GCC or Clang on Linux, Clang on macOS).
+  </Bullet>
+  <Bullet>
+    A built ShardScript runtime shared library and the headers in{' '}
+    <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Optional: an external library already available through <InlineCode>find_package</InlineCode>,{' '}
+    <InlineCode>FetchContent</InlineCode>, or a system package manager.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Produce a shared library from one or more C++ source files in a project that is not inside the
+  ShardScript repository, link it against the ShardScript runtime, and make it loadable by the
+  interpreter.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create the project layout.</strong>
+</Prose>
+
+<Prose>
+  Place your source files in a dedicated directory. This example uses two files so registration and
+  implementation are separated, but a single file is also valid.
+</Prose>
+
+<DocsTable
+  headers={['Path', 'Purpose']}
+  rows={[
+    ['my-library/CMakeLists.txt', 'Build script for the shared library.'],
+    ['my-library/library.cpp', 'Metadata and symbol registration.'],
+    ['my-library/callbacks.cpp', 'Native callback implementations.'],
+  ]}
+/>
+
+<Prose>
+  <strong>2. Write the C++ source files.</strong>
+</Prose>
+
+<Prose>
+  Include <InlineCode>shard/ShardScriptLIB.hpp</InlineCode> and the semantic headers, then export the two
+  required entry points. The example below registers one namespace with a single static method.
+</Prose>
+
+<CodeBlock
+  code={`#include <shard/ShardScriptLIB.hpp>
+#include <shard/runtime/ObjectInstance.hpp>
+#include <shard/runtime/MethodCallState.hpp>
+
+using namespace shard;
+
+ObjectInstance* MyLibrary_Double(const CallState& context)
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    return context.Collector.FromValue(value * 2);
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<CodeBlock
+  code={`#include <shard/ShardScriptLIB.hpp>
+#include <shard/CompilationContext.hpp>
+#include <shard/semantic/SymbolBuilder.hpp>
+
+using namespace shard;
+
+ObjectInstance* MyLibrary_Double(const CallState& context);
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.math_ext";
+    lib.Description = L"Extended math helpers";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> mathExt(context, L"math_ext");
+
+    mathExt.AddMethod(L"Double", TYPE_INT, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"value", TYPE_INT)
+        .SetCallback(&MyLibrary_Double);
+}`}
+  language="cpp"
+  filename="library.cpp"
+/>
+
+<Prose>
+  The <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>{' '}
+  macros produce the <InlineCode>extern &quot;C&quot;</InlineCode> exports that the runtime loader expects.
+</Prose>
+
+<Prose>
+  <strong>3. Write the CMakeLists.txt.</strong>
+</Prose>
+
+<Prose>
+  The CMake target is a normal shared library. Locate the ShardScript runtime library with{' '}
+  <InlineCode>find_library</InlineCode>, add the include directory, and link. On Windows, enable{' '}
+  <InlineCode>WINDOWS_EXPORT_ALL_SYMBOLS</InlineCode> or explicitly export the two entry points so they are
+  visible to the runtime loader.
+</Prose>
+
+<CodeBlock
+  code={`cmake_minimum_required(VERSION 3.20)
+project(MyLibrary CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Adjust this path to point at your ShardScript checkout or install prefix.
+set(SHARDSCRIPT_ROOT "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript"
+    CACHE PATH "Root of the ShardScript repository or install prefix")
+
+# ShardScript runtime library.
+find_library(SHARDSCRIPT_LIB
+    NAMES ShardScript libShardScript
+    PATHS
+        "\${SHARDSCRIPT_ROOT}/build/bin"
+        "\${SHARDSCRIPT_ROOT}/build/bin/Release"
+        "\${SHARDSCRIPT_ROOT}/lib"
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+add_library(my_library SHARED
+    library.cpp
+    callbacks.cpp
+)
+
+set_target_properties(my_library PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+target_include_directories(my_library PRIVATE "\${SHARDSCRIPT_ROOT}/ShardScript/include")
+target_link_libraries(my_library PRIVATE \${SHARDSCRIPT_LIB})`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  If your ShardScript build already exports an imported CMake target named{' '}
+  <InlineCode>ShardScript</InlineCode>, you can skip <InlineCode>find_library</InlineCode> and link against
+  it directly. You can also create an imported target yourself from a known library path:
+</Prose>
+
+<CodeBlock
+  code={`add_library(ShardScript SHARED IMPORTED GLOBAL)
+set_target_properties(ShardScript PROPERTIES
+    IMPORTED_LOCATION "\${SHARDSCRIPT_ROOT}/build/bin/ShardScript.dll"
+    INTERFACE_INCLUDE_DIRECTORIES "\${SHARDSCRIPT_ROOT}/ShardScript/include"
+)
+
+target_link_libraries(my_library PRIVATE ShardScript)`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  <strong>4. Choose an output directory.</strong>
+</Prose>
+
+<Prose>
+  By default CMake writes the shared library next to the build tree. You can override this with
+  output-directory properties so the library is easier to find from your ShardScript launch scripts:
+</Prose>
+
+<CodeBlock
+  code={`set_target_properties(my_library PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+    RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+    LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+    ARCHIVE_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/lib"
+)`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  If you need per-configuration output directories, set the DEBUG and RELEASE variants of these
+  properties, for example <InlineCode>RUNTIME_OUTPUT_DIRECTORY_DEBUG</InlineCode> and{' '}
+  <InlineCode>RUNTIME_OUTPUT_DIRECTORY_RELEASE</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>5. Link an external library.</strong>
+</Prose>
+
+<Prose>
+  Because this is a normal CMake target, external dependencies are added with the usual CMake commands.
+  For example, to link zlib from a package manager:
+</Prose>
+
+<CodeBlock
+  code={`find_package(ZLIB REQUIRED)
+target_link_libraries(my_library PRIVATE ZLIB::ZLIB)`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  For libraries discovered through <InlineCode>find_package</InlineCode>, reference the imported target by
+  name. For raw library files, prefer an imported target or a <InlineCode>find_library</InlineCode> result
+  instead of a hard-coded path.
+</Prose>
+
+<Prose>
+  <strong>6. Configure and build.</strong>
+</Prose>
+
+<CodeBlock
+  code={`# Configure the project.
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# Build only the library target.
+cmake --build build --target my_library
+
+# Or build every target in the project.
+cmake --build build --parallel`}
+  language="bash"
+/>
+
+<H2>Loading the library at runtime</H2>
+
+<Prose>
+  The interpreter loads native libraries through the <InlineCode>-l</InlineCode> flag. Pass the full path to
+  the shared library you just built.
+</Prose>
+
+<CodeBlock
+  code={`# On Windows.
+shard app.shard -l build/bin/my_library.dll
+
+# On Linux.
+shard app.shard -l build/bin/libmy_library.so
+
+# On macOS.
+shard app.shard -l build/bin/libmy_library.dylib`}
+  language="bash"
+/>
+
+<Callout tone="blue">
+  On Windows, make sure <InlineCode>ShardScript.dll</InlineCode> is either on your PATH or in the same
+  directory as the library and the interpreter, otherwise the OS loader will fail to resolve the dependency
+  before the interpreter starts.
+</Callout>
+
+<H2>Alternative: building inside ShardScript.Framework</H2>
+
+<Prose>
+  If you prefer to keep your library in the ShardScript repository, the framework CMake file already
+  discovers <InlineCode>{'*.shard.cpp'}</InlineCode> files under{' '}
+  <InlineCode>ShardScript.Framework/system</InlineCode> and{' '}
+  <InlineCode>ShardScript.Framework/third_party</InlineCode> and builds each one as its own shared library:
+</Prose>
+
+<CodeBlock
+  code={`file(GLOB_RECURSE CPP_FILES CONFIGURE_DEPENDS
+    "system/*.shard.cpp"
+    "system/**/*.shard.cpp"
+    "third_party/**/*.shard.cpp"
+)
+
+foreach(CPP_FILE IN LISTS CPP_FILES)
+    get_filename_component(SHARD_TARGET_NAME "\${CPP_FILE}" NAME_WLE)
+    add_library("\${SHARD_TARGET_NAME}" SHARED "\${CPP_FILE}")
+    target_include_directories("\${SHARD_TARGET_NAME}" PRIVATE "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript/include")
+    target_link_libraries("\${SHARD_TARGET_NAME}" PRIVATE ShardScript)
+endforeach()`}
+  language="cmake"
+  filename="ShardScript.Framework/CMakeLists.txt"
+/>
+
+<Prose>
+  System libraries are written to <InlineCode>bin/system/</InlineCode>; third-party libraries go to{' '}
+  <InlineCode>bin/third-party/</InlineCode>. This glob is a convenience for the framework itself, not a
+  requirement for native libraries in general.
+</Prose>
+
+<H2>Verification</H2>
+
+<Prose>
+  After building, confirm that the shared library exists in the expected output directory.
+</Prose>
+
+<CodeBlock
+  code={`# On Windows.
+ls build/bin/my_library.dll
+
+# On Linux.
+ls build/bin/libmy_library.so`}
+  language="bash"
+/>
+
+<Prose>
+  Run the ShardScript interpreter with the new library and invoke the registered method.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using math_ext;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    result: int = math_ext.Double(21);
+    println("result: " + result);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<CodeBlock
+  code={`shard app.shard -l build/bin/my_library.dll`}
+  language="bash"
+/>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">The entry points are not exported.</strong> On Windows, either
+    set <InlineCode>WINDOWS_EXPORT_ALL_SYMBOLS ON</InlineCode> or mark the two functions with
+    <InlineCode>{'__declspec(dllexport)'}</InlineCode>. The <InlineCode>{'SHARDLIB_*'}</InlineCode> macros
+    do this automatically, so verify that the macro expansion is not disabled.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">CMake cannot find ShardScript.</strong> Check that{' '}
+    <InlineCode>SHARDSCRIPT_ROOT</InlineCode> points to the directory that contains both{' '}
+    <InlineCode>ShardScript/include</InlineCode> and the runtime library, and that the library file name
+    matches the <InlineCode>NAMES</InlineCode> list in <InlineCode>find_library</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">External library link errors.</strong> Ensure the{' '}
+    <InlineCode>find_package</InlineCode> or imported target is visible in the same directory scope as your
+    target. Imported targets must be referenced by their CMake target name, not the raw library file path.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The library fails to load at runtime.</strong> Confirm the shared
+    library path passed to <InlineCode>-l</InlineCode> exists and that the runtime&apos;s own shared library
+    is discoverable by the OS dynamic loader.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/your-first-shard-cpp-library</InlineCode> — tutorial for a first native library.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/shardlib-entrypoint</InlineCode> — entry point and metadata macros.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/design-best-practices</InlineCode> — design guidelines.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/troubleshooting</InlineCode> — common problems and solutions.
+  </Bullet>
+</ul>

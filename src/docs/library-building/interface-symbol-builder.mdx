@@ -1,0 +1,373 @@
+---
+title: InterfaceSymbol Builder
+group: SymbolBuilder Types
+order: 4
+slug: interface-symbol-builder
+groupOrder: 3
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>SymbolBuilder&lt;InterfaceSymbol&gt;</InlineCode> registers an interface contract into the
+  ShardScript semantic model inside <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>. An interface declares
+  a set of abstract methods, properties, indexers, type parameters, and base interfaces that classes
+  and structs must satisfy. The runtime resolves calls through an interface reference to the matching
+  implementation on the concrete type.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Obtain an interface builder from a <InlineCode>NamespaceSymbol</InlineCode> builder, then add members
+  and base interfaces with the fluent <InlineCode>SymbolBuilder&lt;InterfaceSymbol&gt;</InlineCode> API.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> demo(context, L"demo");
+
+    SymbolBuilder<InterfaceSymbol> printable = demo.AddInterface(L"IPrintable", ACS_PUBLIC);
+
+    SymbolBuilder<MethodSymbol> printMethod = printable.AddMethod(L"Print", TYPE_VOID, LINK_INSTANCE, ACS_PUBLIC);
+    printMethod.AddParameter(L"message", TYPE_STRING);
+
+    SymbolBuilder<PropertySymbol> labelProp = printable.AddProperty(L"Label", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+    labelProp.AddGetter();
+
+    SymbolBuilder<IndexatorSymbol> indexer = printable.AddIndexer(TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+    indexer.AddParameter(L"key", TYPE_STRING);
+    indexer.AddGetter();
+
+    TypeParameterSymbol* t = printable.AddTypeParameter(L"T");
+
+    printable.Implements(otherInterface);
+    printable.DeclareGlobal();
+}`}
+  language="cpp"
+  filename="interface_registration.cpp"
+/>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>AddInterface</InlineCode>, <><InlineCode>name</InlineCode>, <InlineCode>access = ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;InterfaceSymbol&gt;</InlineCode>, 'Creates a new interface symbol under the namespace and returns a builder for it.'],
+    [<InlineCode>AddMethod</InlineCode>, <><InlineCode>name</InlineCode>, <InlineCode>returnType</InlineCode>, <InlineCode>linking</InlineCode>, <InlineCode>access = ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;MethodSymbol&gt;</InlineCode>, 'Declares an abstract method on the interface. Use <InlineCode>LINK_INSTANCE</InlineCode> because interface methods operate on an instance.'],
+    [<InlineCode>AddProperty</InlineCode>, <><InlineCode>name</InlineCode>, <InlineCode>type</InlineCode>, <InlineCode>linking</InlineCode>, <InlineCode>access = ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;PropertySymbol&gt;</InlineCode>, 'Declares a property contract. Call <InlineCode>AddGetter</InlineCode> and/or <InlineCode>AddSetter</InlineCode> to define required accessors.'],
+    [<InlineCode>AddIndexer</InlineCode>, <><InlineCode>returnType</InlineCode>, <InlineCode>linking</InlineCode>, <InlineCode>access = ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;IndexatorSymbol&gt;</InlineCode>, 'Declares an indexer contract. Add one or more index parameters and required accessors.'],
+    [<InlineCode>AddTypeParameter</InlineCode>, <><InlineCode>name</InlineCode></>, <InlineCode>SymbolBuilder&lt;TypeParameterSymbol&gt;</InlineCode>, 'Declares a generic type parameter for the interface. The returned builder converts to <InlineCode>TypeParameterSymbol*</InlineCode> for use in signatures.'],
+    [<InlineCode>Implements</InlineCode>, <><InlineCode>baseInterface</InlineCode></>, <InlineCode>SymbolBuilder&lt;InterfaceSymbol&gt;&amp;</InlineCode>, 'Adds a base interface. Accepts <InlineCode>InterfaceSymbol*</InlineCode> or a constructed <InlineCode>GenericTypeSymbol*</InlineCode>.'],
+    [<InlineCode>DeclareGlobal</InlineCode>, 'None', <InlineCode>SymbolBuilder&lt;InterfaceSymbol&gt;&amp;</InlineCode>, 'Makes the interface resolvable without a full namespace qualifier, such as <InlineCode>IDisposable</InlineCode>.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>name</InlineCode>, <InlineCode>const std::wstring&amp;</InlineCode>, 'A wide-character identifier. Conventionally prefix interface names with <InlineCode>I</InlineCode>. Applies to the interface, method, property, indexer, and type parameter.'],
+    [<InlineCode>returnType / type</InlineCode>, <InlineCode>TypeSymbol*</InlineCode>, 'A <InlineCode>TypeSymbol*</InlineCode> such as <InlineCode>TYPE_VOID</InlineCode>, <InlineCode>TYPE_STRING</InlineCode>, or a type parameter. Applies to methods, properties, and indexers.'],
+    [<InlineCode>linking</InlineCode>, <InlineCode>SymbolLinking</InlineCode>, 'Use <InlineCode>LINK_INSTANCE</InlineCode> for interface members because they describe per-instance contracts. Applies to methods, properties, and indexers.'],
+    [<InlineCode>access</InlineCode>, <InlineCode>SymbolAccesibility</InlineCode>, 'Defaults to <InlineCode>ACS_PUBLIC</InlineCode>. Interface members must be public to be implemented by external code. Applies to the interface, method, property, and indexer.'],
+    [<InlineCode>baseInterface</InlineCode>, <><InlineCode>InterfaceSymbol*</InlineCode> or <InlineCode>GenericTypeSymbol*</InlineCode></>, 'The parent interface symbol. Store it with <InlineCode>.Get()</InlineCode> or a global static pointer if other types need to inherit from it.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  <InlineCode>AddInterface</InlineCode>, <InlineCode>AddMethod</InlineCode>, <InlineCode>AddProperty</InlineCode>,
+  {' '}<InlineCode>AddIndexer</InlineCode>, and <InlineCode>AddTypeParameter</InlineCode> return{' '}
+  <InlineCode>SymbolBuilder</InlineCode> instances. Call <InlineCode>.Get()</InlineCode> on any builder
+  to retrieve the underlying symbol pointer. Accessor builders (<InlineCode>AddGetter</InlineCode>,{' '}
+  <InlineCode>AddSetter</InlineCode>) return <InlineCode>SymbolBuilder&lt;AccessorSymbol&gt;</InlineCode>.
+  <InlineCode>Implements</InlineCode> and <InlineCode>DeclareGlobal</InlineCode> return the interface
+  builder reference so calls can be chained.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Static member on an interface</strong> — Interface members
+    describe instance contracts. Registering a method, property, or indexer with{' '}
+    <InlineCode>LINK_STATIC</InlineCode> produces a semantic error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing implementation</strong> — A class or struct that calls{' '}
+    <InlineCode>Implements</InlineCode> must expose a matching public member for every abstract method,
+    property, and indexer declared by the interface and its base interfaces.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Signature mismatch</strong> — The implementing member must match
+    the interface member by name, parameter count, parameter types, and return type.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid base interface</strong> —{' '}
+    <InlineCode>Implements</InlineCode> on an interface accepts only other interface symbols. Classes and
+    structs cannot be used as base interfaces.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type parameter used before declaration</strong> — Declare type
+    parameters with <InlineCode>AddTypeParameter</InlineCode> before using them in member signatures.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Callback registered on an interface member</strong> — Interfaces
+    declare contracts, not implementations. Do not call <InlineCode>SetCallback</InlineCode> on interface
+    methods, getters, or setters.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Abstract contracts.</strong> Interface members have no implementation in the native library.
+  Declare methods, properties, and indexers without setting a callback. The runtime records them as
+  abstract requirements and matches them against members on implementing classes and structs. In the
+  framework source you will sometimes see <InlineCode>method.Get()-&gt;IsAbstract = true</InlineCode>,
+  which explicitly marks the method as abstract, but a callback is never attached.
+</Prose>
+
+<Prose>
+  <strong>Instance linking.</strong> Every interface member uses{' '}
+  <InlineCode>LINK_INSTANCE</InlineCode>. When the VM dispatches a call through an interface reference,
+  it passes the instance pointer as <InlineCode>context.Args[0]</InlineCode> to the implementing callback.
+</Prose>
+
+<Prose>
+  <strong>Generic interfaces.</strong> Declare type parameters before any member that references them.
+  At runtime, generic interface calls use <InlineCode>context.Frame-&gt;TypeArguments</InlineCode> in the
+  same order as the <InlineCode>AddTypeParameter</InlineCode> calls. Classes that implement a generic
+  interface must satisfy the constructed signature, such as{' '}
+  <InlineCode>IComparable&lt;int&gt;</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Interface inheritance.</strong> A derived interface inherits every requirement from its base
+  interfaces. A class that implements the derived interface must therefore implement the entire chain.
+  Use <InlineCode>DeclareGlobal</InlineCode> sparingly, only for interfaces that are expected to be
+  referenced without their namespace, such as widely-used contracts like <InlineCode>IDisposable</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Cross-library references.</strong> If one native library needs to implement an interface from
+  another library, look up the interface symbol lazily inside an <InlineCode>EnsureSymbols</InlineCode>
+  helper rather than caching a pointer during static initialization. Load order between libraries is not
+  guaranteed until the loader resolves declared dependencies.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Register an interface and implement it from a native class.</strong> This example declares{' '}
+  <InlineCode>IPrintable</InlineCode> with a method and a read-only property, then registers a{' '}
+  <InlineCode>Document</InlineCode> class that provides concrete implementations.
+</Prose>
+
+<CodeBlock
+  code={`static InterfaceSymbol* g_IPrintable = nullptr;
+static FieldSymbol* g_DocumentLabelField = nullptr;
+
+static ObjectInstance* document_Print(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    ObjectInstance* label = self->GetField(g_DocumentLabelField->SlotIndex);
+
+    if (label == nullptr || label == GarbageCollector::NullInstance)
+    {
+        return nullptr;
+    }
+
+    const wchar_t* text = label->AsString();
+    // A real library would forward text to stdio.println; omitted for clarity.
+    return nullptr;
+}
+
+static ObjectInstance* document_Label_get(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    return self->GetField(g_DocumentLabelField->SlotIndex);
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> demo(context, L"demo");
+
+    SymbolBuilder<InterfaceSymbol> printable = demo.AddInterface(L"IPrintable", ACS_PUBLIC);
+    g_IPrintable = printable.Get();
+
+    SymbolBuilder<MethodSymbol> printMethod = printable.AddMethod(L"Print", TYPE_VOID, LINK_INSTANCE, ACS_PUBLIC);
+    printMethod.AddParameter(L"message", TYPE_STRING);
+
+    SymbolBuilder<PropertySymbol> labelProp = printable.AddProperty(L"Label", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+    labelProp.AddGetter();
+
+    printable.DeclareGlobal();
+
+    demo.AddClass(L"Document", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> document)
+    {
+        document.Implements(g_IPrintable);
+
+        g_DocumentLabelField = document.AddField(L"_label", TYPE_STRING, LINK_INSTANCE, ACS_PRIVATE);
+
+        SymbolBuilder<ConstructorSymbol> init = document.AddInit();
+        init.AddParameter(L"label", TYPE_STRING)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* label = context.Args[1];
+                self->SetField(g_DocumentLabelField->SlotIndex, label);
+                return self;
+            });
+
+        document.AddMethod(L"Print", TYPE_VOID, LINK_INSTANCE, ACS_PUBLIC)
+            .SetCallback(&document_Print);
+
+        SymbolBuilder<PropertySymbol> docLabel = document.AddProperty(L"Label", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+        docLabel.AddGetter().SetCallback(&document_Label_get);
+    });
+}`}
+  language="cpp"
+  filename="printable_interface.cpp"
+/>
+
+<Prose>ShardScript usage of the registered interface:</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using demo;
+
+namespace app;
+
+public class Document : IPrintable
+{
+    private _label: string;
+
+    public init(label: string)
+    {
+        this._label = label;
+    }
+
+    public Label: string
+    {
+        get { return this._label; }
+    }
+
+    public func Print(message: string) -> void
+    {
+        println(message + " from " + this._label);
+    }
+}
+
+public static func Main() -> void
+{
+    doc: IPrintable = new Document("archive");
+    doc.Print("hello");   // hello from archive
+}`}
+  language="csharp"
+  filename="printable_usage.shard"
+/>
+
+<Prose>
+  <strong>Register a generic interface.</strong> This declares <InlineCode>IComparable&lt;T&gt;</InlineCode>{' '}
+  and uses the type parameter as the parameter type for <InlineCode>CompareTo</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> demo(context, L"demo");
+
+    SymbolBuilder<InterfaceSymbol> comparable = demo.AddInterface(L"IComparable", ACS_PUBLIC);
+    TypeParameterSymbol* t = comparable.AddTypeParameter(L"T");
+
+    SymbolBuilder<MethodSymbol> compare = comparable.AddMethod(L"CompareTo", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
+    compare.AddParameter(L"other", t);
+
+    comparable.DeclareGlobal();
+}`}
+  language="cpp"
+  filename="icomparable_interface.cpp"
+/>
+
+<Prose>
+  <strong>Register an interface with an indexer and inheritance.</strong>{' '}
+  <InlineCode>IIndexable</InlineCode> extends <InlineCode>INamed</InlineCode> and adds a string indexer.
+</Prose>
+
+<CodeBlock
+  code={`static InterfaceSymbol* g_INamed = nullptr;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> demo(context, L"demo");
+
+    SymbolBuilder<InterfaceSymbol> named = demo.AddInterface(L"INamed", ACS_PUBLIC);
+    named.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC).AddGetter();
+    g_INamed = named.Get();
+
+    SymbolBuilder<InterfaceSymbol> indexable = demo.AddInterface(L"IIndexable", ACS_PUBLIC);
+    indexable.Implements(g_INamed);
+
+    SymbolBuilder<IndexatorSymbol> indexer = indexable.AddIndexer(TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+    indexer.AddParameter(L"key", TYPE_STRING);
+    indexer.AddGetter();
+
+    indexable.DeclareGlobal();
+}`}
+  language="cpp"
+  filename="indexable_interface.cpp"
+/>
+
+<Prose>
+  <strong>Build the native library.</strong> A library that registers interfaces is compiled as a normal
+  shared-library target. It links against the ShardScript runtime and includes{' '}
+  <InlineCode>ShardScript/include</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`file(GLOB MY_LIB_SOURCES CONFIGURE_DEPENDS "*.cpp")
+
+foreach(SOURCE_FILE IN LISTS MY_LIB_SOURCES)
+    get_filename_component(TARGET_NAME "\${SOURCE_FILE}" NAME_WLE)
+    add_library("\${TARGET_NAME}" SHARED "\${SOURCE_FILE}")
+
+    target_include_directories("\${TARGET_NAME}" PRIVATE
+        "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript/include")
+
+    target_link_libraries("\${TARGET_NAME}" PRIVATE ShardScript)
+endforeach()`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/class-symbol-builder</InlineCode> — implementing interfaces on classes.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/method-symbol-builder</InlineCode> — registering interface methods.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/headers-quick-reference</InlineCode> — required headers.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/semantic/SymbolBuilder.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/semantic/SymbolBuilder.hpp</InlineCode>.
+</Prose>

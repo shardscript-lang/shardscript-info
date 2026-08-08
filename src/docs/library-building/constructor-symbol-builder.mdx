@@ -1,0 +1,386 @@
+---
+title: ConstructorSymbol Builder
+group: SymbolBuilder Types
+order: 7
+slug: constructor-symbol-builder
+groupOrder: 3
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;</InlineCode> API registers constructors on a
+  <InlineCode>ClassSymbol</InlineCode> or <InlineCode>StructSymbol</InlineCode>. Constructors are created
+  through <InlineCode>AddInit()</InlineCode>, configured with parameters and a native callback, and invoked by
+  the runtime when ShardScript code uses the <InlineCode>new</InlineCode> expression. The callback receives the
+  freshly allocated instance as <InlineCode>context.Args[0]</InlineCode>, initializes its state, and must return
+  that same instance.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Constructors are registered from inside an <InlineCode>AddClass</InlineCode> or
+  <InlineCode>AddStruct</InlineCode> registration block. <InlineCode>AddInit()</InlineCode> returns a
+  <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;</InlineCode> that is chained with parameter and callback
+  configuration.
+</Prose>
+
+<CodeBlock
+  code={`SymbolBuilder<ConstructorSymbol> AddInit(SymbolAccesibility access = SymbolAccesibility::Public);`}
+  language="cpp"
+/>
+
+<Prose>
+  The constructor builder supports the following fluent methods:
+</Prose>
+
+<CodeBlock
+  code={`SymbolBuilder<ConstructorSymbol>& AddParameter(
+    const std::wstring& name,
+    TypeSymbol* type);
+
+SymbolBuilder<ConstructorSymbol>& SetCallback(
+    MethodSymbolDelegate callback);
+
+SymbolBuilder<TypeParameterSymbol> AddTypeParameter(
+    const std::wstring& name);`}
+  language="cpp"
+/>
+
+<Prose>
+  The native callback has the same signature as a method callback:
+</Prose>
+
+<CodeBlock
+  code={`shard::ObjectInstance* Callback(const shard::CallState& context);`}
+  language="cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>AddInit</InlineCode>, <><InlineCode>access = SymbolAccesibility::Public</InlineCode></>, <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;</InlineCode>, 'Optional accessibility. Defaults to public. Controls which ShardScript code can invoke the constructor.'],
+    [<InlineCode>AddParameter</InlineCode>, <><InlineCode>name</InlineCode>, <InlineCode>type</InlineCode></>, <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;&amp;</InlineCode>, 'The parameter name as it appears in ShardScript source and its <InlineCode>TypeSymbol*</InlineCode>.'],
+    [<InlineCode>SetCallback</InlineCode>, <><InlineCode>callback</InlineCode></>, <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;&amp;</InlineCode>, 'A <InlineCode>MethodSymbolDelegate</InlineCode> function pointer or lambda that the runtime invokes to initialize the instance.'],
+    [<InlineCode>AddTypeParameter</InlineCode>, <><InlineCode>name</InlineCode></>, <InlineCode>SymbolBuilder&lt;TypeParameterSymbol&gt;</InlineCode>, 'The name of a generic type parameter for a generic constructor.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  <InlineCode>AddInit</InlineCode> returns a <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;</InlineCode>.
+  <InlineCode>AddParameter</InlineCode> and <InlineCode>SetCallback</InlineCode> return a reference to the same
+  constructor builder so calls can be chained. <InlineCode>AddTypeParameter</InlineCode> returns a
+  <InlineCode>SymbolBuilder&lt;TypeParameterSymbol&gt;</InlineCode> for the newly declared generic parameter.
+</Prose>
+
+<Prose>
+  The native callback must return an <InlineCode>ObjectInstance*</InlineCode> that points to the initialized
+  instance. The runtime expects this to be the same pointer that was passed as
+  <InlineCode>context.Args[0]</InlineCode>.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Callback not registered</strong> — Forgetting to call
+    <InlineCode>.SetCallback(...)</InlineCode> leaves the constructor registered but without a native target.
+    The <InlineCode>new</InlineCode> expression resolves but no initialization code runs.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Wrong instance returned</strong> — Returning a different
+    <InlineCode>ObjectInstance*</InlineCode> than <InlineCode>context.Args[0]</InlineCode> breaks object identity
+    and can confuse the garbage collector or produce an uninitialized object at the call site.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument index misalignment</strong> —
+    <InlineCode>context.Args[0]</InlineCode> is the newly allocated instance. The first constructor parameter is
+    at <InlineCode>context.Args[1]</InlineCode>. Reading from index <InlineCode>0</InlineCode> as a parameter
+    value reads the instance itself.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Ambiguous overloads</strong> — Multiple
+    <InlineCode>AddInit</InlineCode> overloads with identical parameter counts and types make constructor
+    resolution ambiguous. Overloads must be distinguishable by parameter count or parameter types.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Inaccessible constructor</strong> — A constructor registered with
+    <InlineCode>ACS_PRIVATE</InlineCode> cannot be invoked by ShardScript
+    code outside its visibility boundary.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Field slot used before registration</strong> — Reading or writing a
+    field in the constructor callback requires the field to have been registered first so that its
+    <InlineCode>SlotIndex</InlineCode> is valid.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Constructor callbacks are instance initializers.</strong> Unlike ordinary methods, a constructor is
+  not registered with an explicit <InlineCode>SymbolLinking</InlineCode> argument because
+  <InlineCode>AddInit</InlineCode> always describes an instance initializer. The runtime allocates storage for
+  the object before the callback runs and passes that instance as <InlineCode>context.Args[0]</InlineCode>. The
+  callback's only responsibility is to fill in fields, validate arguments, and return the same pointer.
+</Prose>
+
+<Prose>
+  <strong>Multiple overloads are supported.</strong> You can register several
+  <InlineCode>AddInit</InlineCode> chains on the same type. ShardScript resolves a <InlineCode>new</InlineCode>
+  call by matching the supplied argument count and types against the registered parameter lists.
+</Prose>
+
+<Prose>
+  <strong>Structs follow the same callback contract as classes.</strong> Even though structs are value types,
+  the runtime still passes a freshly allocated instance to the constructor callback and expects the callback to
+  return it. The VM copies the value as needed after initialization.
+</Prose>
+
+<Prose>
+  <strong>Generic constructors.</strong> When <InlineCode>AddTypeParameter</InlineCode> is used, the concrete
+  type substitutions are available at runtime through <InlineCode>{'context.Frame->TypeArguments'}</InlineCode> in
+  the order in which the parameters were declared.
+</Prose>
+
+<Prose>
+  <strong>Field handles must be captured outside the entry point.</strong> Store the
+  <InlineCode>FieldSymbol*</InlineCode> returned by <InlineCode>AddField</InlineCode> in a static variable so it
+  can be used inside the constructor callback. The <InlineCode>SlotIndex</InlineCode> member is the stable
+  runtime offset used by <InlineCode>ObjectInstance::GetField</InlineCode> and
+  <InlineCode>ObjectInstance::SetField</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Always return <InlineCode>self</InlineCode> from a constructor callback. Returning
+  <InlineCode>nullptr</InlineCode> or a different object is undefined behavior for object construction.
+</Callout>
+
+<Callout tone="amber" title="AddInit is not a static type initializer">
+  <InlineCode>AddInit</InlineCode> registers an instance constructor. It is invoked per <InlineCode>new</InlineCode>
+  expression. Static type initialization is handled separately by the runtime and is not configured through
+  <InlineCode>ConstructorSymbol</InlineCode>.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic class constructor.</strong> A single-parameter constructor stores its argument in a private
+  instance field.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_playerNameField = nullptr;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> game(context, L"game");
+
+    game.AddClass(L"Player", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> player)
+    {
+        g_playerNameField = player.AddField(
+            L"_name",
+            TYPE_STRING,
+            LINK_INSTANCE,
+            ACS_PRIVATE);
+
+        player.AddInit()
+            .AddParameter(L"name", TYPE_STRING)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* name = context.Args[1];
+                self->SetField(g_playerNameField->SlotIndex, name);
+                return self;
+            });
+    });
+}`}
+  language="cpp"
+  filename="game.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using game;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    hero: Player = new Player("Aria");
+    println(hero);
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Multiple constructor overloads.</strong> Two overloads differ by parameter count so ShardScript can
+  construct the object with or without an explicit identifier.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_deviceIdField = nullptr;
+static FieldSymbol* g_deviceLabelField = nullptr;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> devices(context, L"devices");
+
+    devices.AddClass(L"Device", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> device)
+    {
+        g_deviceIdField = device.AddField(
+            L"_id",
+            TYPE_INT,
+            LINK_INSTANCE,
+            ACS_PRIVATE);
+
+        g_deviceLabelField = device.AddField(
+            L"_label",
+            TYPE_STRING,
+            LINK_INSTANCE,
+            ACS_PRIVATE);
+
+        device.AddInit()
+            .AddParameter(L"id", TYPE_INT)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* id = context.Args[1];
+                self->SetField(g_deviceIdField->SlotIndex, id);
+                self->SetField(g_deviceLabelField->SlotIndex, context.Collector.FromValue(L""));
+                return self;
+            });
+
+        device.AddInit()
+            .AddParameter(L"id", TYPE_INT)
+            .AddParameter(L"label", TYPE_STRING)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* id = context.Args[1];
+                ObjectInstance* label = context.Args[2];
+                self->SetField(g_deviceIdField->SlotIndex, id);
+                self->SetField(g_deviceLabelField->SlotIndex, label);
+                return self;
+            });
+    });
+}`}
+  language="cpp"
+  filename="devices.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using devices;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: Device = new Device(1);
+    b: Device = new Device(2, "sensor");
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Struct constructor.</strong> Value types use the same <InlineCode>AddInit</InlineCode> pattern and
+  return the allocated instance.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_pointXField = nullptr;
+static FieldSymbol* g_pointYField = nullptr;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+
+    geometry.AddStruct(L"Point", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> point)
+    {
+        g_pointXField = point.AddField(
+            L"X",
+            TYPE_INT,
+            LINK_INSTANCE,
+            ACS_PUBLIC);
+
+        g_pointYField = point.AddField(
+            L"Y",
+            TYPE_INT,
+            LINK_INSTANCE,
+            ACS_PUBLIC);
+
+        point.AddInit()
+            .AddParameter(L"x", TYPE_INT)
+            .AddParameter(L"y", TYPE_INT)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* x = context.Args[1];
+                ObjectInstance* y = context.Args[2];
+                self->SetField(g_pointXField->SlotIndex, x);
+                self->SetField(g_pointYField->SlotIndex, y);
+                return self;
+            });
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using geometry;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    origin: Point = new Point(0, 0);
+    println(origin.X);
+    println(origin.Y);
+}`}
+  language="csharp"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/class-symbol-builder</InlineCode> — registering classes.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/method-symbol-builder</InlineCode> — registering methods.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/working-with-objects</InlineCode> — allocating and initializing objects in callbacks.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/semantic/SymbolBuilder.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/semantic/SymbolBuilder.hpp</InlineCode>.
+</Prose>

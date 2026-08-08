@@ -11,18 +11,20 @@ const mdxModules = import.meta.glob('../docs/**/*.mdx') as Record<
   () => Promise<{ default: ComponentType<Record<string, unknown>> }>
 >
 
-type DocSection = 'getting-started' | 'syntax' | 'stdlib'
+type DocSection = 'getting-started' | 'syntax' | 'stdlib' | 'library-building'
 
 const SECTION_LABELS: Record<DocSection, string> = {
   'getting-started': 'Getting Started',
   syntax: 'Syntax',
   stdlib: 'Std. Library',
+  'library-building': 'Library Building',
 }
 
 const allGroupTitles: Record<DocSection, string[]> = {
   'getting-started': manifest['getting-started'].map((g) => g.title),
   syntax: manifest.syntax.map((g) => g.title),
   stdlib: manifest.stdlib.map((g) => g.title),
+  'library-building': manifest['library-building'].map((g) => g.title),
 }
 
 function firstSlug(mode: DocSection): string {
@@ -80,12 +82,12 @@ export default function Docs() {
 
   const parseDocPath = (path: string): { mode: DocSection; slug: string } | null => {
     const normalized = path.replace(/^\//, '').replace(/\/$/, '')
-    const match = normalized.match(/^(getting-started|syntax|stdlib)\/([^/]+)$/)
+    const match = normalized.match(/^(getting-started|syntax|stdlib|library-building)(?:\/([^/]+))?$/)
     if (!match) {
       return null
     }
     const mode = match[1] as DocSection
-    const slug = decodeURIComponent(match[2])
+    const slug = match[2] ? decodeURIComponent(match[2]) : firstSlug(mode)
     if (findArticle(slug)) {
       return { mode, slug }
     }
@@ -101,10 +103,10 @@ export default function Docs() {
     }
 
     // Fall back to the legacy hash format (#/docs/<section>/<slug>).
-    const hashMatch = location.hash.match(/^#\/docs\/(getting-started|syntax|stdlib)\/([^/]+)$/)
+    const hashMatch = location.hash.match(/^#\/docs\/(getting-started|syntax|stdlib|library-building)(?:\/([^/]+))?$/)
     if (hashMatch) {
       const mode = hashMatch[1] as DocSection
-      const slug = decodeURIComponent(hashMatch[2])
+      const slug = hashMatch[2] ? decodeURIComponent(hashMatch[2]) : firstSlug(mode)
       if (findArticle(slug)) {
         return { mode, slug }
       }
@@ -141,7 +143,8 @@ export default function Docs() {
   const activeGroup = findGroup(docMode, activeSlug)
 
   useEffect(() => {
-    const expectedPath = `/shardscript-info/docs/${docMode}/${encodeURIComponent(activeSlug)}`
+    const slugPart = activeSlug ? `/${encodeURIComponent(activeSlug)}` : ''
+    const expectedPath = `/shardscript-info/docs/${docMode}${slugPart}`
     if (location.pathname !== expectedPath) {
       navigate(expectedPath, { replace: true })
     }
@@ -177,6 +180,9 @@ export default function Docs() {
 
   const breadcrumbs = useMemo(() => {
     const sector = SECTION_LABELS[docMode]
+    if (!activeSlug) {
+      return `Docs / ${sector}`
+    }
     if (activeGroup) {
       return `Docs / ${sector} / ${activeGroup.title} / ${activeArticle?.title ?? activeSlug}`
     }
@@ -194,7 +200,7 @@ export default function Docs() {
             size={16}
             className={`transition-transform duration-200 ${sidebarOpen ? 'rotate-180' : ''}`}
           />
-          {activeArticle?.title ?? activeSlug}
+          {activeArticle?.title ?? SECTION_LABELS[docMode]}
         </button>
       </div>
 
@@ -313,7 +319,7 @@ export default function Docs() {
 
             <ScrollReveal delay={0.05}>
               <h1 className="font-space text-4xl md:text-5xl font-bold text-text-primary leading-[1.1] tracking-tight mb-2">
-                {activeArticle?.title ?? activeSlug}
+                {activeArticle?.title ?? SECTION_LABELS[docMode]}
               </h1>
             </ScrollReveal>
 
@@ -329,7 +335,9 @@ export default function Docs() {
               ) : (
                 <div className="bg-[#1B1B1E] border border-[#353539] rounded-card p-6">
                   <p className="text-text-secondary">
-                    This article has not been migrated yet. Slug: <code>{activeSlug}</code>
+                    {activeSlug
+                      ? <>This article has not been migrated yet. Slug: <code>{activeSlug}</code></>
+                      : 'No articles in this section yet.'}
                   </p>
                 </div>
               )}

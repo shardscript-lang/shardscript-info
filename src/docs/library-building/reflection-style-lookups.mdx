@@ -1,0 +1,319 @@
+---
+title: Reflection-Style Lookups
+group: Advanced Topics
+order: 4
+slug: reflection-style-lookups
+groupOrder: 5
+---
+
+<Prose>
+  Native libraries that build on top of other native libraries need a safe way to find symbols that belong to
+  those dependencies. The ShardScript semantic model exposes a reflection-style lookup API that lets you resolve
+  a type by its fully qualified name at runtime inside your <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>. This
+  guide shows how to use <InlineCode>SemanticModel::FindTypeByName</InlineCode> for cross-library symbol lookup
+  combined with lazy caching so your library stays resilient to load order.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working native library project that compiles to a shared library exporting{' '}
+    <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>.
+  </Bullet>
+  <Bullet>
+    The library links against the ShardScript runtime shared library and includes headers from{' '}
+    <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    You have a second native library whose symbols you need to reference, and that library is declared as a
+    dependency in your <InlineCode>SHARDLIB_GETMETADATA</InlineCode> block.
+  </Bullet>
+  <Bullet>
+    Familiarity with <InlineCode>SymbolBuilder</InlineCode>, fields, and callback registration.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Reference types and members from another native library without hard-coding pointers, relying on static
+  initializers, or assuming that the dependency has already registered its symbols. By the end of this guide
+  you will have an <InlineCode>EnsureSymbols</InlineCode> helper that lazily populates a cache of looked-up
+  symbols and guards every callback that depends on them.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Declare the dependency.</strong>
+</Prose>
+
+<Prose>
+  Even though you will look symbols up lazily, the runtime still needs to know that your library depends on
+  the other library. Add the dependency to <InlineCode>SHARDLIB_GETMETADATA</InlineCode> so the loader can
+  enforce load order.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.mylibrary";
+    lib.Description = L"Library that reuses types from shard.collections";
+    lib.Version     = L"1.0.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.collections", L"0.1.0" }
+    };
+    lib.Dependencies = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}`}
+  language="cpp"
+  filename="mylibrary.cpp"
+/>
+
+<Prose>
+  <strong>2. Add lazy cache variables and an <InlineCode>EnsureSymbols</InlineCode> helper.</strong>
+</Prose>
+
+<Prose>
+  Store the symbols your callbacks need as static pointers initialized to <InlineCode>nullptr</InlineCode>.
+  Populate them inside a single helper that uses the semantic model&apos;s lookup API. The helper is idempotent:
+  once the cache is populated it returns immediately.
+</Prose>
+
+<CodeBlock
+  code={`// Cache for cross-library symbol lookups.
+static TypeSymbol* g_listType = nullptr;
+static MethodSymbol* g_listAddMethod = nullptr;
+static FieldSymbol* g_listArrayField = nullptr;
+
+static void EnsureSymbols(SymbolTable* table)
+{
+    if (g_listType != nullptr)
+    {
+        return;
+    }
+
+    // Resolve the raw generic definition by fully qualified name.
+    g_listType = SemanticModel::FindTypeByName(table, L"collections.List");
+
+    if (g_listType == nullptr)
+    {
+        return;
+    }
+
+    // Walk the resolved type for the members this library needs.
+    ClassSymbol* listClass = static_cast<ClassSymbol*>(g_listType);
+
+    g_listAddMethod = listClass->FindMethod(L"Add");
+    g_listArrayField = listClass->FindField(L"_array");
+}`}
+  language="cpp"
+  filename="mylibrary.cpp"
+/>
+
+<Callout tone="blue" title="Why lazy lookup matters">
+  Static initializers run in an unpredictable order across translation units and shared libraries. A global
+  pointer set during static initialization may be assigned before the dependency&apos;s entry point has
+  registered its symbols, leading to null or stale pointers. Lazy lookup inside{' '}
+  <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> or the first callback guarantees the semantic model is ready.
+</Callout>
+
+<Prose>
+  <strong>3. Call <InlineCode>EnsureSymbols</InlineCode> from your entry point.</strong>
+</Prose>
+
+<Prose>
+  The entry point receives a <InlineCode>SymbolRegistrationContext</InlineCode> that exposes the semantic model.
+  Seed the cache there if any symbol is needed during registration itself, such as when you register a method
+  whose return type comes from the other library.
+</Prose>
+
+<CodeBlock
+  code={`SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> myNamespace(context, L"mylibrary");
+
+    // The semantic model table is available from the registration context.
+    EnsureSymbols(context.GetSemanticModel().Table.get());
+
+    // Register a method whose callback will use the cached symbols.
+    myNamespace.AddClass(L"MyType", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"AppendAndCount", TYPE_INT, LINK_STATIC)
+            .AddParameter(L"list", TYPE_OBJECT)
+            .AddParameter(L"value", TYPE_INT)
+            .SetCallback(&MyLibrary_AppendAndCount);
+    });
+}`}
+  language="cpp"
+  filename="mylibrary.cpp"
+/>
+
+<Prose>
+  <strong>4. Guard every callback that depends on looked-up symbols.</strong>
+</Prose>
+
+<Prose>
+  Callbacks can run before or after your entry point, and the runtime may invoke them on different code paths.
+  Call <InlineCode>EnsureSymbols</InlineCode> at the start of each callback and fail gracefully if a symbol is
+  still missing.
+</Prose>
+
+<CodeBlock
+  code={`ObjectInstance* MyLibrary_AppendAndCount(const CallState& context)
+{
+    SymbolTable* table = context.Program->SemanticModel.Table.get();
+    EnsureSymbols(table);
+
+    if (g_listType == nullptr || g_listAddMethod == nullptr || g_listArrayField == nullptr)
+    {
+        // The dependency is declared, so this should not happen once load order is enforced.
+        // Throwing lets the runtime surface a ShardScript exception.
+        throw std::runtime_error("Could not resolve collections.List symbols");
+    }
+
+    ObjectInstance* list = context.Args[0];
+    ObjectInstance* value = context.Args[1];
+
+    // Read the internal array to obtain the current length before adding.
+    ObjectInstance* array = list->GetField(g_listArrayField->SlotIndex);
+    std::size_t lengthBefore = 0;
+    if (array != nullptr && array != GarbageCollector::NullInstance)
+    {
+        lengthBefore = array->GetArrayLength();
+    }
+
+    // Call the dependency's Add method through the runtime invocation helper.
+    // Keeping a direct pointer to the method avoids a second name lookup on every call.
+    std::array<ObjectInstance*, 2> addArgs = { list, value };
+    context.Runtimer->InvokeMethod(g_listAddMethod, addArgs, context.Frame);
+
+    // Return the new element count.
+    std::int64_t newLength = static_cast<std::int64_t>(lengthBefore + 1);
+    return context.Collector.FromValue(newLength);
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<Callout tone="blue">
+  The <InlineCode>EnsureSymbols</InlineCode> call inside the callback accepts the program&apos;s semantic model.
+  This is the same lookup surface used during registration, so the cache stays valid across compile-time and
+  runtime phases.
+</Callout>
+
+<Prose>
+  <strong>5. Consume the library from ShardScript.</strong>
+</Prose>
+
+<Prose>
+  The consumer imports both namespaces and lets the runtime resolve the dependency chain through the metadata
+  declarations.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using collections;
+using mylibrary;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    numbers: List<int> = new List<int>();
+    count: int = MyType.AppendAndCount(numbers, 10);
+    println("Count: " + count);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<H2>Verification</H2>
+
+<Prose>
+  Build your shared library and run the ShardScript program with the <InlineCode>-l</InlineCode> flag for both
+  libraries.
+</Prose>
+
+<CodeBlock
+  code={`# Windows
+shard app.shard -l build/mylibrary.dll -l "\${SHARDSCRIPT_ROOT}/bin/system/collections.dll"
+
+# Linux
+shard app.shard -l build/libmylibrary.so -l "\${SHARDSCRIPT_ROOT}/bin/system/libcollections.so"
+
+# macOS
+shard app.shard -l build/libmylibrary.dylib -l "\${SHARDSCRIPT_ROOT}/bin/system/libcollections.dylib"`}
+  language="bash"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`Count: 1`}
+  language="text"
+/>
+
+<Callout tone="green" title="Success criteria">
+  If the program prints <InlineCode>Count: 1</InlineCode> without exceptions, the lazy lookup succeeded, the
+  cached <InlineCode>List</InlineCode> symbol is valid, and the callback invoked the dependency method
+  correctly.
+</Callout>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">
+      <InlineCode>SemanticModel::FindTypeByName</InlineCode> returns <InlineCode>nullptr</InlineCode>
+    </strong>{' '}
+    — Verify the fully qualified name matches the dependency&apos;s registration name, including namespace
+    nesting. Confirm the dependency library is loaded and declared in <InlineCode>SHARDLIB_GETMETADATA</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Method callback is never called</strong> — Ensure{' '}
+    <InlineCode>.SetCallback(...)</InlineCode> was called on the method builder and that the parameter count
+    and types match the ShardScript call site.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Crash on first use of a cached symbol</strong> — Do not assign the
+    cache during static initialization. Populate it inside <InlineCode>EnsureSymbols</InlineCode>, which runs
+    after the runtime has loaded and registered the dependency.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null reference when accessing a field</strong> — Check that the
+    field symbol was found successfully and that <InlineCode>SlotIndex</InlineCode> is being used on the
+    correct instance type. Fields belong to the type that registered them.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dependency library not loaded</strong> — The runtime loads libraries
+    in dependency order only when the dependency is declared. Double-check the name and version in{' '}
+    <InlineCode>SHARDLIB_GETMETADATA</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/inter-library-dependencies</InlineCode> — declaring and using library dependencies.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/generic-types-and-type-parameters</InlineCode> — constructing generic types at runtime.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/working-with-objects</InlineCode> — working with looked-up instances.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/shardlib-entrypoint</InlineCode> — entry point registration.
+  </Bullet>
+</ul>

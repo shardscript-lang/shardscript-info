@@ -8,7 +8,7 @@ export interface DocArticle {
   groupOrder: number
   order: number
   file: string
-  section: 'getting-started' | 'syntax' | 'stdlib'
+  section: 'getting-started' | 'syntax' | 'stdlib' | 'library-building'
 }
 
 export interface DocGroup {
@@ -20,6 +20,7 @@ export interface DocManifest {
   'getting-started': DocGroup[]
   syntax: DocGroup[]
   stdlib: DocGroup[]
+  'library-building': DocGroup[]
   articles: Record<string, DocArticle>
 }
 
@@ -374,6 +375,195 @@ const manifest: DocManifest = {
         {
           "slug": "type-introspection",
           "title": "Type Introspection"
+        }
+      ]
+    }
+  ],
+  "library-building": [
+    {
+      "title": "Getting Started",
+      "items": [
+        {
+          "slug": "native-library-overview",
+          "title": "Native Libraries Overview"
+        },
+        {
+          "slug": "your-first-shard-cpp-library",
+          "title": "Your First Native Library"
+        },
+        {
+          "slug": "library-build-setup",
+          "title": "Build Setup & CMake Integration"
+        }
+      ]
+    },
+    {
+      "title": "Core API & Entry Point",
+      "items": [
+        {
+          "slug": "shardlib-entrypoint",
+          "title": "SHARDLIB_GETMETADATA & SHARDLIB_ENTRYPOINT"
+        },
+        {
+          "slug": "headers-quick-reference",
+          "title": "Header Reference"
+        },
+        {
+          "slug": "accessibility-and-linking",
+          "title": "Accessibility & Linking Values"
+        }
+      ]
+    },
+    {
+      "title": "SymbolBuilder Types",
+      "items": [
+        {
+          "slug": "namespace-symbol-builder",
+          "title": "NamespaceSymbol Builder"
+        },
+        {
+          "slug": "class-symbol-builder",
+          "title": "ClassSymbol Builder"
+        },
+        {
+          "slug": "struct-symbol-builder",
+          "title": "StructSymbol Builder"
+        },
+        {
+          "slug": "interface-symbol-builder",
+          "title": "InterfaceSymbol Builder"
+        },
+        {
+          "slug": "enum-symbol-builder",
+          "title": "EnumSymbol Builder"
+        },
+        {
+          "slug": "method-symbol-builder",
+          "title": "MethodSymbol Builder"
+        },
+        {
+          "slug": "constructor-symbol-builder",
+          "title": "ConstructorSymbol Builder"
+        },
+        {
+          "slug": "property-symbol-builder",
+          "title": "PropertySymbol Builder"
+        },
+        {
+          "slug": "indexer-symbol-builder",
+          "title": "IndexatorSymbol Builder"
+        },
+        {
+          "slug": "operator-symbol-builder",
+          "title": "OperatorSymbol Builder"
+        }
+      ]
+    },
+    {
+      "title": "Runtime Callback Contract",
+      "items": [
+        {
+          "slug": "callback-contract-overview",
+          "title": "The Native Callback Contract"
+        },
+        {
+          "slug": "reading-arguments",
+          "title": "Reading Arguments"
+        },
+        {
+          "slug": "returning-values",
+          "title": "Returning Values"
+        },
+        {
+          "slug": "working-with-objects",
+          "title": "Working with Objects"
+        },
+        {
+          "slug": "working-with-fields",
+          "title": "Working with Fields"
+        },
+        {
+          "slug": "working-with-arrays",
+          "title": "Working with Arrays"
+        },
+        {
+          "slug": "garbage-collection-rules",
+          "title": "Garbage Collection Rules"
+        },
+        {
+          "slug": "native-callback-helpers",
+          "title": "Native Callback Helpers"
+        }
+      ]
+    },
+    {
+      "title": "Advanced Topics",
+      "items": [
+        {
+          "slug": "generic-types-and-type-parameters",
+          "title": "Generic Types & Type Parameters"
+        },
+        {
+          "slug": "async-await-native",
+          "title": "Async / Await in Native Libraries"
+        },
+        {
+          "slug": "inter-library-dependencies",
+          "title": "Inter-Library Dependencies"
+        },
+        {
+          "slug": "reflection-style-lookups",
+          "title": "Reflection-Style Lookups"
+        },
+        {
+          "slug": "native-handles-and-object-lifetime",
+          "title": "Native Handles, nint & Object Lifetime"
+        },
+        {
+          "slug": "async-helpers-reference",
+          "title": "Async Helpers Reference"
+        },
+        {
+          "slug": "native-helpers-reference",
+          "title": "Native Helpers Reference"
+        }
+      ]
+    },
+    {
+      "title": "Best Practices & Troubleshooting",
+      "items": [
+        {
+          "slug": "design-best-practices",
+          "title": "Design Best Practices"
+        },
+        {
+          "slug": "troubleshooting",
+          "title": "Common Problems & Solutions"
+        }
+      ]
+    },
+    {
+      "title": "Example Projects & Patterns",
+      "items": [
+        {
+          "slug": "example-math-library",
+          "title": "Example: shard.math"
+        },
+        {
+          "slug": "example-generic-collections",
+          "title": "Example: shard.collections"
+        },
+        {
+          "slug": "example-async-io",
+          "title": "Example: File/Stream I/O"
+        },
+        {
+          "slug": "example-native-handle-wrapper",
+          "title": "Example: Wrapping a C++ Class with nint & IDisposable"
+        },
+        {
+          "slug": "example-http-client-server",
+          "title": "Example: HTTP Client/Server"
         }
       ]
     }
@@ -936,6 +1126,348 @@ const manifest: DocManifest = {
       "order": 1,
       "file": "stdlib/reflection/type-introspection.mdx",
       "section": "stdlib"
+    },
+    "callback-contract-overview": {
+      "slug": "callback-contract-overview",
+      "title": "The Native Callback Contract",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 1,
+      "file": "library-building/callback-contract-overview.mdx",
+      "section": "library-building"
+    },
+    "interface-symbol-builder": {
+      "slug": "interface-symbol-builder",
+      "title": "InterfaceSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 4,
+      "file": "library-building/interface-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "operator-symbol-builder": {
+      "slug": "operator-symbol-builder",
+      "title": "OperatorSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 10,
+      "file": "library-building/operator-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "accessibility-and-linking": {
+      "slug": "accessibility-and-linking",
+      "title": "Accessibility & Linking Values",
+      "group": "Core API & Entry Point",
+      "groupOrder": 2,
+      "order": 3,
+      "file": "library-building/accessibility-and-linking.mdx",
+      "section": "library-building"
+    },
+    "async-await-native": {
+      "slug": "async-await-native",
+      "title": "Async / Await in Native Libraries",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 2,
+      "file": "library-building/async-await-native.mdx",
+      "section": "library-building"
+    },
+    "class-symbol-builder": {
+      "slug": "class-symbol-builder",
+      "title": "ClassSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 2,
+      "file": "library-building/class-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "constructor-symbol-builder": {
+      "slug": "constructor-symbol-builder",
+      "title": "ConstructorSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 7,
+      "file": "library-building/constructor-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "design-best-practices": {
+      "slug": "design-best-practices",
+      "title": "Design Best Practices",
+      "group": "Best Practices & Troubleshooting",
+      "groupOrder": 6,
+      "order": 1,
+      "file": "library-building/design-best-practices.mdx",
+      "section": "library-building"
+    },
+    "enum-symbol-builder": {
+      "slug": "enum-symbol-builder",
+      "title": "EnumSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 5,
+      "file": "library-building/enum-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "example-async-io": {
+      "slug": "example-async-io",
+      "title": "Example: File/Stream I/O",
+      "group": "Example Projects & Patterns",
+      "groupOrder": 7,
+      "order": 3,
+      "file": "library-building/example-async-io.mdx",
+      "section": "library-building"
+    },
+    "example-generic-collections": {
+      "slug": "example-generic-collections",
+      "title": "Example: shard.collections",
+      "group": "Example Projects & Patterns",
+      "groupOrder": 7,
+      "order": 2,
+      "file": "library-building/example-generic-collections.mdx",
+      "section": "library-building"
+    },
+    "example-math-library": {
+      "slug": "example-math-library",
+      "title": "Example: shard.math",
+      "group": "Example Projects & Patterns",
+      "groupOrder": 7,
+      "order": 1,
+      "file": "library-building/example-math-library.mdx",
+      "section": "library-building"
+    },
+    "example-native-handle-wrapper": {
+      "slug": "example-native-handle-wrapper",
+      "title": "Example: Wrapping a C++ Class with nint & IDisposable",
+      "group": "Example Projects & Patterns",
+      "groupOrder": 7,
+      "order": 4,
+      "file": "library-building/example-native-handle-wrapper.mdx",
+      "section": "library-building"
+    },
+    "garbage-collection-rules": {
+      "slug": "garbage-collection-rules",
+      "title": "Garbage Collection Rules",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 7,
+      "file": "library-building/garbage-collection-rules.mdx",
+      "section": "library-building"
+    },
+    "generic-types-and-type-parameters": {
+      "slug": "generic-types-and-type-parameters",
+      "title": "Generic Types & Type Parameters",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 1,
+      "file": "library-building/generic-types-and-type-parameters.mdx",
+      "section": "library-building"
+    },
+    "headers-quick-reference": {
+      "slug": "headers-quick-reference",
+      "title": "Header Reference",
+      "group": "Core API & Entry Point",
+      "groupOrder": 2,
+      "order": 2,
+      "file": "library-building/headers-quick-reference.mdx",
+      "section": "library-building"
+    },
+    "indexer-symbol-builder": {
+      "slug": "indexer-symbol-builder",
+      "title": "IndexatorSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 9,
+      "file": "library-building/indexer-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "inter-library-dependencies": {
+      "slug": "inter-library-dependencies",
+      "title": "Inter-Library Dependencies",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 3,
+      "file": "library-building/inter-library-dependencies.mdx",
+      "section": "library-building"
+    },
+    "library-build-setup": {
+      "slug": "library-build-setup",
+      "title": "Build Setup & CMake Integration",
+      "group": "Getting Started",
+      "groupOrder": 1,
+      "order": 3,
+      "file": "library-building/library-build-setup.mdx",
+      "section": "library-building"
+    },
+    "method-symbol-builder": {
+      "slug": "method-symbol-builder",
+      "title": "MethodSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 6,
+      "file": "library-building/method-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "namespace-symbol-builder": {
+      "slug": "namespace-symbol-builder",
+      "title": "NamespaceSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 1,
+      "file": "library-building/namespace-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "native-handles-and-object-lifetime": {
+      "slug": "native-handles-and-object-lifetime",
+      "title": "Native Handles, nint & Object Lifetime",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 5,
+      "file": "library-building/native-handles-and-object-lifetime.mdx",
+      "section": "library-building"
+    },
+    "native-library-overview": {
+      "slug": "native-library-overview",
+      "title": "Native Libraries Overview",
+      "group": "Getting Started",
+      "groupOrder": 1,
+      "order": 1,
+      "file": "library-building/native-library-overview.mdx",
+      "section": "library-building"
+    },
+    "property-symbol-builder": {
+      "slug": "property-symbol-builder",
+      "title": "PropertySymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 8,
+      "file": "library-building/property-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "reading-arguments": {
+      "slug": "reading-arguments",
+      "title": "Reading Arguments",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 2,
+      "file": "library-building/reading-arguments.mdx",
+      "section": "library-building"
+    },
+    "reflection-style-lookups": {
+      "slug": "reflection-style-lookups",
+      "title": "Reflection-Style Lookups",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 4,
+      "file": "library-building/reflection-style-lookups.mdx",
+      "section": "library-building"
+    },
+    "returning-values": {
+      "slug": "returning-values",
+      "title": "Returning Values",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 3,
+      "file": "library-building/returning-values.mdx",
+      "section": "library-building"
+    },
+    "shardlib-entrypoint": {
+      "slug": "shardlib-entrypoint",
+      "title": "SHARDLIB_GETMETADATA & SHARDLIB_ENTRYPOINT",
+      "group": "Core API & Entry Point",
+      "groupOrder": 2,
+      "order": 1,
+      "file": "library-building/shardlib-entrypoint.mdx",
+      "section": "library-building"
+    },
+    "struct-symbol-builder": {
+      "slug": "struct-symbol-builder",
+      "title": "StructSymbol Builder",
+      "group": "SymbolBuilder Types",
+      "groupOrder": 3,
+      "order": 3,
+      "file": "library-building/struct-symbol-builder.mdx",
+      "section": "library-building"
+    },
+    "troubleshooting": {
+      "slug": "troubleshooting",
+      "title": "Common Problems & Solutions",
+      "group": "Best Practices & Troubleshooting",
+      "groupOrder": 6,
+      "order": 2,
+      "file": "library-building/troubleshooting.mdx",
+      "section": "library-building"
+    },
+    "working-with-arrays": {
+      "slug": "working-with-arrays",
+      "title": "Working with Arrays",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 6,
+      "file": "library-building/working-with-arrays.mdx",
+      "section": "library-building"
+    },
+    "working-with-fields": {
+      "slug": "working-with-fields",
+      "title": "Working with Fields",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 5,
+      "file": "library-building/working-with-fields.mdx",
+      "section": "library-building"
+    },
+    "working-with-objects": {
+      "slug": "working-with-objects",
+      "title": "Working with Objects",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 4,
+      "file": "library-building/working-with-objects.mdx",
+      "section": "library-building"
+    },
+    "your-first-shard-cpp-library": {
+      "slug": "your-first-shard-cpp-library",
+      "title": "Your First Native Library",
+      "group": "Getting Started",
+      "groupOrder": 1,
+      "order": 2,
+      "file": "library-building/your-first-shard-cpp-library.mdx",
+      "section": "library-building"
+    },
+    "example-http-client-server": {
+      "slug": "example-http-client-server",
+      "title": "Example: HTTP Client/Server",
+      "group": "Example Projects & Patterns",
+      "groupOrder": 7,
+      "order": 5,
+      "file": "library-building/example-http-client-server.mdx",
+      "section": "library-building"
+    },
+    "native-callback-helpers": {
+      "slug": "native-callback-helpers",
+      "title": "Native Callback Helpers",
+      "group": "Runtime Callback Contract",
+      "groupOrder": 4,
+      "order": 8,
+      "file": "library-building/native-callback-helpers.mdx",
+      "section": "library-building"
+    },
+    "async-helpers-reference": {
+      "slug": "async-helpers-reference",
+      "title": "Async Helpers Reference",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 6,
+      "file": "library-building/async-helpers-reference.mdx",
+      "section": "library-building"
+    },
+    "native-helpers-reference": {
+      "slug": "native-helpers-reference",
+      "title": "Native Helpers Reference",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 7,
+      "file": "library-building/native-helpers-reference.mdx",
+      "section": "library-building"
     }
   }
 }
