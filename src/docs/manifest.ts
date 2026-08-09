@@ -202,6 +202,15 @@ const manifest: DocManifest = {
   ],
   "stdlib": [
     {
+      "title": "SHARD.STDIO",
+      "items": [
+        {
+          "slug": "console-io",
+          "title": "Console I/O"
+        }
+      ]
+    },
+    {
       "title": "SHARD.MATH",
       "items": [
         {
@@ -1151,6 +1160,15 @@ const manifest: DocManifest = {
       "groupOrder": 14,
       "order": 1,
       "file": "stdlib/time/date-and-time.mdx",
+      "section": "stdlib"
+    },
+    "console-io": {
+      "slug": "console-io",
+      "title": "Console I/O",
+      "group": "SHARD.STDIO",
+      "groupOrder": 0,
+      "order": 1,
+      "file": "stdlib/stdio/console-io.mdx",
       "section": "stdlib"
     },
     "callback-contract-overview": {
