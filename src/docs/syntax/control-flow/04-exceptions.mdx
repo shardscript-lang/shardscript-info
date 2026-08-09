@@ -156,6 +156,23 @@ throw;`}
 </Prose>
 
 <Prose>
+  <strong>Auto-population of <InlineCode>stack_trace</InlineCode>.</strong> When a managed object that
+  implements <InlineCode>IThrowable</InlineCode> is thrown with <InlineCode>throw</InlineCode>, the VM
+  checks whether its <InlineCode>stack_trace</InlineCode> backing field is empty. If it is, the VM writes
+  the current managed call stack into that field before control transfers to the handler. This makes
+  managed throws consistent with exceptions raised from native code.
+</Prose>
+
+<Prose>
+  <strong>Typed exceptions from native libraries.</strong> Native libraries can register their own{' '}
+  <InlineCode>IThrowable</InlineCode> classes and throw them through{' '}
+  <InlineCode>shard::runtime_exception</InlineCode>. The VM catches the C++ exception and instantiates the
+  requested managed type instead of the built-in <InlineCode>RuntimeException</InlineCode>. See the{' '}
+  <InlineCode>library-building/throwing-typed-exceptions</InlineCode> how-to for the full registration and
+  throw pattern.
+</Prose>
+
+<Prose>
   <strong>Typed versus catch-all clauses.</strong> Use typed catches for code paths that need to
   inspect a specific failure. Use <InlineCode>catch (ex: any)</InlineCode> or{' '}
   <InlineCode>catch (ex)</InlineCode> as a final safety net. Because matching is sequential, always
@@ -388,6 +405,54 @@ public static func Main() -> void
 
 <CodeBlock
   code={`caught: `}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Inspecting the stack trace.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Inner() -> void
+{
+    throw new RuntimeException();
+}
+
+public static func Outer() -> void
+{
+    Inner();
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        Outer();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("message: " + ex.message);
+        println("stack trace:");
+        println(ex.stack_trace);
+    }
+}`}
+  language="csharp"
+  filename="stack_trace.shard"
+/>
+
+<Prose>Expected output (exact frame names depend on your namespace):</Prose>
+
+<CodeBlock
+  code={`message:
+stack trace:
+demo.Program.Outer
+demo.Program.Inner
+demo.Program.Main`}
   language="plaintext"
   filename="output.txt"
 />

@@ -21,6 +21,9 @@ These pages must be highly scannable and information-dense, containing only the 
 * **See also:** Links to related Reference or Concept articles in the same documentation set.
 * **Source:** For API features backed by C++ code or a shipped shard library, link to the relevant source file in the ShardScript repository (e.g., `ShardScript.Framework/system/<name>.shard.cpp` or `ShardScript/include/shard/<path>.hpp`). Use a stable GitHub URL when possible.
 
+**Closing sections for Reference pages:**
+Every Reference page must end with **See also** and **Source**. Do not omit the Source section when the documented feature is backed by source code.
+
 **2. Tutorials**
 Tutorial pages are narrative and sequential. Structure them as follows:
 
@@ -29,6 +32,9 @@ Tutorial pages are narrative and sequential. Structure them as follows:
 * **Step-by-Step Instructions:** Numbered steps. Code snippets must include clear actions.
 * **Expected Output:** What the VM or host application should output when executed.
 * **What's next?:** Concrete recommendations for what the reader should do with the knowledge gained — link to related How-To or Reference articles, or suggest small follow-up exercises.
+
+**Closing sections for Tutorials:**
+Every Tutorial must end with **What's next?**. Give the reader at least one concrete follow-up action, such as a related How-To, a Reference article, or a small exercise.
 
 **3. How-To Guides**
 How-To pages are task-oriented. Structure them as follows:
@@ -40,6 +46,9 @@ How-To pages are task-oriented. Structure them as follows:
 * **Troubleshooting:** Common failures and how to resolve them.
 * **See also:** Links to related Tutorials, Reference, or Concept articles.
 
+**Closing sections for How-To Guides:**
+Every How-To must end with **Troubleshooting** and **See also**. The See also section should link to the Reference pages of every API used in the guide.
+
 **4. Concept Pages**
 Concept pages explain ideas and design. Structure them as follows:
 
@@ -49,6 +58,9 @@ Concept pages explain ideas and design. Structure them as follows:
 * **Key ideas:** Bulleted core principles.
 * **When to use / When not to use:** Practical guidance.
 * **Related articles:** Links to related Tutorials, How-To, or Reference articles.
+
+**Closing sections for Concept pages:**
+Every Concept page must end with **Related articles**. Link to at least one practical follow-up article.
 
 **[Strict Code Formatting Guidelines]**
 Whenever you generate ShardScript code snippets or host-integration code (e.g., C# or C++), you must strictly adhere to the following formatting and stylistic rules. Do not deviate from these constraints:

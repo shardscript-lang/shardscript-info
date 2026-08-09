@@ -72,6 +72,8 @@ public static func Main() -> void
     [<code>HasExtension(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'bool', 'Returns true if the final component contains a dot.'],
     [<code>ChangeExtension(path, extension)</code>, <><InlineCode>path</InlineCode>: string, <InlineCode>extension</InlineCode>: string</>, 'string', 'Returns a new path with the extension replaced; adds a leading dot if needed.'],
     [<code>GetFullPath(path)</code>, <><InlineCode>path</InlineCode>: string</>, 'string', 'Returns the absolute path resolved against the process working directory.'],
+    [<code>GetTempPath()</code>, <>(no parameters)</>, 'string', 'Returns the path of the system temporary directory.'],
+    [<code>CreateTempFile()</code>, <>(no parameters)</>, 'string', 'Creates an empty uniquely-named file in the temp directory and returns its full path.'],
   ]}
 />
 
@@ -101,6 +103,8 @@ public static func Main() -> void
     [<code>Path.GetDirectoryName</code>, 'string', 'Parent path string; empty for a bare file name.'],
     [<code>Path.GetFileName</code>, 'string', 'Last component, e.g. "readme.txt".'],
     [<code>Path.GetExtension</code>, 'string', 'Extension with dot, e.g. ".txt"; empty when none.'],
+    [<code>Path.GetTempPath</code>, 'string', 'Absolute path to the system temporary directory.'],
+    [<code>Path.CreateTempFile</code>, 'string', 'Full path of a newly created, empty temporary file.'],
   ]}
 />
 
@@ -135,6 +139,10 @@ public static func Main() -> void
   <Bullet>
     <strong className="text-text-primary">Failed to resolve absolute path</strong> —{" "}
     <InlineCode>Path.GetFullPath</InlineCode> throws when the runtime cannot normalize the input.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Failed to create temp file</strong> —{" "}
+    <InlineCode>Path.CreateTempFile</InlineCode> throws when the runtime cannot open the chosen name for writing, usually because of exhausted disk space or missing permissions.
   </Bullet>
 </ul>
 
@@ -185,6 +193,20 @@ public static func Main() -> void
   <strong>Domain-relative resolution.</strong> <InlineCode>Path.GetFullPath</InlineCode> resolves relative
   paths against the application domain&apos;s current working directory at the time of execution, not against
   the script file location.
+</Prose>
+
+<Prose>
+  <strong>Temporary directory resolution.</strong> <InlineCode>Path.GetTempPath</InlineCode> wraps{" "}
+  <InlineCode>std::filesystem::temp_directory_path</InlineCode> and returns the platform temp folder as a
+  wide string. The result always ends with a directory separator appropriate for the current operating system.
+</Prose>
+
+<Prose>
+  <strong>Temporary file creation.</strong> <InlineCode>Path.CreateTempFile</InlineCode> generates a name
+  using the prefix <InlineCode>shard_</InlineCode> followed by 16 random alphanumeric characters and the
+  extension <InlineCode>.tmp</InlineCode>. It retries until it finds a name that does not already exist, then
+  opens that file for writing to reserve it. The method only guarantees uniqueness at the moment of creation;
+  callers are responsible for deleting the file when it is no longer needed.
 </Prose>
 
 <Callout tone="amber" title="Path.Combine is not implemented">
@@ -327,6 +349,39 @@ public static func Main() -> void
 />
 
 <Prose>
+  <strong>Creating and cleaning up temporary files.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using filesystem;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Discover the system temp directory.
+    tmpDir: string = Path.GetTempPath();
+    println("Temp path: " + tmpDir);
+
+    // Reserve a uniquely-named empty file in that directory.
+    tmpFile: string = Path.CreateTempFile();
+    println("Temp file: " + tmpFile);
+
+    // Use the file like any other path.
+    File.WriteAllText(tmpFile, "hello temp");
+    content: string = File.ReadAllText(tmpFile);
+    println("Read back: " + content);
+
+    // Delete the file when it is no longer needed.
+    File.Delete(tmpFile);
+    println("Deleted: " + (File.Exists(tmpFile) == false));
+}`}
+  language="csharp"
+  filename="filesystem_temp.shard"
+/>
+
+<Prose>
   <strong>Defensive file-writing with existence checks.</strong>
 </Prose>
 
@@ -401,3 +456,25 @@ public static func Main() -> void
   helpers load the entire file into memory, which is convenient for configuration or log headers but
   unsuitable for multi-gigabyte data.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Directory</InlineCode> and <InlineCode>DirectoryInfo</InlineCode> — list, create, and inspect directories.
+  </Bullet>
+  <Bullet>
+    <InlineCode>FileStream</InlineCode> — stream-oriented file access for large or binary data.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Path.GetFullPath</InlineCode> — resolve relative paths against the working directory.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The filesystem implementation ships as part of <InlineCode>ShardScript.Framework</InlineCode>. The native
+  binding for <InlineCode>File</InlineCode>, <InlineCode>Path</InlineCode>, and related types is in{" "}
+  <InlineCode>ShardScript.Framework/system/filesystem.shard.cpp</InlineCode>.
+</Prose>

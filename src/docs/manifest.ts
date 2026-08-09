@@ -377,6 +377,15 @@ const manifest: DocManifest = {
           "title": "Type Introspection"
         }
       ]
+    },
+    {
+      "title": "SHARD.TIME",
+      "items": [
+        {
+          "slug": "date-and-time",
+          "title": "Date & Time"
+        }
+      ]
     }
   ],
   "library-building": [
@@ -526,6 +535,14 @@ const manifest: DocManifest = {
         {
           "slug": "native-helpers-reference",
           "title": "Native Helpers Reference"
+        },
+        {
+          "slug": "runtime-exception-reference",
+          "title": "shard::runtime_exception"
+        },
+        {
+          "slug": "throwing-typed-exceptions",
+          "title": "Throwing Typed Exceptions from Native Libraries"
         }
       ]
     },
@@ -1127,6 +1144,15 @@ const manifest: DocManifest = {
       "file": "stdlib/reflection/type-introspection.mdx",
       "section": "stdlib"
     },
+    "date-and-time": {
+      "slug": "date-and-time",
+      "title": "Date & Time",
+      "group": "SHARD.TIME",
+      "groupOrder": 14,
+      "order": 1,
+      "file": "stdlib/time/date-and-time.mdx",
+      "section": "stdlib"
+    },
     "callback-contract-overview": {
       "slug": "callback-contract-overview",
       "title": "The Native Callback Contract",
@@ -1467,6 +1493,24 @@ const manifest: DocManifest = {
       "groupOrder": 5,
       "order": 7,
       "file": "library-building/native-helpers-reference.mdx",
+      "section": "library-building"
+    },
+    "runtime-exception-reference": {
+      "slug": "runtime-exception-reference",
+      "title": "shard::runtime_exception",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 8,
+      "file": "library-building/runtime-exception-reference.mdx",
+      "section": "library-building"
+    },
+    "throwing-typed-exceptions": {
+      "slug": "throwing-typed-exceptions",
+      "title": "Throwing Typed Exceptions from Native Libraries",
+      "group": "Advanced Topics",
+      "groupOrder": 5,
+      "order": 9,
+      "file": "library-building/throwing-typed-exceptions.mdx",
       "section": "library-building"
     }
   }

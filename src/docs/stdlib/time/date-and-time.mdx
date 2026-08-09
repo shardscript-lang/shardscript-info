@@ -1,0 +1,384 @@
+---
+title: Date & Time
+group: SHARD.TIME
+order: 1
+slug: date-and-time
+groupOrder: 14
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.time</InlineCode> library provides two value types in the <InlineCode>time</InlineCode>{' '}
+  namespace: <InlineCode>TimeSpan</InlineCode> for representing a duration, and{' '}
+  <InlineCode>DateTime</InlineCode> for representing an instant in time. Both are implemented as native structs,
+  store their data as 64-bit tick counts, and expose factory methods, properties, arithmetic operators, and
+  formatting helpers.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Reference the <InlineCode>time</InlineCode> namespace with a <InlineCode>using</InlineCode> directive. The
+  library is loaded automatically when a <InlineCode>using time;</InlineCode> directive is present, or it can
+  be passed to the interpreter with the <InlineCode>-l</InlineCode> flag when running standalone scripts.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using time;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    span: TimeSpan = TimeSpan.FromSeconds(90.0);
+    println(span.TotalMinutes);
+
+    now: DateTime = DateTime.Now;
+    println(now.ToString("yyyy-MM-dd HH:mm:ss"));
+}`}
+  language="csharp"
+  filename="time_intro.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<H2>Enum DateTimeKind</H2>
+
+<DocsTable
+  headers={['Value', 'Numeric value', 'Meaning']}
+  rows={[
+    [<InlineCode>DateTimeKind.Utc</InlineCode>, '0', 'The DateTime expresses a UTC instant.'],
+    [<InlineCode>DateTimeKind.Local</InlineCode>, '1', 'The DateTime expresses a local-time instant.'],
+    [<InlineCode>DateTimeKind.Unspecified</InlineCode>, '2', 'The DateTime expresses an unspecified kind.'],
+  ]}
+/>
+
+<H2>Struct TimeSpan</H2>
+
+<Prose>
+  <InlineCode>TimeSpan</InlineCode> stores a signed number of 100-nanosecond ticks. Positive and negative
+  durations are supported.
+</Prose>
+
+<H2>TimeSpan static factory methods</H2>
+
+<DocsTable
+  headers={['Method', 'Parameter', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>FromTicks(ticks)</InlineCode>, <>
+      <InlineCode>ticks</InlineCode>: int
+    </>, 'TimeSpan', 'Creates a TimeSpan from a raw tick count.'],
+    [<InlineCode>FromMilliseconds(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'TimeSpan', 'Creates a TimeSpan from a number of milliseconds.'],
+    [<InlineCode>FromSeconds(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'TimeSpan', 'Creates a TimeSpan from a number of seconds.'],
+    [<InlineCode>FromMinutes(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'TimeSpan', 'Creates a TimeSpan from a number of minutes.'],
+    [<InlineCode>FromHours(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'TimeSpan', 'Creates a TimeSpan from a number of hours.'],
+    [<InlineCode>FromDays(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'TimeSpan', 'Creates a TimeSpan from a number of days.'],
+  ]}
+/>
+
+<H2>TimeSpan properties</H2>
+
+<DocsTable
+  headers={['Property', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>Ticks</InlineCode>, 'int', 'The complete signed tick count.'],
+    [<InlineCode>TotalMilliseconds</InlineCode>, 'double', 'Duration expressed in milliseconds, including fractional part.'],
+    [<InlineCode>TotalSeconds</InlineCode>, 'double', 'Duration expressed in seconds, including fractional part.'],
+    [<InlineCode>TotalMinutes</InlineCode>, 'double', 'Duration expressed in minutes, including fractional part.'],
+    [<InlineCode>TotalHours</InlineCode>, 'double', 'Duration expressed in hours, including fractional part.'],
+    [<InlineCode>TotalDays</InlineCode>, 'double', 'Duration expressed in days, including fractional part.'],
+    [<InlineCode>Days</InlineCode>, 'int', 'Whole days component of the duration.'],
+    [<InlineCode>Hours</InlineCode>, 'int', 'Whole hours component in the range 0-23.'],
+    [<InlineCode>Minutes</InlineCode>, 'int', 'Whole minutes component in the range 0-59.'],
+    [<InlineCode>Seconds</InlineCode>, 'int', 'Whole seconds component in the range 0-59.'],
+    [<InlineCode>Milliseconds</InlineCode>, 'int', 'Whole milliseconds component in the range 0-999.'],
+  ]}
+/>
+
+<H2>TimeSpan methods</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>Add(other)</InlineCode>, <>
+      <InlineCode>other</InlineCode>: TimeSpan
+    </>, 'TimeSpan', 'Returns the sum of this span and another span.'],
+    [<InlineCode>Subtract(other)</InlineCode>, <>
+      <InlineCode>other</InlineCode>: TimeSpan
+    </>, 'TimeSpan', 'Returns the difference between this span and another span.'],
+    [<InlineCode>Negate()</InlineCode>, 'none', 'TimeSpan', 'Returns a new TimeSpan with the opposite sign.'],
+    [<InlineCode>Duration()</InlineCode>, 'none', 'TimeSpan', 'Returns the absolute value of this span.'],
+    [<InlineCode>ToString()</InlineCode>, 'none', 'string', 'Returns a culture-invariant string such as "1.02:03:04.005" or "02:03:04".'],
+  ]}
+/>
+
+<H2>TimeSpan operators</H2>
+
+<DocsTable
+  headers={['Operator', 'Signature', 'Description']}
+  rows={[
+    [<InlineCode>a + b</InlineCode>, 'TimeSpan + TimeSpan', 'Adds two spans.'],
+    [<InlineCode>a - b</InlineCode>, 'TimeSpan - TimeSpan', 'Subtracts two spans.'],
+    [<InlineCode>a * factor</InlineCode>, 'TimeSpan * double', 'Multiplies the span by a scalar.'],
+    [<InlineCode>factor * a</InlineCode>, 'double * TimeSpan', 'Multiplies the span by a scalar.'],
+    [<InlineCode>a / divisor</InlineCode>, 'TimeSpan / double', 'Divides the span by a scalar.'],
+    [<InlineCode>a / b</InlineCode>, 'TimeSpan / TimeSpan', 'Returns the ratio of two spans as a double.'],
+    [<InlineCode>-a</InlineCode>, '-TimeSpan', 'Negates the span.'],
+    [<InlineCode>a == b</InlineCode>, 'TimeSpan == TimeSpan', 'Returns true if the spans have the same tick count.'],
+    [<InlineCode>a != b</InlineCode>, 'TimeSpan != TimeSpan', 'Returns true if the spans differ in tick count.'],
+    [<InlineCode>a &lt; b</InlineCode>, 'TimeSpan &lt; TimeSpan', 'Tick-count less-than comparison.'],
+    [<InlineCode>a &gt; b</InlineCode>, 'TimeSpan &gt; TimeSpan', 'Tick-count greater-than comparison.'],
+    [<InlineCode>a &lt;= b</InlineCode>, 'TimeSpan &lt;= TimeSpan', 'Tick-count less-than-or-equal comparison.'],
+    [<InlineCode>a &gt;= b</InlineCode>, 'TimeSpan &gt;= TimeSpan', 'Tick-count greater-than-or-equal comparison.'],
+  ]}
+/>
+
+<H2>Struct DateTime</H2>
+
+<Prose>
+  <InlineCode>DateTime</InlineCode> stores an instant as a 64-bit tick count together with a{' '}
+  <InlineCode>DateTimeKind</InlineCode>. One tick is 100 nanoseconds. The epoch for Unix conversions is
+  1970-01-01 00:00:00 UTC.
+</Prose>
+
+<H2>DateTime static factory members</H2>
+
+<DocsTable
+  headers={['Member', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>Now</InlineCode>, 'none', 'DateTime', 'Static property that returns the current local time.'],
+    [<InlineCode>UtcNow</InlineCode>, 'none', 'DateTime', 'Static property that returns the current UTC time.'],
+    [<InlineCode>FromUnixTimeSeconds(seconds)</InlineCode>, <>
+      <InlineCode>seconds</InlineCode>: int
+    </>, 'DateTime', 'Creates a UTC DateTime from a Unix seconds timestamp.'],
+    [<InlineCode>FromUnixTimeMilliseconds(milliseconds)</InlineCode>, <>
+      <InlineCode>milliseconds</InlineCode>: int
+    </>, 'DateTime', 'Creates a UTC DateTime from a Unix milliseconds timestamp.'],
+  ]}
+/>
+
+<H2>DateTime properties</H2>
+
+<DocsTable
+  headers={['Property', 'Type', 'Description']}
+  rows={[
+    [<InlineCode>Ticks</InlineCode>, 'int', 'The complete tick count.'],
+    [<InlineCode>UnixTimestamp</InlineCode>, 'int', 'The number of whole seconds since the Unix epoch.'],
+    [<InlineCode>UnixTimestampMilliseconds</InlineCode>, 'int', 'The number of whole milliseconds since the Unix epoch.'],
+    [<InlineCode>Kind</InlineCode>, 'DateTimeKind', 'The kind of the DateTime: Utc, Local, or Unspecified.'],
+    [<InlineCode>Year</InlineCode>, 'int', 'The calendar year component.'],
+    [<InlineCode>Month</InlineCode>, 'int', 'The month component, 1-12.'],
+    [<InlineCode>Day</InlineCode>, 'int', 'The day-of-month component, 1-31.'],
+    [<InlineCode>DayOfWeek</InlineCode>, 'int', 'The day of week, 0-6, where 0 is Sunday.'],
+    [<InlineCode>Hour</InlineCode>, 'int', 'The hour component, 0-23.'],
+    [<InlineCode>Minute</InlineCode>, 'int', 'The minute component, 0-59.'],
+    [<InlineCode>Second</InlineCode>, 'int', 'The second component, 0-59.'],
+    [<InlineCode>Millisecond</InlineCode>, 'int', 'The millisecond component, 0-999.'],
+    [<InlineCode>Date</InlineCode>, 'DateTime', 'A new DateTime set to midnight of the same calendar day.'],
+  ]}
+/>
+
+<H2>DateTime methods</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>Add(span)</InlineCode>, <>
+      <InlineCode>span</InlineCode>: TimeSpan
+    </>, 'DateTime', 'Returns a new DateTime offset by the supplied span.'],
+    [<InlineCode>AddMilliseconds(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'DateTime', 'Returns a new DateTime offset by a number of milliseconds.'],
+    [<InlineCode>AddSeconds(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'DateTime', 'Returns a new DateTime offset by a number of seconds.'],
+    [<InlineCode>AddMinutes(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'DateTime', 'Returns a new DateTime offset by a number of minutes.'],
+    [<InlineCode>AddHours(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'DateTime', 'Returns a new DateTime offset by a number of hours.'],
+    [<InlineCode>AddDays(value)</InlineCode>, <>
+      <InlineCode>value</InlineCode>: double
+    </>, 'DateTime', 'Returns a new DateTime offset by a number of days.'],
+    [<InlineCode>ToUniversalTime()</InlineCode>, 'none', 'DateTime', 'Converts this DateTime to UTC, preserving the instant.'],
+    [<InlineCode>ToLocalTime()</InlineCode>, 'none', 'DateTime', 'Converts this DateTime to local time, preserving the instant.'],
+    [<InlineCode>ToString()</InlineCode>, 'none', 'string', 'Returns a default ISO-8601-style string.'],
+    [<InlineCode>ToString(format)</InlineCode>, <>
+      <InlineCode>format</InlineCode>: string
+    </>, 'string', 'Returns a string formatted with custom tokens.'],
+  ]}
+/>
+
+<H2>DateTime operators</H2>
+
+<DocsTable
+  headers={['Operator', 'Signature', 'Description']}
+  rows={[
+    [<InlineCode>dt + span</InlineCode>, 'DateTime + TimeSpan', 'Returns a DateTime advanced by the span.'],
+    [<InlineCode>dt - span</InlineCode>, 'DateTime - TimeSpan', 'Returns a DateTime moved back by the span.'],
+    [<InlineCode>a - b</InlineCode>, 'DateTime - DateTime', 'Returns the TimeSpan between two DateTime values.'],
+    [<InlineCode>a == b</InlineCode>, 'DateTime == DateTime', 'Returns true if the tick counts are equal.'],
+    [<InlineCode>a != b</InlineCode>, 'DateTime != DateTime', 'Returns true if the tick counts differ.'],
+    [<InlineCode>a &lt; b</InlineCode>, 'DateTime &lt; DateTime', 'Tick-count less-than comparison.'],
+    [<InlineCode>a &gt; b</InlineCode>, 'DateTime &gt; DateTime', 'Tick-count greater-than comparison.'],
+    [<InlineCode>a &lt;= b</InlineCode>, 'DateTime &lt;= DateTime', 'Tick-count less-than-or-equal comparison.'],
+    [<InlineCode>a &gt;= b</InlineCode>, 'DateTime &gt;= DateTime', 'Tick-count greater-than-or-equal comparison.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  Factory methods and operators return new <InlineCode>TimeSpan</InlineCode> or{' '}
+  <InlineCode>DateTime</InlineCode> value-type instances. Properties return the corresponding primitive or
+  enum value. Methods that perform arithmetic return a new instance and do not mutate the receiver.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Division by zero.</strong> Dividing a{' '}
+    <InlineCode>TimeSpan</InlineCode> by <InlineCode>0.0</InlineCode> or dividing two spans where the divisor
+    is zero throws a runtime exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Invalid Unix timestamp.</strong> Very large positive or negative
+    Unix timestamps can produce a <InlineCode>DateTime</InlineCode> outside the range supported by the
+    platform <InlineCode>time_t</InlineCode> conversion.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Local-time ambiguity.</strong>{' '}
+    <InlineCode>ToLocalTime</InlineCode> and <InlineCode>ToUniversalTime</InlineCode> rely on the host
+    platform's local-time zone database. On hosts without valid zone data, the conversion may return the
+    original ticks unchanged.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <InlineCode>TimeSpan</InlineCode> and <InlineCode>DateTime</InlineCode> are registered as native structs, not
+  classes, so they are value types inside ShardScript. Assignment and parameter passing copy the underlying
+  tick fields rather than sharing a reference. Both types are immutable: every mutating-looking operation such
+  as <InlineCode>Add</InlineCode> or <InlineCode>Negate</InlineCode> returns a new instance.
+</Prose>
+
+<Prose>
+  The internal representation uses the same tick scale as .NET: 1 tick = 100 nanoseconds, 10 000 ticks = 1
+  millisecond, and 10 000 000 ticks = 1 second. This makes conversions to and from Unix timestamps
+  straightforward and avoids floating-point drift for whole-second values.
+</Prose>
+
+<Prose>
+  The custom format string for <InlineCode>DateTime.ToString(format)</InlineCode> supports the following
+  tokens. All other characters are copied to the output literally.
+</Prose>
+
+<DocsTable
+  headers={['Token', 'Output']}
+  rows={[
+    [<InlineCode>yyyy</InlineCode>, 'Four-digit year.'],
+    [<InlineCode>MM</InlineCode>, 'Two-digit month, 01-12.'],
+    [<InlineCode>dd</InlineCode>, 'Two-digit day, 01-31.'],
+    [<InlineCode>HH</InlineCode>, 'Two-digit 24-hour, 00-23.'],
+    [<InlineCode>mm</InlineCode>, 'Two-digit minute, 00-59.'],
+    [<InlineCode>ss</InlineCode>, 'Two-digit second, 00-59.'],
+    [<InlineCode>fff</InlineCode>, 'Three-digit millisecond, 000-999.'],
+  ]}
+/>
+
+<H2>Examples</H2>
+
+<Prose>
+  Create durations, perform arithmetic, and format the current local time.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using time;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    span: TimeSpan = TimeSpan.FromSeconds(90.0);
+    println("TotalSeconds = " + span.TotalSeconds);
+    println("Minutes = " + span.Minutes);
+    println("Seconds = " + span.Seconds);
+
+    a: TimeSpan = TimeSpan.FromMinutes(10.0);
+    b: TimeSpan = TimeSpan.FromMinutes(5.0);
+    println("10min + 5min = " + (a + b).TotalMinutes + " min");
+
+    scaled: TimeSpan = a * 2.0;
+    println("10min * 2 = " + scaled.TotalMinutes + " min");
+
+    now: DateTime = DateTime.Now;
+    println("Now: " + now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+    tomorrow: DateTime = now + TimeSpan.FromDays(1.0);
+    println("Tomorrow day: " + tomorrow.Day);
+
+    utc: DateTime = now.ToUniversalTime();
+    println("UTC year: " + utc.Year);
+}`}
+  language="csharp"
+  filename="time_demo.shard"
+/>
+
+<H2>Category Summary</H2>
+
+<DocsTable
+  headers={['Feature', 'Members']}
+  rows={[
+    ['TimeSpan factories', 'FromTicks, FromMilliseconds, FromSeconds, FromMinutes, FromHours, FromDays'],
+    ['TimeSpan properties', 'Ticks, TotalMilliseconds, TotalSeconds, TotalMinutes, TotalHours, TotalDays, Days, Hours, Minutes, Seconds, Milliseconds'],
+    ['TimeSpan methods', 'Add, Subtract, Negate, Duration, ToString'],
+    ['TimeSpan operators', '+, -, *, /, unary -, ==, !=, <, >, <=, >='],
+    ['DateTime factories', 'Now, UtcNow, FromUnixTimeSeconds, FromUnixTimeMilliseconds'],
+    ['DateTime properties', 'Ticks, UnixTimestamp, UnixTimestampMilliseconds, Kind, Year, Month, Day, DayOfWeek, Hour, Minute, Second, Millisecond, Date'],
+    ['DateTime methods', 'Add, AddMilliseconds, AddSeconds, AddMinutes, AddHours, AddDays, ToUniversalTime, ToLocalTime, ToString'],
+    ['DateTime operators', '+ TimeSpan, - TimeSpan, - DateTime, ==, !=, <, >, <=, >='],
+    ['Enum', 'DateTimeKind'],
+  ]}
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/struct-symbol-builder</InlineCode> — how native structs such as{' '}
+    <InlineCode>TimeSpan</InlineCode> and <InlineCode>DateTime</InlineCode> are registered.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/enum-symbol-builder</InlineCode> — how the{' '}
+    <InlineCode>DateTimeKind</InlineCode> enum is registered.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/operator-symbol-builder</InlineCode> — how operator overloads are bound to
+    native callbacks.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native implementation of <InlineCode>shard.time</InlineCode> is in{' '}
+  <InlineCode>ShardScript.Framework/system/time.shard.cpp</InlineCode>. View the source on GitHub:{' '}
+  <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript.Framework/system/time.shard.cpp</InlineCode>.
+</Prose>
