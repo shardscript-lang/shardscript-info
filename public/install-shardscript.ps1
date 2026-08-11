@@ -4,7 +4,7 @@
     Installs the ShardScript interpreter from the latest published GitHub release.
 
 .DESCRIPTION
-    Downloads shardscript-0.4.0-windows.zip from the official ShardScript release page,
+    Downloads shardscript-0.5.0-windows.zip from the official ShardScript release page,
     extracts it into %ProgramFiles%\ShardScript, and creates the SHARDSCRIPT system
     environment variable pointing at that directory. The script must run as Administrator
     because it writes to %ProgramFiles% and updates machine-level environment variables.
@@ -28,7 +28,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ReleaseTag = "0.4.1"
+$ReleaseTag = "0.5.0"
 $AssetName = "shardscript-$ReleaseTag-windows.zip"
 $DownloadUrl = "https://github.com/Rikitav/ShardScript/releases/download/$ReleaseTag/$AssetName"
 $TempZip = Join-Path $env:TEMP $AssetName

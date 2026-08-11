@@ -5,7 +5,7 @@ set -euo pipefail
 # Downloads the latest published release archive, extracts it into /opt/shardscript,
 # creates the SHARDSCRIPT environment variable, and symlinks 'shard' into /usr/local/bin.
 
-RELEASE_TAG="0.4.1"
+RELEASE_TAG="0.5.0"
 ASSET_NAME="shardscript-${RELEASE_TAG}-linux.tar.gz"
 DOWNLOAD_URL="https://github.com/Rikitav/ShardScript/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/shardscript}"
