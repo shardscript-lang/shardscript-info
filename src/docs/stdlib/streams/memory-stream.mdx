@@ -232,6 +232,21 @@ type: Reference
     <InlineCode>FlushAsync</InlineCode> return a faulted task with an operation-canceled exception
     when the token is already canceled.
   </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Destination buffer too small for read</strong> —{" "}
+    <InlineCode>Read</InlineCode> throws when <InlineCode>buffer.Length</InlineCode> is less than{" "}
+    <InlineCode>offset + count</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Source buffer too small for write</strong> —{" "}
+    <InlineCode>Write</InlineCode> throws when the source <InlineCode>buffer.Length</InlineCode> is less
+    than <InlineCode>offset + count</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Internal buffer too small</strong> — This is a defensive
+    error that should not occur in normal use. It indicates that the internal buffer was not grown
+    sufficiently before the read or write loop began.
+  </Bullet>
 </ul>
 
 <H2>Remarks</H2>
@@ -538,7 +553,38 @@ public static func Main() -> void
     defer ms3.Dispose();
     ms3.Write([1 as byte, 2 as byte], 0, 2);
     // ms3.Seek(0, 99 as SeekOrigin); // throws: invalid seek origin
+
+    // Mistake 5: Passing a destination buffer that is smaller than offset + count.
+    ms4: MemoryStream = new MemoryStream();
+    defer ms4.Dispose();
+    ms4.Write([1 as byte, 2 as byte, 3 as byte], 0, 3);
+    ms4.Position = 0;
+    // small: byte[] = [0 as byte; 2];
+    // ms4.Read(small, 0, 3); // throws: destination buffer is too small
 }`}
   language="csharp"
   filename="memory_stream_mistakes.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Stream Interfaces</InlineCode> — <InlineCode>IReadableStream</InlineCode>,{" "}
+    <InlineCode>IWritableStream</InlineCode>, and <InlineCode>IDisposable</InlineCode> contracts.
+  </Bullet>
+  <Bullet>
+    <InlineCode>BinaryReader &amp; BinaryWriter</InlineCode> — typed reading and writing over streams.
+  </Bullet>
+  <Bullet>
+    <InlineCode>StreamReader &amp; StreamWriter</InlineCode> — text-oriented stream helpers.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>MemoryStream</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding is in{" "}
+  <InlineCode>ShardScript.Framework/system/streams.shard.cpp</InlineCode>.
+</Prose>

@@ -11,10 +11,12 @@ groupOrder: 2
 
 <Prose>
   A <InlineCode>switch</InlineCode> expression evaluates a single <em>scrutinee</em>{' '}
-  expression and selects the first arm whose constant pattern equals the scrutinee value.
-  The discard pattern <InlineCode>{"_"}</InlineCode> acts as a catch-all default arm.
-  Unlike an imperative <InlineCode>switch</InlineCode> statement, every arm produces a value
-  and the whole expression evaluates to the chosen arm's value.
+  expression and selects the first arm whose pattern matches. Patterns can be constant values
+  (integer, string, boolean, enum), type tests (<InlineCode>is Type</InlineCode>), or type tests
+  that bind a variable (<InlineCode>is Type varName</InlineCode>). The discard pattern{" "}
+  <InlineCode>{"_"}</InlineCode> acts as a catch-all default arm. Unlike an imperative{" "}
+  <InlineCode>switch</InlineCode> statement, every arm produces a value and the whole expression
+  evaluates to the chosen arm's value.
 </Prose>
 
 <H2>Syntax</H2>
@@ -28,9 +30,10 @@ groupOrder: 2
 <CodeBlock
   code={`switchValue = switch scrutinee
 {
-    pattern1 => expression1,
-    pattern2 => expression2,
-    _        => defaultExpression,
+    constantPattern  => expression1,
+    is Type          => expression2,
+    is Type varName  => expression3,
+    _                => defaultExpression,
 };`}
   language="csharp"
   filename="switch_expression_syntax.shard"
@@ -42,7 +45,9 @@ groupOrder: 2
   headers={['Part', 'Required', 'Description']}
   rows={[
     ['scrutinee', 'Yes', 'The expression whose value is matched. It is evaluated exactly once.'],
-    ['pattern', 'Yes', 'A constant expression compared against the scrutinee using equality. The first matching arm wins.'],
+    ['constant pattern', 'Yes, if no type pattern', 'A constant expression compared against the scrutinee using equality. The first matching arm wins.'],
+    ['is Type', 'Yes, if no type pattern', 'A type pattern that matches when the scrutinee is an instance of Type or a derived type.'],
+    ['is Type varName', 'Yes, if no type pattern', 'A type pattern that matches the same way and binds the casted instance to varName in the arm expression.'],
     ['arm expression', 'Yes', 'The expression that provides the value of the switch expression when its arm is selected.'],
     ['_', 'No', 'The discard pattern. It matches any value and is conventionally written as the last arm.'],
   ]}
@@ -76,10 +81,20 @@ groupOrder: 2
     unexpected behavior.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Pattern type mismatch</strong> — Patterns are not
-    required to match the scrutinee type, but comparing unrelated types (for example,{' '}
+    <strong className="text-text-primary">Pattern type mismatch</strong> — Constant patterns are
+    not required to match the scrutinee type, but comparing unrelated types (for example,{' '}
     <InlineCode>string</InlineCode> against <InlineCode>int</InlineCode>) typically fails at
     runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type pattern on non-instance scrutinee</strong> — A
+    type pattern such as <InlineCode>is Cat</InlineCode> matches <InlineCode>null</InlineCode> as
+    a non-matching case and continues to the next arm. It does not throw.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Binding variable shadows an outer name</strong> — The
+    binder rejects an <InlineCode>is Type varName</InlineCode> arm when <InlineCode>varName</InlineCode>{' '}
+    conflicts with an existing local or parameter in the enclosing scope.
   </Bullet>
 </ul>
 
@@ -98,10 +113,34 @@ groupOrder: 2
 </Prose>
 
 <Prose>
-  <strong>Constant patterns.</strong> Patterns are intended to be constant expressions such as
-  integer literals, string literals, boolean literals, or enum member accesses. The parser
-  accepts arbitrary expressions, but only constant patterns are guaranteed to behave as a true
-  match.
+  <strong>Constant patterns.</strong> Constant patterns are literal or named values such as
+  integer literals, string literals, boolean literals, or enum member accesses. They are compared
+  against the scrutinee using equality. The parser accepts arbitrary expressions in a pattern
+  position, but only constant patterns are guaranteed to behave as a true match.
+</Prose>
+
+<Prose>
+  <strong>Type patterns.</strong> A type pattern <InlineCode>is Type</InlineCode> uses the runtime
+  type information of the scrutinee. It matches when the scrutinee is an instance of the named
+  type or a type derived from it. Interfaces are supported, so <InlineCode>is IDisposable</InlineCode>{' '}
+  matches any instance whose type implements the interface. A type pattern does not match{" "}
+  <InlineCode>null</InlineCode>; it simply fails and lets a later arm attempt to match.
+</Prose>
+
+<Prose>
+  <strong>Binding variables.</strong> In <InlineCode>is Type varName</InlineCode>, the binder
+  introduces a new local variable <InlineCode>varName</InlineCode> whose type is <InlineCode>Type</InlineCode>{' '}
+  inside the corresponding arm expression. The variable holds the scrutinee cast to that type, so
+  members available on <InlineCode>Type</InlineCode> can be accessed without an additional cast.
+  The variable exists only for the arm it is declared in; it is not visible after the switch
+  expression.
+</Prose>
+
+<Prose>
+  <strong>Pattern arm ordering.</strong> Constant-pattern arms and type-pattern arms can be mixed
+  in the same switch expression. Arms are still tested in source order, and the first matching arm
+  wins. Place more specific type patterns before less specific ones; for example, put{" "}
+  <InlineCode>is Cat</InlineCode> before <InlineCode>is Animal</InlineCode> when both could match.
 </Prose>
 
 <Prose>
@@ -278,6 +317,70 @@ public static func Main() -> void
 />
 
 <Prose>
+  <strong>Type patterns and variable bindings.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public interface Animal
+{
+    func Name() -> string;
+}
+
+public class Cat : Animal
+{
+    public func Name() -> string
+    {
+        return "cat";
+    }
+
+    public func Meow() -> string
+    {
+        return "meow";
+    }
+}
+
+public class Dog : Animal
+{
+    public func Name() -> string
+    {
+        return "dog";
+    }
+
+    public func Bark() -> string
+    {
+        return "woof";
+    }
+}
+
+public static func MakeSound(a: Animal) -> string
+{
+    return switch a
+    {
+        is Cat c => c.Meow(),
+        is Dog d => d.Bark(),
+        is Animal => "some animal",
+        _ => "unknown",
+    };
+}
+
+public static func Main() -> void
+{
+    cat: Animal = new Cat();
+    dog: Animal = new Dog();
+
+    println(MakeSound(cat));   // meow
+    println(MakeSound(dog));   // woof
+    println(MakeSound(null));  // unknown
+}`}
+  language="csharp"
+  filename="switch_is_patterns.shard"
+/>
+
+<Prose>
   <strong>Common mistakes and edge cases.</strong>
 </Prose>
 
@@ -308,3 +411,26 @@ public static func Main() -> void
   language="csharp"
   filename="switch_edge_cases.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Interfaces and Abstractions</InlineCode> — using interfaces with type patterns.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Classes</InlineCode> — declaring the class hierarchies matched by type patterns.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Enums</InlineCode> — using enum members as constant switch patterns.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Switch expressions are parsed in <InlineCode>ShardScript/src/parsing/SourceParser.cpp</InlineCode>,
+  bound in <InlineCode>ShardScript/src/semantic/ExpressionBinder.cpp</InlineCode>, and emitted in{" "}
+  <InlineCode>ShardScript/src/compilation/AbstractEmiter.cpp</InlineCode>. The type-pattern syntax
+  node is declared in <InlineCode>ShardScript/include/shard/parsing/nodes/Expressions/IsPatternSyntax.hpp</InlineCode>.
+</Prose>

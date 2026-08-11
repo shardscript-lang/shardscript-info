@@ -49,6 +49,7 @@ public static func Main() -> void
     [<code>println(message)</code>, <><InlineCode>message</InlineCode>: any printable value</>, 'void', 'Writes the string representation of a value followed by a newline.'],
     [<code>println(enumerable)</code>, <><InlineCode>enumerable</InlineCode>: <InlineCode>{'IEnumerable<T>'}</InlineCode></>, 'void', 'Writes the elements of an enumerable between brackets, separated by commas.'],
     [<code>input()</code>, <>(no parameters)</>, 'string', 'Reads a single line from stdin and returns it without the trailing newline.'],
+    [<code>input(prompt)</code>, <><InlineCode>prompt</InlineCode>: string</>, 'string', 'Writes the prompt to stdout, then reads and returns a single line from stdin.'],
     [<code>clear()</code>, <>(no parameters)</>, 'void', 'Sends VT100 erase-screen and home-cursor escape codes to the terminal.'],
     [<code>setCursor(x, y)</code>, <><InlineCode>x</InlineCode>: int, <InlineCode>y</InlineCode>: int</>, 'void', 'Moves the cursor to the zero-based column <InlineCode>x</InlineCode> and row <InlineCode>y</InlineCode> using VT100 escape codes.'],
     [<code>setCursorVisible(visible)</code>, <><InlineCode>visible</InlineCode>: bool</>, 'void', 'Shows or hides the text cursor with VT100 escape codes.'],
@@ -65,7 +66,7 @@ public static func Main() -> void
   rows={[
     [<code>print</code>, 'void', 'No value; output is written directly to native stdout.'],
     [<code>println</code>, 'void', 'No value; output ends with a newline.'],
-    [<code>input</code>, 'string', 'Empty string when stdin is at end-of-file.'],
+    [<code>input</code>, 'string', 'The line read from stdin, without the trailing newline. Empty string when stdin is at end-of-file.'],
     [<code>clear</code>, 'void', 'No value; clears the visible terminal buffer.'],
     [<code>setCursor</code>, 'void', 'No value; coordinates are zero-based.'],
     [<code>setCursorVisible</code>, 'void', 'No value; visible cursor may not be supported on every terminal.'],
@@ -110,6 +111,13 @@ public static func Main() -> void
   <InlineCode>std::wcout</InlineCode>. On Windows the library attempts to enable VT100 processing during
   startup so that color and cursor escape codes work in modern consoles. Output is not returned as a
   ShardScript string and cannot be captured by assigning the result of <InlineCode>println</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Prompt input.</strong> The <InlineCode>input(prompt: string)</InlineCode> overload writes the
+  prompt to <InlineCode>std::wcout</InlineCode> without a trailing newline, then reads a line from{" "}
+  <InlineCode>std::wcin</InlineCode>. It is equivalent to calling <InlineCode>print(prompt)</InlineCode>{" "}
+  followed by <InlineCode>input()</InlineCode>, but avoids the separate statement.
 </Prose>
 
 <Prose>
@@ -162,6 +170,25 @@ public static func Main() -> void
 }`}
   language="csharp"
   filename="stdio_basic.shard"
+/>
+
+<Prose>
+  <strong>Reading with a prompt.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The prompt is written to stdout before reading the line.
+    name: string = input("Enter your name: ");
+    println("Hello, " + name + "!");
+}`}
+  language="csharp"
+  filename="stdio_input_prompt.shard"
 />
 
 <Prose>
