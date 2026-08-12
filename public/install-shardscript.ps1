@@ -28,7 +28,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ReleaseTag = "0.5.1"
+$ReleaseTag = "0.5.2"
 $AssetName = "shardscript-$ReleaseTag-windows.zip"
 $DownloadUrl = "https://github.com/Rikitav/ShardScript/releases/download/$ReleaseTag/$AssetName"
 $TempZip = Join-Path $env:TEMP $AssetName
