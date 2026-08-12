@@ -131,12 +131,10 @@ groupOrder: 1
     <InlineCode>=</InlineCode> must be a variable, field, property, or indexer expression.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Division by zero</strong> — Both integer and floating-point{' '}
-    <InlineCode>/</InlineCode> throw when the divisor is zero.
-  </Bullet>
-  <Bullet>
-    <strong className="text-text-primary">Modulo by zero</strong> — <InlineCode>%</InlineCode>{' '}
-    throws when the divisor is zero.
+    <strong className="text-text-primary">DivideByZeroException</strong> — Integer, character, byte,
+    native-pointer, and enum division or modulo with a zero divisor throws{" "}
+    <InlineCode>DivideByZeroException</InlineCode>. Floating-point division by zero does not throw;
+    it follows IEEE-754 rules and may produce infinity.
   </Bullet>
   <Bullet>
     <strong className="text-text-primary">Null operand</strong> — Performing a primitive operation on
@@ -418,7 +416,33 @@ public static func Main() -> void
 
     // Modulo follows the dividend's sign in this implementation.
     println(-7 % 3);         // -1
+
+    // Integer division by zero throws DivideByZeroException.
+    // println(1 / 0);          // throws
 }`}
   language="csharp"
   filename="precedence.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Primitive Types</InlineCode> — the types that operands may have.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Operator Overloading</InlineCode> — defining custom operators on classes and structs.
+  </Bullet>
+  <Bullet>
+    <InlineCode>switch Expressions</InlineCode> — using <InlineCode>is</InlineCode> and <InlineCode>as</InlineCode>{' '}
+    for type tests.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Operator resolution and primitive math execution are implemented in{" "}
+  <InlineCode>ShardScript/src/runtime/VirtualMachine.cpp</InlineCode> and{" "}
+  <InlineCode>ShardScript/src/runtime/PrimitiveMathModule.cpp</InlineCode>.
+</Prose>

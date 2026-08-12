@@ -433,7 +433,9 @@ shard from native
   <Bullet>
     <strong className="text-text-primary">Method return type mismatch.</strong> The symbol registered with
     <InlineCode>AddMethod</InlineCode> must match the object you return. Returning <InlineCode>nullptr</InlineCode>
-    is only valid for methods declared with <InlineCode>TYPE_VOID</InlineCode>.
+    is valid for methods declared with <InlineCode>TYPE_VOID</InlineCode>. For methods that return a reference
+    type, <InlineCode>nullptr</InlineCode> is mapped to the managed <InlineCode>null</InlineCode> instance.
+    Returning <InlineCode>nullptr</InlineCode> for a value-type return is an error.
   </Bullet>
   <Bullet>
     <strong className="text-text-primary">Null reference in callback.</strong> Always guard argument pointers

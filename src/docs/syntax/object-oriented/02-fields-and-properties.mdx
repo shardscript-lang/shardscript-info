@@ -108,6 +108,11 @@ groupOrder: 3
     reference types are initialized to <InlineCode>null</InlineCode> by the runtime.
     Reading one before assignment throws a null-reference error.
   </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null instance access</strong> — Reading or writing
+    an instance field through a <InlineCode>null</InlineCode> reference throws{" "}
+    <InlineCode>Cannot access member on null instance of type ...</InlineCode>.
+  </Bullet>
 </ul>
 
 <H2>Remarks</H2>
@@ -440,3 +445,24 @@ public static func Main() -> void
   Trying to read <InlineCode>this.InstanceField</InlineCode> inside a static member is a
   compile-time error.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Classes</InlineCode> — declaring types that contain fields and properties.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Methods</InlineCode> — behavior that operates on fields and properties.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Constructors and Initialization</InlineCode> — initializing fields at creation time.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Field reads and writes are handled by the ShardScript virtual machine. The relevant opcodes and
+  runtime helpers live in <InlineCode>ShardScript/src/runtime/VirtualMachine.cpp</InlineCode>.
+</Prose>

@@ -117,7 +117,8 @@ groupOrder: 1
   </Bullet>
   <Bullet>
     <strong>Runtime error — index out of range:</strong> reading or writing with an
-    index outside <InlineCode>0 .. Length - 1</InlineCode> throws.
+    index outside <InlineCode>0 .. Length - 1</InlineCode> throws{" "}
+    <InlineCode>Array index out of range</InlineCode>.
   </Bullet>
   <Bullet>
     <strong>Compile error — non-int array size:</strong>{' '}
@@ -127,7 +128,7 @@ groupOrder: 1
   <Bullet>
     <strong>Runtime error — null array access:</strong> indexing or reading{' '}
     <InlineCode>Length</InlineCode> on a <InlineCode>null</InlineCode> array reference
-    throws a null-reference exception.
+    throws <InlineCode>Cannot access indexer on null instance of type null</InlineCode>.
   </Bullet>
 </ul>
 
@@ -364,6 +365,27 @@ public static func Main() -> void
   language="csharp"
   filename="arrays_edge_cases.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Lists and Dictionaries</InlineCode> — dynamically sized collections.
+  </Bullet>
+  <Bullet>
+    <InlineCode>foreach Loops</InlineCode> — iterating arrays and other enumerables.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Operators</InlineCode> — arithmetic and comparison operators on array elements.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Arrays are allocated, indexed, and length-queried by the ShardScript virtual machine. The relevant
+  opcodes and runtime helpers live in <InlineCode>ShardScript/src/runtime/VirtualMachine.cpp</InlineCode>.
+</Prose>
 
 <Callout tone="amber" title="Empty array literals">
   Writing <InlineCode>[]</InlineCode> on its own is ambiguous because the compiler has
