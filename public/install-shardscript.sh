@@ -99,6 +99,8 @@ EOF
 
 # Apply the environment variable to the current shell so the user can verify immediately.
 export SHARDSCRIPT="$INSTALL_DIR"
+echo "/opt/shardscript/" > /etc/ld.so.conf.d/shardscript_libs.conf
+ldconfig
 
 log_success "Set SHARDSCRIPT=${INSTALL_DIR}"
 log_success "ShardScript ${RELEASE_TAG} installed successfully."
