@@ -13,16 +13,16 @@ const mdxModules = import.meta.glob('../docs/**/*.mdx') as Record<
 
 type DocSection =
   | 'getting-started'
-  | 'language-overview'
-  | 'language-fundamentals'
-  | 'language-rules'
+  //| 'language-overview'
+  //| 'language-fundamentals'
+  //| 'language-rules'
   | 'syntax'
   | 'stdlib'
   | 'library-building'
-  | 'build-your-project'
-  | 'implementation-details'
-  | 'faq'
-  | 'common-language-features'
+  //| 'build-your-project'
+  //| 'implementation-details'
+  //| 'faq'
+  //| 'common-language-features'
 
 const SECTION_LABELS: Record<DocSection, string> = {
   'getting-started': 'Getting Started',
@@ -40,16 +40,16 @@ const SECTION_LABELS: Record<DocSection, string> = {
 
 const allGroupTitles: Record<DocSection, string[]> = {
   'getting-started': manifest['getting-started'].map((g) => g.title),
-  'language-overview': manifest['language-overview'].map((g) => g.title),
-  'language-fundamentals': manifest['language-fundamentals'].map((g) => g.title),
-  'language-rules': manifest['language-rules'].map((g) => g.title),
+  //'language-overview': manifest['language-overview'].map((g) => g.title),
+  //'language-fundamentals': manifest['language-fundamentals'].map((g) => g.title),
+  //'language-rules': manifest['language-rules'].map((g) => g.title),
   syntax: manifest.syntax.map((g) => g.title),
   stdlib: manifest.stdlib.map((g) => g.title),
   'library-building': manifest['library-building'].map((g) => g.title),
-  'build-your-project': manifest['build-your-project'].map((g) => g.title),
-  'implementation-details': manifest['implementation-details'].map((g) => g.title),
-  faq: manifest.faq.map((g) => g.title),
-  'common-language-features': manifest['common-language-features'].map((g) => g.title),
+  //'build-your-project': manifest['build-your-project'].map((g) => g.title),
+  //'implementation-details': manifest['implementation-details'].map((g) => g.title),
+  //faq: manifest.faq.map((g) => g.title),
+  //'common-language-features': manifest['common-language-features'].map((g) => g.title),
 }
 
 function firstSlug(mode: DocSection): string {
