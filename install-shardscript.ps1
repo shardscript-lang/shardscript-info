@@ -4,16 +4,21 @@
     Installs the ShardScript interpreter from the latest published GitHub release.
 
 .DESCRIPTION
-    Downloads shardscript-0.5.0-windows.zip from the official ShardScript release page,
-    extracts it into %ProgramFiles%\ShardScript, and creates the SHARDSCRIPT system
-    environment variable pointing at that directory. The script must run as Administrator
-    because it writes to %ProgramFiles% and updates machine-level environment variables.
+    Queries the official ShardScript GitHub repository for the latest published release,
+    downloads shardscript-<tag>-windows.zip, extracts it into %ProgramFiles%\ShardScript,
+    and creates the SHARDSCRIPT system environment variable pointing at that directory.
+    The script must run as Administrator because it writes to %ProgramFiles% and updates
+    machine-level environment variables.
 
 .PARAMETER InstallDir
     Directory where ShardScript will be installed. Defaults to %ProgramFiles%\ShardScript.
 
 .PARAMETER AddToPath
     When set, appends %SHARDSCRIPT% to the machine PATH so `shard` is available from any prompt.
+
+.PARAMETER Version
+    Specific release tag to install (for example, "0.5.2"). When omitted, the latest
+    non-prerelease tag is fetched from the GitHub API.
 
 .EXAMPLE
     .\install-shardscript.ps1
@@ -23,15 +28,13 @@
 #>
 param(
     [string]$InstallDir = "$env:ProgramFiles\ShardScript",
-    [switch]$AddToPath
+    [switch]$AddToPath,
+    [string]$Version = ""
 )
 
 $ErrorActionPreference = "Stop"
 
-$ReleaseTag = "0.5.2"
-$AssetName = "shardscript-$ReleaseTag-windows.zip"
-$DownloadUrl = "https://github.com/Rikitav/ShardScript/releases/download/$ReleaseTag/$AssetName"
-$TempZip = Join-Path $env:TEMP $AssetName
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 function Write-Info
 {
@@ -50,6 +53,36 @@ function Write-WarningLine
     param([string]$Message)
     Write-Host "[ShardScript] $Message" -ForegroundColor Yellow
 }
+
+function Get-LatestReleaseTag
+{
+    $apiUrl = "https://api.github.com/repos/Rikitav/ShardScript/releases/latest"
+    try
+    {
+        $release = Invoke-RestMethod -Uri $apiUrl -UseBasicParsing
+        return $release.tag_name
+    }
+    catch
+    {
+        Write-Error "Failed to query the latest ShardScript release from GitHub. You can pass a specific -Version to skip this check."
+        exit 1
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($Version))
+{
+    $ReleaseTag = Get-LatestReleaseTag
+    Write-Info "Latest release is $ReleaseTag"
+}
+else
+{
+    $ReleaseTag = $Version
+    Write-Info "Installing requested release $ReleaseTag"
+}
+
+$AssetName = "shardscript-$ReleaseTag-windows.zip"
+$DownloadUrl = "https://github.com/Rikitav/ShardScript/releases/download/$ReleaseTag/$AssetName"
+$TempZip = Join-Path $env:TEMP $AssetName
 
 # Verify the script is running with administrative privileges.
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal(

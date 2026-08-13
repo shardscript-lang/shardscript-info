@@ -2,12 +2,14 @@
 set -euo pipefail
 
 # ShardScript Linux installer
-# Downloads the latest published release archive, extracts it into /opt/shardscript,
-# creates the SHARDSCRIPT environment variable, and symlinks 'shard' into /usr/local/bin.
+# Queries the official ShardScript GitHub repository for the latest published release,
+# downloads the Linux archive, extracts it into /opt/shardscript, creates the SHARDSCRIPT
+# environment variable, and symlinks 'shard' into /usr/local/bin.
+#
+# Set RELEASE_TAG to install a specific version, or pass -v/--version:
+#   RELEASE_TAG=0.5.1 bash install-shardscript.sh
+#   bash install-shardscript.sh -v 0.5.1
 
-RELEASE_TAG="0.5.2"
-ASSET_NAME="shardscript-${RELEASE_TAG}-linux.tar.gz"
-DOWNLOAD_URL="https://github.com/Rikitav/ShardScript/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/shardscript}"
 SYMLINK_DIR="${SYMLINK_DIR:-/usr/local/bin}"
 PROFILE_FILE="/etc/profile.d/shardscript.sh"
@@ -27,6 +29,57 @@ log_warn() {
 log_error() {
     printf '[ShardScript] \033[0;31m%s\033[0m\n' "$1" >&2
 }
+
+# Allow the user to override the release tag on the command line.
+RELEASE_TAG="${RELEASE_TAG:-}"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -v|--version)
+            RELEASE_TAG="$2"
+            shift 2
+            ;;
+        -h|--help)
+            cat <<EOF
+Usage: $0 [OPTIONS]
+
+Options:
+  -v, --version TAG   Install a specific release tag instead of the latest.
+  -h, --help          Show this help message.
+
+Environment variables:
+  INSTALL_DIR         Installation directory (default: /opt/shardscript).
+  SYMLINK_DIR         Directory for the 'shard' symlink (default: /usr/local/bin).
+  RELEASE_TAG         Release tag to install (alternative to -v).
+EOF
+            exit 0
+            ;;
+        *)
+            log_error "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+fetch_latest_tag() {
+    local api_url="https://api.github.com/repos/Rikitav/ShardScript/releases/latest"
+    local tag
+    tag="$(curl -fsSL "$api_url" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+    if [[ -z "$tag" ]]; then
+        log_error "Failed to query the latest ShardScript release from GitHub. Set RELEASE_TAG or use -v to skip this check."
+        exit 1
+    fi
+    printf '%s\n' "$tag"
+}
+
+if [[ -z "$RELEASE_TAG" ]]; then
+    RELEASE_TAG="$(fetch_latest_tag)"
+    log_info "Latest release is ${RELEASE_TAG}"
+else
+    log_info "Installing requested release ${RELEASE_TAG}"
+fi
+
+ASSET_NAME="shardscript-${RELEASE_TAG}-linux.tar.gz"
+DOWNLOAD_URL="https://github.com/Rikitav/ShardScript/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
 
 # Root privileges are required to write to /opt, /usr/local/bin, and /etc/profile.d.
 if [[ "$EUID" -ne 0 ]]; then
