@@ -1,0 +1,28 @@
+import{j as e}from"./index-DkFwvLJL.js";function c(a){const n={p:"p",...a.components},{Bullet:r,DocsTable:o,H2:t,InlineCode:i,Prose:s}=n;return r||l("Bullet"),o||l("DocsTable"),t||l("H2"),i||l("InlineCode"),s||l("Prose"),e.jsxs(e.Fragment,{children:[e.jsx(t,{children:"Summary"}),`
+`,e.jsx(s,{children:e.jsx(n.p,{children:`ShardScript is a working language and runtime. The compiler, virtual machine, event loop, standard
+library shards, and native-library framework are all functional today. Ongoing work focuses on expanding
+the standard library, improving tooling, and maturing the package ecosystem.`})}),`
+`,e.jsx(t,{children:"What problem it solves"}),`
+`,e.jsx(s,{children:e.jsx(n.p,{children:`A young language needs clear expectations. This roadmap describes what is already available, what is
+actively being developed, and what remains future work, so users can decide whether ShardScript is ready
+for their project.`})}),`
+`,e.jsx(t,{children:"How the roadmap is organized"}),`
+`,e.jsx(s,{children:e.jsxs(n.p,{children:["Items are grouped by maturity: ",e.jsx("strong",{children:"Available now"}),` ships in the repository today,
+`,e.jsx("strong",{children:"Near term"})," is under active development or design, and ",e.jsx("strong",{children:"Future"}),` is planned
+but not yet scheduled. The roadmap is a snapshot; the source repository remains the authoritative status.`]})}),`
+`,e.jsx(t,{children:"Key ideas"}),`
+`,e.jsxs("ul",{className:"space-y-2 text-text-secondary",children:[e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx("strong",{className:"text-text-primary",children:"Core runtime is stable."}),` Lexing, parsing, semantic
+analysis, async lowering, bytecode emission, VM execution, garbage collection, and the libuv event loop
+are all implemented.`]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx("strong",{className:"text-text-primary",children:"Standard library is growing."}),` Core I/O, collections,
+math, text, JSON, files, processes, networking, async primitives, reflection, time, and interop shards
+exist, with more coverage planned.`]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx("strong",{className:"text-text-primary",children:"Tooling is expanding."}),` A language server is part of the
+ecosystem; future work includes richer diagnostics and editor integration.`]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx("strong",{className:"text-text-primary",children:"Package management is on the horizon."}),` Geode is the
+planned package manager, but it is not yet shipped.`]})})]}),`
+`,e.jsx(t,{children:"Roadmap"}),`
+`,e.jsx(o,{headers:["Maturity","Area","Status"],rows:[[e.jsx(e.Fragment,{children:"Available now"}),e.jsx(e.Fragment,{children:"Compiler pipeline and bytecode VM"}),e.jsx(e.Fragment,{children:"Lexer, parser, semantic model, async lowering, layout, emission, and execution are complete."})],[e.jsx(e.Fragment,{children:"Available now"}),e.jsx(e.Fragment,{children:"libuv event loop and async/await"}),e.jsx(e.Fragment,{children:"Single-threaded cooperative concurrency with Task, ValueTask, and cancellation tokens."})],[e.jsx(e.Fragment,{children:"Available now"}),e.jsx(e.Fragment,{children:"Native library framework"}),e.jsx(e.Fragment,{children:"Symbol builders, callback contract, async helpers, and inter-library dependencies are implemented."})],[e.jsx(e.Fragment,{children:"Available now"}),e.jsx(e.Fragment,{children:"Core standard shards"}),e.jsx(e.Fragment,{children:"stdio, collections, math, streams, JSON, filesystem, subprocess, async, reflection, time, socket, HTTP, and interop."})],[e.jsx(e.Fragment,{children:"Near term"}),e.jsx(e.Fragment,{children:"Standard library expansion"}),e.jsx(e.Fragment,{children:"Additional utilities, broader platform coverage, and more framework shards."})],[e.jsx(e.Fragment,{children:"Near term"}),e.jsx(e.Fragment,{children:"Developer tooling"}),e.jsx(e.Fragment,{children:"Improved diagnostics, VM inspection, and language-server features."})],[e.jsx(e.Fragment,{children:"Future"}),e.jsx(e.Fragment,{children:"Package management (Geode)"}),e.jsx(e.Fragment,{children:"Dependency resolution, publishing, and library search-path integration."})],[e.jsx(e.Fragment,{children:"Future"}),e.jsx(e.Fragment,{children:"Formal specification and grammar"}),e.jsx(e.Fragment,{children:"Reference-level language specification and complete grammar documentation."})]]}),`
+`,e.jsx(t,{children:"When to use / When not to use"}),`
+`,e.jsx(s,{children:e.jsx(n.p,{children:`ShardScript is usable today for embedded scripting, native-library extensions, and I/O-heavy applications
+that fit its cooperative concurrency model. It is not yet a mature ecosystem with a broad third-party
+package market or IDE marketplace, so evaluate it against the features that are actually shipped.`})}),`
+`,e.jsx(t,{children:"Related articles"}),`
+`,e.jsxs("ul",{className:"space-y-2 text-text-secondary",children:[e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx(i,{children:"Runtime Architecture"})," — the current compiler and runtime design."]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx(i,{children:"Installation"})," — how to obtain the current release."]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx(i,{children:"Building from Source"})," — compiling the runtime and standard shards yourself."]})}),e.jsx(r,{children:e.jsxs(n.p,{children:[e.jsx(i,{children:"Design Goals"})," — the principles guiding future development."]})})]})]})}function h(a={}){const{wrapper:n}=a.components||{};return n?e.jsx(n,{...a,children:e.jsx(c,{...a})}):c(a)}function l(a,n){throw new Error("Expected component `"+a+"` to be defined: you likely forgot to import, pass, or provide it.")}export{h as default};
