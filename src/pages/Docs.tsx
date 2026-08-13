@@ -26,16 +26,16 @@ type DocSection =
 
 const SECTION_LABELS: Record<DocSection, string> = {
   'getting-started': 'Getting Started',
-  'language-overview': 'Language Overview',
-  'language-fundamentals': 'Language Fundamentals',
-  'language-rules': 'Language Rules',
+  //'language-overview': 'Language Overview',
+  //'language-fundamentals': 'Language Fundamentals',
+  //'language-rules': 'Language Rules',
   syntax: 'Syntax',
   stdlib: 'Std. Library',
   'library-building': 'Library Building',
-  'build-your-project': 'Build Your Project',
-  'implementation-details': 'Implementation Details',
-  faq: 'FAQ',
-  'common-language-features': 'Common Language Features',
+  //'build-your-project': 'Build Your Project',
+  //'implementation-details': 'Implementation Details',
+  //faq: 'FAQ',
+  //'common-language-features': 'Common Language Features',
 }
 
 const allGroupTitles: Record<DocSection, string[]> = {
