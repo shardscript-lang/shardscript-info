@@ -1,0 +1,289 @@
+---
+title: Implicit Conversions
+group: Language Rules
+order: 1
+slug: implicit-conversions
+type: Reference
+groupOrder: 9
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript performs only a small set of implicit conversions. Most type changes — including
+  numeric widening, reference downcasts, and primitive reinterpretation — require an explicit
+  <InlineCode>as</InlineCode> cast. The compiler does allow implicit conversions in specific contexts:
+  literal typing, string concatenation, arithmetic operator promotion, array-to-interface
+  implementation, and a few special cases such as <InlineCode>char</InlineCode> mixed with{' '}
+  <InlineCode>string</InlineCode>.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  There is no special syntax for an implicit conversion; the compiler applies one automatically when
+  the source expression is assignable to the target type under the rules below.
+</Prose>
+
+<DocsTable
+  headers={['Context', 'Source', 'Target', 'Result']}
+  rows={[
+    ['Literal assignment', 'integer literal', <><InlineCode>byte</InlineCode> or <InlineCode>nint</InlineCode></>, 'Literal is bound to the target type if the value fits.'],
+    ['String concatenation', 'any primitive or reference', <><InlineCode>string</InlineCode></>, 'Non-string operand is converted to its string representation.'],
+    ['Arithmetic operator', 'numeric value', 'wider numeric type', 'If either operand is double, the other is promoted to double; byte stays byte only when both operands are byte.'],
+    ['Array type', 'any array', <><InlineCode>IEnumerable&lt;T&gt;</InlineCode></>, 'Every array type implicitly implements IEnumerable<T> with the same element type.'],
+    ['Null reference', <InlineCode>null</InlineCode>, 'any reference type', 'The null reference is assignable to any class, interface, array, or string variable.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Literal context.</strong> When an integer literal appears
+    where the expected type is <InlineCode>byte</InlineCode> or <InlineCode>nint</InlineCode>, the
+    compiler binds the literal to that type instead of <InlineCode>int</InlineCode>. The value must
+    still fit the target range.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">String concatenation.</strong> The{' '}
+    <InlineCode>+</InlineCode> operator converts the non-string operand to a string when one side is
+    a <InlineCode>string</InlineCode>. Both operands are evaluated.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Arithmetic promotion.</strong> Mixed numeric operands are
+    promoted according to operator rules: <InlineCode>double</InlineCode> wins over{' '}
+    <InlineCode>int</InlineCode> and <InlineCode>nint</InlineCode>; <InlineCode>int</InlineCode> mixed
+    with <InlineCode>nint</InlineCode> yields <InlineCode>int</InlineCode>; two{' '}
+    <InlineCode>byte</InlineCode> values stay <InlineCode>byte</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Reference compatibility.</strong> A value of a derived
+    class is implicitly convertible to any base class or implemented interface. Interfaces are not
+    implicitly convertible to derived classes; that requires a cast.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  An implicit conversion produces a value of the target type without changing the source expression's
+  syntax. The conversion happens during semantic analysis or at the operator boundary; no explicit
+  cast operator is emitted.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch in assignment</strong> — Assigning an
+    <InlineCode>int</InlineCode> to a <InlineCode>double</InlineCode>, a <InlineCode>byte</InlineCode>{' '}
+    to an <InlineCode>int</InlineCode>, or any other disallowed widening without a cast is a
+    compile-time error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Literal out of range</strong> — A literal bound by
+    contextual typing must still fit the target type. <InlineCode>b: byte = 256;</InlineCode> fails
+    because 256 is outside the byte range.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument type mismatch</strong> — Function arguments do
+    not implicitly widen or narrow. The caller must supply the exact parameter type or use an
+    explicit cast.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No implicit bool conversion</strong> — Numeric or
+    reference values are not implicitly convertible to <InlineCode>bool</InlineCode>. Conditions must
+    be explicit boolean expressions.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Assignment is strict.</strong> ShardScript deliberately avoids C-style numeric widening on
+  assignment. This keeps code explicit and prevents accidental loss of precision. If you need a
+  wider or narrower numeric type, write <InlineCode>value as TargetType</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Operator promotion is not assignment widening.</strong> The promotion that happens for
+  arithmetic operators is a property of the operator, not the assignment. The result of the operator
+  still must match the type of the variable it is assigned to.
+</Prose>
+
+<Prose>
+  <strong>Contextual typing does not flow through arrays.</strong> Array element contexts do not
+  currently propagate expected types, so a byte array literal usually requires explicit casts such
+  as <InlineCode>[1 as byte, 2 as byte]</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>String conversion is not universal.</strong> Only the <InlineCode>+</InlineCode> operator
+  automatically converts non-string operands to strings. Function parameters typed as{' '}
+  <InlineCode>string</InlineCode> do not accept integers implicitly.
+</Prose>
+
+<Callout tone="blue">
+  Prefer explicit casts when the intent is to change type. Implicit conversions are reserved for
+  cases where the target type is unambiguous and the conversion is lossless or expected by the
+  language, such as string concatenation or array enumeration.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Contextual literal typing.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // The literal is bound to byte/nint because the variable type says so.
+    small: byte = 255;
+    handle: nint = 0;
+
+    println(small);          // 255
+    println(handle);         // 0
+
+    // Out-of-range literals are rejected even with contextual typing.
+    // b: byte = 256;          // ERROR: literal out of range
+}`}
+  language="csharp"
+  filename="contextual_typing.shard"
+/>
+
+<Prose>
+  <strong>String concatenation promotion.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    count: int = 42;
+
+    // The int is implicitly converted to string by the + operator.
+    message: string = "count: " + count;
+    println(message);        // count: 42
+
+    // This only works with +; a string parameter does not accept int.
+    // PrintOnlyString(count); // ERROR: int is not assignable to string
+}`}
+  language="csharp"
+  filename="string_concat.shard"
+/>
+
+<Prose>
+  <strong>Arithmetic operator promotion.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: int = 7;
+    b: double = 2.0;
+
+    // a is promoted to double; result is double.
+    result: double = a / b;
+    println(result);         // 3.5
+
+    // int division stays int; assignment to double would fail without a cast.
+    truncated: int = 7 / 2;
+    println(truncated);      // 3
+}`}
+  language="csharp"
+  filename="arithmetic_promotion.shard"
+/>
+
+<Prose>
+  <strong>Reference upcasting.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Animal
+{
+}
+
+public class Dog : Animal
+{
+}
+
+public static func Main() -> void
+{
+    dog: Dog = new Dog();
+
+    // Implicit upcast to base class.
+    animal: Animal = dog;
+    println(animal != null); // true
+
+    // Downcast requires an explicit cast.
+    back: Dog = animal as Dog;
+    println(back != null);   // true
+}`}
+  language="csharp"
+  filename="reference_upcast.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: expecting implicit numeric widening.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    i: int = 10;
+
+    // Invalid and commented out:
+    // d: double = i;          // ERROR: int is not assignable to double
+    // b: byte = 5;
+    // j: int = b;             // ERROR: byte is not assignable to int
+
+    // Correct: explicit cast.
+    d: double = i as double;
+    println(d);              // 10.0
+}`}
+  language="csharp"
+  filename="no_widening.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>primitive-types</InlineCode> — the scalar types involved in conversion rules.
+  </Bullet>
+  <Bullet>
+    <InlineCode>operators</InlineCode> — operator promotion rules for mixed numeric operands.
+  </Bullet>
+  <Bullet>
+    <InlineCode>type-inference</InlineCode> — how the compiler resolves local variable types.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Conversion checks and operator promotion are implemented in the semantic binder and VM primitive
+  math module: <InlineCode>ShardScript/src/compiler/SemanticAnalyzer.cpp</InlineCode> and{' '}
+  <InlineCode>ShardScript/src/runtime/PrimitiveMathModule.cpp</InlineCode>.
+</Prose>

@@ -1,0 +1,164 @@
+---
+title: Library Search Paths
+group: Build Your Project
+order: 4
+slug: library-search-paths
+type: How-To
+groupOrder: 6
+---
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working ShardScript installation.
+  </Bullet>
+  <Bullet>
+    One or more shard DLLs you want to load, either standard shards or your own libraries.
+  </Bullet>
+  <Bullet>
+    Familiarity with the <InlineCode>shard</InlineCode> CLI.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Understand how the ShardScript interpreter discovers shard libraries at startup and how to control that
+  discovery with the <InlineCode>system/</InlineCode> directory, the <InlineCode>-l</InlineCode> flag, and
+  the <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Use the standard shard layout.</strong>
+</Prose>
+
+<Prose>
+  Today the interpreter resolves standard shards by looking for a <InlineCode>system/</InlineCode> folder
+  next to its own executable (<InlineCode>ExecutableDirectory() / system</InlineCode>). Because the build
+  emits the shard DLLs straight into <InlineCode>bin/system</InlineCode>, a freshly built tree is already
+  laid out correctly.
+</Prose>
+
+<CodeBlock
+  code={`# Current (implemented): shards live in a system/ folder beside the executable
+<install>/
+|-- shard              (shard.exe on Windows)
+\`-- system/            <- auto-discovered at startup
+    |-- stdio.dll
+    |-- collections.dll
+    |-- math.dll
+    \`-- ...`}
+  language="text"
+  filename="layout-current.txt"
+/>
+
+<Prose>
+  <strong>2. Load extra shards with -l.</strong>
+</Prose>
+
+<Prose>
+  Pass additional library paths or glob patterns with the <InlineCode>-l</InlineCode> flag.
+</Prose>
+
+<CodeBlock
+  code={`shard app.shard -l path/to/mylib.dll
+shard app.shard -l "libs/*.dll"`}
+  language="bash"
+  filename="load-extra.sh"
+/>
+
+<Prose>
+  <strong>3. Skip standard shards for a sandbox.</strong>
+</Prose>
+
+<Prose>
+  Use <InlineCode>--no-std</InlineCode> to prevent auto-loading the <InlineCode>system/</InlineCode>{' '}
+  directory, then add only the shards you trust with <InlineCode>-l</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`shard app.shard --no-std -l mylib.dll`}
+  language="bash"
+  filename="sandbox.sh"
+/>
+
+<Prose>
+  <strong>4. Understand the intended %SHARDSCRIPT% layout.</strong>
+</Prose>
+
+<Prose>
+  The intended design introduces a <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable pointing at
+  an install root, with standard shards living under <InlineCode>%SHARDSCRIPT%/system_libs</InlineCode>.
+  Both the interpreter and Geode will consult this root, giving every tool on the machine one canonical
+  place to find the executable and its libraries.
+</Prose>
+
+<CodeBlock
+  code={`# Intended layout (planned -- not yet read by the interpreter)
+%SHARDSCRIPT%/
+|-- shard.exe
+\`-- system_libs/
+    |-- stdio.dll
+    |-- collections.dll
+    |-- math.dll
+    \`-- ...`}
+  language="text"
+  filename="layout-planned.txt"
+/>
+
+<Callout tone="amber" title="Intended direction, not yet active">
+  The interpreter does not currently read <InlineCode>%SHARDSCRIPT%</InlineCode> or{' '}
+  <InlineCode>system_libs</InlineCode> — the <InlineCode>system/</InlineCode>-beside-the-executable mechanism
+  above is what ships today. The environment-variable layout is the intended direction and will be
+  implemented in a future release.
+</Callout>
+
+<H2>Verification</H2>
+
+<Prose>
+  The search path is configured correctly if:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Running <InlineCode>shard app.shard</InlineCode> loads the standard shards without explicit{' '}
+    <InlineCode>-l</InlineCode> flags.
+  </Bullet>
+  <Bullet>
+    <InlineCode>shard app.shard -l mylib.dll</InlineCode> makes the library&apos;s namespaces available through
+    <InlineCode>using</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Standard shards are missing.</strong> Verify that a{' '}
+    <InlineCode>system/</InlineCode> folder exists next to the <InlineCode>shard</InlineCode> executable and
+    contains the DLLs or shared objects.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Custom shard not found.</strong> Check the path passed to{' '}
+    <InlineCode>-l</InlineCode> and confirm the DLL exports <InlineCode>ShardLib_GetMetadata</InlineCode> and{' '}
+    <InlineCode>ShardLib_EntryPoint</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>The shard CLI</InlineCode> — command-line flags including <InlineCode>-l</InlineCode> and{' '}
+    <InlineCode>--no-std</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Project Configuration</InlineCode> — organizing source files and build scripts.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Native Library Overview</InlineCode> — building the shard DLLs that the interpreter loads.
+  </Bullet>
+</ul>

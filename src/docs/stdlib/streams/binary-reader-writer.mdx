@@ -339,3 +339,26 @@ public static func Main() -> void
   when the consumer expects <InlineCode>ReadInt32</InlineCode>; use <InlineCode>Write(int)</InlineCode>{' '}
   only when the consumer expects <InlineCode>ReadInt64</InlineCode>.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Stream Interfaces</InlineCode> — <InlineCode>IReadableStream</InlineCode> and{" "}
+    <InlineCode>IWritableStream</InlineCode> contracts.
+  </Bullet>
+  <Bullet>
+    <InlineCode>MemoryStream</InlineCode> — byte-array-backed stream for binary round-trips.
+  </Bullet>
+  <Bullet>
+    <InlineCode>StreamReader &amp; StreamWriter</InlineCode> — text-oriented adapters for streams.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>BinaryReader</InlineCode> and <InlineCode>BinaryWriter</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding is in{" "}
+  <InlineCode>ShardScript.Framework/system/streams.shard.cpp</InlineCode>.
+</Prose>

@@ -354,3 +354,23 @@ public static func Main() -> void
   language="csharp"
   filename="environment_scope.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Process &amp; ProcessStartInfo</InlineCode> — launching processes that inherit environment variables.
+  </Bullet>
+  <Bullet>
+    <InlineCode>I/O &amp; Lifecycle</InlineCode> — using custom environment variables with child processes.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.environment</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for{" "}
+  <InlineCode>Environment.GetVariable</InlineCode>, <InlineCode>Environment.SetVariable</InlineCode>, and the
+  static delimiter operator is in <InlineCode>ShardScript.Framework/system/environment.shard.cpp</InlineCode>.
+</Prose>

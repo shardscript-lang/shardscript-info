@@ -1,0 +1,300 @@
+---
+title: Functions
+group: Language Fundamentals
+order: 6
+slug: functions
+type: Reference
+groupOrder: 3
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <strong>function</strong> in ShardScript is a named, reusable block of code declared with the <InlineCode>func</InlineCode> keyword. Functions receive typed parameters, optionally return a value, and are invoked by writing the function name followed by a parenthesized argument list.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A function declaration consists of optional modifiers, the <InlineCode>func</InlineCode> keyword, an identifier, an optional generic parameter list, a parenthesized parameter list, a return type, and a braced body.
+</Prose>
+
+<CodeBlock
+  code={`[access] [static] func Name<T>(parameters) -> ReturnType
+{
+    // body
+}`}
+  language="csharp"
+  filename="function_syntax.shard"
+/>
+
+<Prose>
+  A function is called by writing its name followed by a parenthesized argument list. Generic arguments are supplied inside angle brackets when they cannot be inferred.
+</Prose>
+
+<CodeBlock
+  code={`// Call a function with explicit arguments.
+result: int = Add(2, 3);
+
+// Call a generic function with an explicit type argument.
+swapped: int[] = Swap<int>(1, 2);
+
+// Call a static function through its declaring type.
+id: int = IdGenerator.Generate();`}
+  language="csharp"
+  filename="function_call_syntax.shard"
+/>
+
+<DocsTable
+  headers={['Element', 'Required', 'Description']}
+  rows={[
+    [<><InlineCode>access</InlineCode></>, 'Optional', <><InlineCode>public</InlineCode> or <InlineCode>private</InlineCode>. The default is <InlineCode>private</InlineCode>.</>],
+    [<><InlineCode>static</InlineCode></>, 'Optional', 'Belongs to the enclosing type or namespace rather than an instance.'],
+    [<><InlineCode>Name</InlineCode></>, 'Yes', 'The identifier used to invoke the function.'],
+    [<><InlineCode>{'<T>'}</InlineCode></>, 'Optional', 'Generic type parameters, comma-separated, for polymorphic functions.'],
+    [<><InlineCode>(parameters)</InlineCode></>, 'Yes', 'Typed, comma-separated parameters. Empty parentheses mean no parameters.'],
+    [<><InlineCode>-&gt; ReturnType</InlineCode></>, 'Yes', 'The type the function returns. Use <InlineCode>void</InlineCode> when there is no value.'],
+    [<><InlineCode>{'{ body }'}</InlineCode></>, 'Yes', 'A braced statement block containing the function logic.'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Parameters are declared positionally with explicit type annotations. Arguments at the call site are matched by position and checked for type compatibility. The first parameter of an instance method is an implicit <InlineCode>this</InlineCode> reference, but ordinary top-level and static functions have no implicit receiver.
+</Prose>
+
+<DocsTable
+  headers={['Form', 'Example', 'Meaning']}
+  rows={[
+    ['Single typed parameter', <InlineCode>name: string</InlineCode>, 'A parameter called name of type string.'],
+    ['Multiple parameters', <InlineCode>a: int, b: int</InlineCode>, 'Two independent parameters.'],
+    ['No parameters', <InlineCode>()</InlineCode>, 'Empty parameter list.'],
+    ['Generic parameters', <InlineCode>func Swap&lt;T&gt;(a: T, b: T)</InlineCode>, 'Type parameter T is bound at the call site.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Return Type', 'Meaning']}
+  rows={[
+    [<InlineCode>void</InlineCode>, 'The function performs work but returns no value.'],
+    [<InlineCode>int</InlineCode>, 'Returns a 64-bit signed integer.'],
+    [<InlineCode>double</InlineCode>, 'Returns a 64-bit IEEE 754 floating-point value.'],
+    [<InlineCode>bool</InlineCode>, 'Returns a Boolean value.'],
+    [<InlineCode>string</InlineCode>, 'Returns an immutable Unicode string.'],
+    [<InlineCode>T</InlineCode>, 'Returns a value of generic type T.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing return type</strong> — Every function except constructors (<InlineCode>init</InlineCode>) must specify <InlineCode>-&gt; ReturnType</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Return type mismatch</strong> — Returning an <InlineCode>int</InlineCode> from a function declared <InlineCode>-&gt; string</InlineCode> fails semantic analysis.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unreachable end of non-void function</strong> — If a non-void function can complete without a <InlineCode>return</InlineCode> statement, the compiler reports an error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument count mismatch</strong> — Calling a function with too many or too few arguments is a compile-time error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument type mismatch</strong> — An argument that is not assignable to the corresponding parameter type is rejected at compile time.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Ambiguous overload</strong> — Two functions in the same scope with the same name and identical parameter lists produce a duplicate-symbol error.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Functions versus methods.</strong> This page describes the core syntax shared by every callable named block. A function declared at namespace scope is a top-level function; a function declared inside a class, struct, or interface is a method. Methods are covered in the Object-Oriented Programming section because they interact with instances, access modifiers, and inheritance semantics.
+</Prose>
+
+<Prose>
+  <strong>Static versus instance.</strong> A function marked <InlineCode>static</InlineCode> has no implicit <InlineCode>this</InlineCode> parameter and is invoked through its declaring type or namespace. An instance method omits <InlineCode>static</InlineCode> and receives the receiver object as the first evaluation-stack slot.
+</Prose>
+
+<Prose>
+  <strong>Overloading.</strong> Multiple functions may share the same name as long as their parameter lists differ in arity or type. Return type alone does not distinguish overloads. Overload resolution is performed at compile time and prefers exact type matches.
+</Prose>
+
+<Prose>
+  <strong>Generic functions.</strong> A function can declare its own type parameters independent of any enclosing type. Type arguments may be supplied explicitly at the call site (<InlineCode>Swap&lt;int&gt;(a, b)</InlineCode>) or, in many cases, inferred from the argument types.
+</Prose>
+
+<Prose>
+  <strong>Call dispatch.</strong> The compiler resolves a function call to a specific method symbol at compile time. Static and top-level calls emit <InlineCode>CALLSTATICMETHODSYMBOL</InlineCode>; instance calls emit <InlineCode>CALLMETHODSYMBOL</InlineCode>. The VM pushes the arguments in declaration order, executes the method body, and leaves the return value on the caller's evaluation stack.
+</Prose>
+
+<Callout tone="blue">
+  Functions are not the same as delegates. A function declaration introduces a method symbol; a delegate is a separate callable value type. To store a function in a variable, pass it as an argument, or return it from another function, use a delegate. See the Delegates and Lambda Expressions articles for details.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic function declaration and call.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+static func Add(a: int, b: int) -> int
+{
+    return a + b;
+}
+
+public static func Main() -> void
+{
+    sum: int = Add(2, 3);
+    println(sum);   // 5
+}`}
+  language="csharp"
+  filename="function_basic.shard"
+/>
+
+<Prose>
+  <strong>Function overloading.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+static func Print(value: int) -> void
+{
+    println("int: " + value);
+}
+
+static func Print(value: string) -> void
+{
+    println("string: " + value);
+}
+
+public static func Main() -> void
+{
+    Print(42);        // int: 42
+    Print("hello");   // string: hello
+}`}
+  language="csharp"
+  filename="function_overload.shard"
+/>
+
+<Prose>
+  <strong>Generic function.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+static func Swap<T>(a: T, b: T) -> T[]
+{
+    pair: T[] = new T[2];
+    pair[0] = b;
+    pair[1] = a;
+    return pair;
+}
+
+public static func Main() -> void
+{
+    swapped: int[] = Swap<int>(1, 2);
+    println(swapped[0]);   // 2
+    println(swapped[1]);   // 1
+}`}
+  language="csharp"
+  filename="function_generic.shard"
+/>
+
+<Prose>
+  <strong>Static function with type-level state.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class IdGenerator
+{
+    private static NextId: int;
+
+    public static func Generate() -> int
+    {
+        id: int = IdGenerator.NextId;
+        IdGenerator.NextId = IdGenerator.NextId + 1;
+        return id;
+    }
+}
+
+public static func Main() -> void
+{
+    println(IdGenerator.Generate());   // 0
+    println(IdGenerator.Generate());   // 1
+    println(IdGenerator.Generate());   // 2
+}`}
+  language="csharp"
+  filename="function_static_state.shard"
+/>
+
+<Prose>
+  <strong>Common mistakes.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+static func Greet(name: string) -> void
+{
+    println("hello, " + name);
+}
+
+public static func Main() -> void
+{
+    // CORRECT: argument type and count match the declaration.
+    Greet("world");
+
+    // INCORRECT: these would fail at compile time.
+    // Greet();            // ERROR: missing argument
+    // Greet(123);         // ERROR: int is not assignable to string
+    // Greet("a", "b");    // ERROR: too many arguments
+}`}
+  language="csharp"
+  filename="function_mistakes.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Methods</InlineCode> — instance methods, access modifiers, and object-oriented callable members.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Delegates</InlineCode> — named and inline callable value types.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Lambda Expressions</InlineCode> — anonymous functions and delegate values.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Constructors and Initialization</InlineCode> — special <InlineCode>init</InlineCode> methods for object creation.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Function declarations are parsed into <InlineCode>MethodDeclarationSyntax</InlineCode> nodes in <InlineCode>ShardScript/ShardScript/src/parsing/SourceParser.cpp</InlineCode>. The syntax node definition is in <InlineCode>ShardScript/ShardScript/include/shard/parsing/nodes/MemberDeclarations/MethodDeclarationSyntax.hpp</InlineCode>.
+</Prose>

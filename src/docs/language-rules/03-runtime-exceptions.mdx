@@ -1,0 +1,311 @@
+---
+title: Runtime Exceptions
+group: Language Rules
+order: 3
+slug: runtime-exceptions
+type: Reference
+groupOrder: 9
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The ShardScript virtual machine raises runtime exceptions when a guarded operation cannot complete
+  safely. This page catalogs the most common runtime error messages produced by the language itself,
+  grouped by the operation that triggers them. Library-specific errors are documented on their
+  respective standard-library pages.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Runtime exceptions are ordinary ShardScript objects that implement{' '}
+  <InlineCode>IThrowable</InlineCode>. They can be caught with <InlineCode>try</InlineCode> /{' '}
+  <InlineCode>catch</InlineCode> and inspected through the <InlineCode>message</InlineCode> and{' '}
+  <InlineCode>stack_trace</InlineCode> properties.
+</Prose>
+
+<CodeBlock
+  code={`try
+{
+    // operation that may fail
+}
+catch (ex: RuntimeException)
+{
+    println(ex.message);
+    println(ex.stack_trace);
+}`}
+  language="csharp"
+  filename="catch_runtime_exception.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  Each entry in the catalog below lists the failing operation, the typical exception message, and the
+  type of the thrown object when a specific type is known.
+</Prose>
+
+<DocsTable
+  headers={['Operation', 'Typical message', 'Thrown type']}
+  rows={[
+    ['Integer division by zero', 'DivideByZeroException', <InlineCode>RuntimeException</InlineCode>],
+    ['Integer modulo by zero', 'DivideByZeroException', <InlineCode>RuntimeException</InlineCode>],
+    ['Array index out of bounds', 'Array index is out of range: index=... length=...', <InlineCode>RuntimeException</InlineCode>],
+    ['Indexer on null array', 'Cannot access indexer on null instance of type ...', <InlineCode>RuntimeException</InlineCode>],
+    ['Member access on null reference', 'Cannot access member on null instance of type ...', <InlineCode>RuntimeException</InlineCode>],
+    ['Method call on null reference', 'Cannot access member on null instance of type ...', <InlineCode>RuntimeException</InlineCode>],
+    ['Null delegate invocation', 'Delegate is null', <InlineCode>RuntimeException</InlineCode>],
+    ['Reflection on missing type', 'Type not found', <InlineCode>RuntimeException</InlineCode>],
+    ['Reflection on null instance', 'cannot get type of null instance', <InlineCode>RuntimeException</InlineCode>],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  A runtime exception does not return a value to its call site. Instead, the VM unwinds the managed
+  stack until it finds a matching <InlineCode>catch</InlineCode> clause or reaches the entry point.
+  If no handler exists, the VM prints the stack trace and terminates.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">DivideByZeroException.</strong> Integer, character, byte,
+    native-pointer, and enum division or modulo with a zero divisor throws{' '}
+    <InlineCode>DivideByZeroException</InlineCode>. Floating-point division by zero does not throw; it
+    follows IEEE-754 rules and may produce infinity.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Array index out of range.</strong> Reading or writing an
+    array element with an index outside <InlineCode>0 .. Length - 1</InlineCode> throws a message
+    such as <InlineCode>Array index is out of range: index=... length=...</InlineCode>. Negative
+    indices are treated as very large positive values because the index is cast to{' '}
+    <InlineCode>std::size_t</InlineCode> before the bounds check.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null indexer access.</strong> Using the square-bracket
+    indexer on a <InlineCode>null</InlineCode> array reference throws{' '}
+    <InlineCode>Cannot access indexer on null instance of type ...</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null member access.</strong> Reading a field or property on
+    a <InlineCode>null</InlineCode> reference throws{' '}
+    <InlineCode>Cannot access member on null instance of type ...</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null method call.</strong> Calling an instance method on a{' '}
+    <InlineCode>null</InlineCode> reference throws{' '}
+    <InlineCode>Cannot access member on null instance of type ...</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null delegate invocation.</strong> Calling a delegate
+    variable that holds <InlineCode>null</InlineCode> throws <InlineCode>Delegate is null</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Reflection failures.</strong> Looking up a type by name that
+    is not loaded throws <InlineCode>Type not found</InlineCode>. Inspecting the type of a{' '}
+    <InlineCode>null</InlineCode> instance throws{' '}
+    <InlineCode>cannot get type of null instance</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native extern returning null for a value type.</strong> An
+    extern method declared to return a value type that returns <InlineCode>nullptr</InlineCode> from
+    native code throws <InlineCode>extern method '...' returned nullptr for value type</InlineCode>.
+    Reference-type extern methods that return <InlineCode>nullptr</InlineCode> are mapped to the
+    managed <InlineCode>null</InlineCode> instance instead.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Stack unwinding.</strong> When a runtime exception is thrown, the VM walks the call stack
+  from the throw site toward the entry point. Before entering each candidate{' '}
+  <InlineCode>catch</InlineCode>, it runs every <InlineCode>defer</InlineCode> registered in the
+  scopes being unwound, in last-in, first-out order.
+</Prose>
+
+<Prose>
+  <strong>Typed exceptions from native libraries.</strong> Native libraries can register their own{' '}
+  <InlineCode>IThrowable</InlineCode> classes and throw them through{' '}
+  <InlineCode>shard::runtime_exception</InlineCode>. The VM catches the C++ exception and instantiates
+  the requested managed type instead of the built-in <InlineCode>RuntimeException</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Message stability.</strong> The messages in this catalog are representative of the current
+  implementation. Minor wording changes may occur between releases, so production code should catch
+  by exception type or by <InlineCode>RuntimeException</InlineCode> rather than by exact message
+  string.
+</Prose>
+
+<Callout tone="amber">
+  Not every runtime failure produces a catchable exception today. Some low-level VM faults still
+  terminate the process directly. Treat any error listed here as catchable, and treat unlisted
+  failures as requiring defensive coding.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Catching division by zero.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    try
+    {
+        x: int = 1 / 0;
+        println(x);
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: " + ex.message);
+    }
+}`}
+  language="csharp"
+  filename="divide_by_zero.shard"
+/>
+
+<Prose>
+  <strong>Array bounds checking.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    values: int[] = [10, 20, 30];
+
+    try
+    {
+        println(values[3]);      // out of range
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: " + ex.message);
+    }
+
+    try
+    {
+        empty: int[] = null;
+        println(empty[0]);       // null indexer
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: " + ex.message);
+    }
+}`}
+  language="csharp"
+  filename="array_bounds.shard"
+/>
+
+<Prose>
+  <strong>Null instance member and method access.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Box
+{
+    public Value: int;
+
+    public func GetValue() -> int
+    {
+        return this.Value;
+    }
+}
+
+public static func Main() -> void
+{
+    box: Box = null;
+
+    try
+    {
+        println(box.Value);
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught member access");
+    }
+
+    try
+    {
+        println(box.GetValue());
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught method call");
+    }
+}`}
+  language="csharp"
+  filename="null_access.shard"
+/>
+
+<Prose>
+  <strong>Null delegate invocation.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public delegate Action() -> void;
+
+public static func Main() -> void
+{
+    action: Action = null;
+
+    try
+    {
+        action();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught: " + ex.message);
+    }
+}`}
+  language="csharp"
+  filename="null_delegate.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>exceptions</InlineCode> — language reference for try/catch/throw and IThrowable.
+  </Bullet>
+  <Bullet>
+    <InlineCode>operators</InlineCode> — operator errors that can become runtime exceptions.
+  </Bullet>
+  <Bullet>
+    <InlineCode>arrays</InlineCode> — bounds and null-access rules for arrays.
+  </Bullet>
+  <Bullet>
+    <InlineCode>runtime-exception-reference</InlineCode> — throwing typed exceptions from native
+    libraries.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Runtime exception raising and stack unwinding are implemented in{' '}
+  <InlineCode>ShardScript/src/runtime/VirtualMachine.cpp</InlineCode>. Native-to-managed exception
+  mapping lives in <InlineCode>ShardScript/include/shard/runtime/RuntimeException.hpp</InlineCode>.
+</Prose>

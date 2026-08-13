@@ -1,0 +1,344 @@
+---
+title: Native Libraries Overview
+group: Concepts
+order: 1
+slug: native-library-overview
+groupOrder: 1
+type: Concept
+---
+
+<Prose>
+  A <strong>native library</strong> is a ShardScript module implemented as a normal shared library: a{' '}
+  <InlineCode>.dll</InlineCode> on Windows, a <InlineCode>.so</InlineCode> on Linux, or a{' '}
+  <InlineCode>.dylib</InlineCode> on macOS. It is written in C++, compiled with whatever toolchain and build
+  system you prefer, and loaded by the ShardScript runtime at startup. The only hard requirement is that the
+  resulting binary exports exactly two C-linkage symbols: <InlineCode>ShardLib_GetMetadata</InlineCode> and{' '}
+  <InlineCode>ShardLib_EntryPoint</InlineCode>.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  Native libraries extend the ShardScript runtime with compiled C++ code. A library can consist of one source
+  file or many, can live inside the <InlineCode>ShardScript.Framework</InlineCode> tree or in a completely
+  separate project, and can be built with CMake, MSBuild, Make, or any other C++ build system. The runtime
+  discovers the library through the two exported symbols: <InlineCode>ShardLib_GetMetadata</InlineCode>{' '}
+  describes the library&apos;s identity, version, and dependencies; <InlineCode>ShardLib_EntryPoint</InlineCode>{' '}
+  registers namespaces, types, methods, properties, and operators into the compiler&apos;s semantic model.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  ShardScript is deliberately strict and small. The standard library and parts of the runtime ship as native
+  libraries because some responsibilities cannot be expressed cleanly or efficiently inside the language:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Operating-system services</strong> — sockets, files, processes,
+    timers, and windowing all need direct OS calls.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Performance-critical algorithms</strong> — heavy math, parsers,
+    or compression benefit from compiled C++ and hand-managed memory.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Existing C/C++ ecosystems</strong> — wrapping libraries such as
+    SQLite, OpenSSL, or Raylib lets ShardScript reuse battle-tested code.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Runtime intrinsics</strong> — garbage-collection helpers, async
+    state machines, and reflection metadata live below the language level.
+  </Bullet>
+</ul>
+
+<H2>How it works</H2>
+
+<Prose>
+  The runtime loads a native library through the host&apos;s platform API (for example{' '}
+  <InlineCode>LoadLibrary</InlineCode> on Windows or <InlineCode>dlopen</InlineCode> on Linux) and resolves
+  two functions by name. The <InlineCode>SHARDLIB_GETMETADATA</InlineCode> and{' '}
+  <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> macros hide the boilerplate of producing the required{' '}
+  <InlineCode>extern &quot;C&quot;</InlineCode> exports with the correct visibility attributes.
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>SHARDLIB_GETMETADATA</InlineCode> — defines{' '}
+    <InlineCode>ShardLib_GetMetadata</InlineCode> and fills in the library&apos;s name, description,
+    version, and optional dependencies.
+  </Bullet>
+  <Bullet>
+    <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> — defines{' '}
+    <InlineCode>ShardLib_EntryPoint</InlineCode> and receives a registration context. Inside this block you
+    create namespaces and attach classes, structs, interfaces, enums, methods, properties, and operators.
+  </Bullet>
+</ul>
+
+<Prose>
+  A minimal single-file library looks like this:
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.mylibrary";
+    lib.Description = L"Short description";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> myNamespace(context, L"mynamespace");
+
+    myNamespace.AddClass(L"MyType", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"DoWork", TYPE_INT, LINK_STATIC)
+            .AddParameter(L"value", TYPE_INT)
+            .SetCallback([](const CallState& context)
+            {
+                std::int64_t value = context.Args[0]->AsInteger();
+                return context.Collector.FromValue(value * 2);
+            });
+    });
+}`}
+  language="cpp"
+  filename="mylibrary.cpp"
+/>
+
+<Prose>
+  From ShardScript the new member is consumed like any other static method:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using mynamespace;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    result: int = MyType.DoWork(21);
+    println(result);   // 42
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  The macros expand to the exact symbol names the runtime loader searches for, so the names of the exported
+  functions are stable across platforms and compilers.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<Prose>
+  <strong>Any shared library that exports the two symbols is a native library.</strong> There is no special
+  file extension, no required project template, and no registration manifest. The build system does not need
+  to discover the file automatically; you can compile it with a normal shared-library target in CMake,
+  MSBuild, or any other C++ toolchain.
+</Prose>
+
+<Prose>
+  <strong>A library can contain many source files.</strong> The two macros can live in the same file or in
+  different files. The only requirement is that the final linked binary exports both{' '}
+  <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>A library can live anywhere.</strong> It may be built inside the{' '}
+  <InlineCode>ShardScript.Framework</InlineCode> tree, but it can also be a standalone project in its own
+  directory. The runtime loads it by path through the <InlineCode>-l</InlineCode> flag, so the library does
+  not need to be adjacent to the interpreter.
+</Prose>
+
+<Prose>
+  <strong>The framework CMake glob is one convenient integration, not a requirement.</strong> The reference
+  build collects every <InlineCode>*.shard.cpp</InlineCode> file under{' '}
+  <InlineCode>ShardScript.Framework</InlineCode>, creates one shared-library target per file, links against
+  the <InlineCode>ShardScript</InlineCode> target, and points the include path at{' '}
+  <InlineCode>ShardScript/include</InlineCode>. This is useful for in-tree system or third-party shards, but
+  it is only a CMake convenience. You can replicate the same behavior in your own project.
+</Prose>
+
+<CodeBlock
+  code={`file(GLOB TEST_LIB_SOURCES CONFIGURE_DEPENDS "*.shard.cpp")
+
+foreach(SOURCE_FILE IN LISTS TEST_LIB_SOURCES)
+    get_filename_component(TARGET_NAME "\${SOURCE_FILE}" NAME_WLE)
+    add_library("\${TARGET_NAME}" SHARED "\${SOURCE_FILE}")
+
+    set_target_properties("\${TARGET_NAME}" PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+        RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin/test_libs"
+        LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin/test_libs"
+    )
+
+    target_include_directories("\${TARGET_NAME}" PRIVATE "\${CMAKE_CURRENT_SOURCE_DIR}/../../../ShardScript/include")
+    target_link_libraries("\${TARGET_NAME}" PRIVATE ShardScript)
+endforeach()`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  <strong>Symbol registration.</strong> Registration happens through{' '}
+  <InlineCode>SymbolBuilder&lt;T&gt;</InlineCode> specializations. You declare a namespace, then attach
+  members with explicit accessibility, linking mode, and callback:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>LINK_STATIC</InlineCode> — the member has no implicit <InlineCode>this</InlineCode> and is
+    called as <InlineCode>Type.Method()</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>LINK_INSTANCE</InlineCode> — the member belongs to an object;{' '}
+    <InlineCode>context.Args[0]</InlineCode> is <InlineCode>this</InlineCode> inside the callback.
+  </Bullet>
+  <Bullet>
+    <InlineCode>ACS_PUBLIC</InlineCode> and <InlineCode>ACS_PRIVATE</InlineCode> — control visibility the
+    same way ShardScript source declarations do.
+  </Bullet>
+</ul>
+
+<Prose>
+  <strong>The callback contract.</strong> Every native callback has the same signature:
+</Prose>
+
+<CodeBlock
+  code={`shard::ObjectInstance* Callback(const shard::CallState& context);`}
+  language="cpp"
+/>
+
+<Prose>
+  Arguments arrive in <InlineCode>context.Args</InlineCode> as{' '}
+  <InlineCode>ObjectInstance*</InlineCode> pointers. Read primitives through helpers such as{' '}
+  <InlineCode>AsInteger()</InlineCode> or <InlineCode>AsString()</InlineCode>, and box return values through{' '}
+  <InlineCode>context.Collector.FromValue(...)</InlineCode>. The collector owns the returned object, so the
+  callback does not free it.
+</Prose>
+
+<Prose>
+  <strong>Declaring dependencies.</strong> If your library reuses symbols from another native library,
+  declare the dependency inside <InlineCode>SHARDLIB_GETMETADATA</InlineCode>. The loader enforces load order
+  before your entry point runs:
+</Prose>
+
+<CodeBlock
+  code={`SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.filesystem";
+    lib.Description = L"File and directory APIs";
+    lib.Version     = L"0.2.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.streams", L"0.1.0" },
+        { L"shard.collections", L"^0.3.0" }
+    };
+    lib.Dependencies = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}`}
+  language="cpp"
+/>
+
+<Callout tone="blue">
+  Always look up cross-library symbols lazily inside <InlineCode>EnsureSymbols</InlineCode> helpers rather
+  than caching pointers during static initialization. Load order between libraries is not guaranteed, and
+  eager static initializers are a common source of null-pointer crashes.
+</Callout>
+
+<H2>Existing libraries to study</H2>
+
+<Prose>
+  The framework ships with many native libraries. Treat the ones closest to your goal as reference
+  implementations:
+</Prose>
+
+<DocsTable
+  headers={['Library', 'Source file', 'Demonstrates']}
+  rows={[
+    [<InlineCode>shard.math</InlineCode>, <InlineCode>system/math.shard.cpp</InlineCode>, 'Simple static class, properties, GetArgs helper.'],
+    [<InlineCode>shard.stdio</InlineCode>, <InlineCode>system/constream.shard.cpp</InlineCode>, 'Console I/O, IPrintable, IEnumerable<T> generic method.'],
+    [<InlineCode>shard.collections</InlineCode>, <InlineCode>system/collections.shard.cpp</InlineCode>, 'Generic List<T>, Dictionary<K,V>, Queue<T>, Stack<T>.'],
+    [<InlineCode>shard.streams</InlineCode>, <InlineCode>system/streams.shard.cpp</InlineCode>, 'Interfaces, MemoryStream, StreamReader/Writer, async cancellation.'],
+    [<InlineCode>shard.filesystem</InlineCode>, <InlineCode>system/filesystem.shard.cpp</InlineCode>, 'Native handles, async file I/O with libuv, cross-library lookups.'],
+    [<InlineCode>shard.socket</InlineCode>, <InlineCode>system/socket.shard.cpp</InlineCode>, 'TCP sockets, SocketStream, RunOnThreadPool, ObjectRef.'],
+    [<InlineCode>shard.http</InlineCode>, <InlineCode>system/http.shard.cpp</InlineCode>, 'HTTP client/server, delegates, threading + event-loop marshalling.'],
+    [<InlineCode>shard.subprocess</InlineCode>, <InlineCode>system/subprocess.shard.cpp</InlineCode>, 'External processes, cross-library dictionary layout lookup.'],
+    [<InlineCode>shard.cinterop</InlineCode>, <InlineCode>system/cinterop.shard.cpp</InlineCode>, 'FFI, nint, memory marshalling, raw native calls.'],
+    [<InlineCode>shard.reflection</InlineCode>, <InlineCode>system/reflection.shard.cpp</InlineCode>, 'Runtime type inspection, handle wrappers.'],
+    [<InlineCode>shard.async</InlineCode>, <InlineCode>system/async.shard.cpp</InlineCode>, 'TaskCompletionSource<T>, cancellation tokens.'],
+    [<InlineCode>shard.json</InlineCode>, <InlineCode>system/json.shard.cpp</InlineCode>, 'Complex parser, opaque native handle (nint).'],
+  ]}
+/>
+
+<H2>When to use</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    You need to call an OS API or a third-party C/C++ library that has no ShardScript equivalent.
+  </Bullet>
+  <Bullet>
+    The operation is CPU-bound and the overhead of the VM interpreter is measurable in your workload.
+  </Bullet>
+  <Bullet>
+    You are adding runtime support that the language itself cannot express, such as GC helpers or async
+    state-machine internals.
+  </Bullet>
+  <Bullet>
+    You want to share a single implementation between the host application and ShardScript code.
+  </Bullet>
+</ul>
+
+<H2>When not to use</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    The logic is pure ShardScript business code. Prefer ordinary <InlineCode>.shard</InlineCode> source
+    files so you keep type safety, debugging, and hot-reload benefits.
+  </Bullet>
+  <Bullet>
+    The feature is already covered by an existing standard library. Reuse{' '}
+    <InlineCode>shard.collections</InlineCode>, <InlineCode>shard.streams</InlineCode>, or{' '}
+    <InlineCode>shard.async</InlineCode> before writing a new native library.
+  </Bullet>
+  <Bullet>
+    You only need to load an arbitrary shared library and call raw C exports. For one-off dynamic loading,
+    use <InlineCode>interop.NativeLibrary</InlineCode> instead.
+  </Bullet>
+</ul>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/your-first-shard-cpp-library</InlineCode> — a step-by-step tutorial that
+    builds a native library in a standalone project directory.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/library-build-setup</InlineCode> — CMake recipes for out-of-tree native
+    libraries, including how to locate headers and link the ShardScript shared library.
+  </Bullet>
+  <Bullet>
+    <InlineCode>stdlib/interop/native-interop</InlineCode> — load arbitrary shared libraries and invoke raw
+    C function pointers from ShardScript.
+  </Bullet>
+  <Bullet>
+    <InlineCode>stdlib/collections/list</InlineCode> — an example of a generic type implemented as a native
+    library.
+  </Bullet>
+  <Bullet>
+    <InlineCode>syntax/async/04-task-and-valuetask</InlineCode> — how async primitives produced by native
+    libraries fit into ShardScript code.
+  </Bullet>
+  <Bullet>
+    <InlineCode>common-language-features/defer-and-idisposable</InlineCode> — patterns for native types that
+    hold unmanaged handles.
+  </Bullet>
+</ul>

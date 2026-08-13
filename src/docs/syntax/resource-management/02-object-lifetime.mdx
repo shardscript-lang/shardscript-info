@@ -1,0 +1,369 @@
+---
+title: Object Lifetime
+group: Resource Management
+order: 2
+slug: object-lifetime
+type: Concept
+groupOrder: 5
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <strong>Object lifetime</strong> describes how long a ShardScript value remains usable and what keeps it alive.
+  Value types live as long as their container, while reference types are kept alive by roots such as local
+  variables, fields, array elements, closure captures, and async state machines. Understanding lifetime lets
+  you predict when memory is reclaimed and when you need explicit cleanup.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  In languages with manual memory management it is easy to free an object too early or forget to free it at
+  all. ShardScript avoids both problems with automatic reference counting and deterministic disposal, but
+  those mechanisms only behave predictably when you know what counts as a live reference. Misunderstanding
+  lifetime leads to surprises such as holding memory longer than intended, leaking objects through static
+  fields, or letting native handles outlive the managed wrappers that own them.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  <strong>Value types.</strong> <InlineCode>int</InlineCode>, <InlineCode>double</InlineCode>,{" "}
+  <InlineCode>bool</InlineCode>, <InlineCode>char</InlineCode>, <InlineCode>byte</InlineCode>,{" "}
+  <InlineCode>nint</InlineCode>, and user-defined <InlineCode>struct</InlineCode> values are stored inline
+  inside their owner. A local value type lives until the enclosing method returns; a value-type field lives as
+  long as the object that contains it; a value-type array element lives as long as the array. Assignment copies
+  the whole value, so there is only one lifetime to reason about.
+</Prose>
+
+<Prose>
+  <strong>Reference types.</strong> Classes, arrays, strings, and delegates are allocated on the GC heap.
+  A variable of reference type does not contain the object; it contains a reference to it. Assigning the
+  variable to another variable copies the reference, not the object, so two variables can keep the same object
+  alive. The object is collected only when every reference to it disappears.
+</Prose>
+
+<Prose>
+  <strong>Roots.</strong> An object stays alive while a chain of references reaches it from a root. The main
+  roots in ShardScript are:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Local variables and temporaries</strong> — held on the evaluation
+    stack for the duration of the method, constructor, property accessor, or lambda body.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static fields</strong> — stored in the garbage collector and released
+    only at process shutdown.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Instance fields and array elements</strong> — kept alive by the
+    object or array that contains them.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Closure captures</strong> — variables captured by a lambda or
+    delegate are moved into a hidden object that the delegate keeps alive.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Async state machines</strong> — a suspended <InlineCode>async</InlineCode>{" "}
+    method keeps its frame, locals, and active resource defers alive until it completes, faults, or is cancelled.
+  </Bullet>
+</ul>
+
+<Prose>
+  <strong>Reference counting.</strong> The runtime increments an object's counter whenever it is stored in a
+  field, array element, local variable, or argument slot, and decrements it when that storage is overwritten
+  or released. When the counter reaches zero the object is terminated immediately. Cycles are reclaimed during
+  termination because the cascade of decrements detaches the whole graph from every root.
+</Prose>
+
+<Prose>
+  <strong>Deterministic cleanup.</strong> The garbage collector reclaims managed memory, but it does not invoke
+  script-level finalizers and it knows nothing about OS handles, sockets, or third-party contexts. For those
+  resources a type implements <InlineCode>IDisposable</InlineCode> and is used with the resource-defer form
+  <InlineCode>defer name: Type = expression;</InlineCode>. Disposal runs when the enclosing scope exits, even
+  if an exception is thrown or the method returns early.
+</Prose>
+
+<Prose>
+  <strong>Native handles.</strong> A managed object can store an opaque native pointer in an{" "}
+  <InlineCode>nint</InlineCode> field. The GC tracks the wrapper object, not the pointer, so the native resource
+  must be released by the wrapper's <InlineCode>Dispose()</InlineCode> method or by explicit native cleanup.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Containers own values.</strong> A value type's lifetime is bounded
+    by the local, field, or array that holds it.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">References share objects.</strong> Assigning a reference-type
+    variable creates another path to the same heap object; mutations are visible through every reference.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Roots keep objects alive.</strong> If any root can reach an object,
+    the object is not collected.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static fields are long-lived roots.</strong> Objects stored in
+    static fields survive until the runtime shuts down; clear static fields when they are no longer needed.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Closures and async frames are hidden roots.</strong> A captured
+    variable or a suspended async method can keep an object alive longer than its lexical scope suggests.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dispose is for unmanaged resources.</strong> Use{" "}
+    <InlineCode>IDisposable</InlineCode> and <InlineCode>defer</InlineCode> when an object owns something the
+    GC cannot release.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native pointers do not keep themselves alive.</strong> A wrapper
+    object must be kept alive explicitly when its native handle is used across an async boundary.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Use', 'Avoid']}
+  rows={[
+    [
+      <>Rely on automatic collection for ordinary managed objects, arrays, and strings.</>,
+      <>Do not rely on collection for deterministic release of file handles, sockets, or native memory.</>,
+    ],
+    [
+      <>Use <InlineCode>defer</InlineCode> with <InlineCode>IDisposable</InlineCode> for resources that need immediate cleanup.</>,
+      <>Do not implement <InlineCode>IDisposable</InlineCode> on types that only hold other managed objects with no unmanaged resources.</>,
+    ],
+    [
+      <>Use static fields for long-lived shared state, such as caches or service singletons.</>,
+      <>Do not store temporary objects in static fields; they will leak until shutdown.</>,
+    ],
+    [
+      <>Use closures and async methods freely; the runtime keeps captured objects alive automatically.</>,
+      <>Do not capture large objects in a long-lived delegate or async continuation if they are no longer needed.</>,
+    ],
+  ]}
+/>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Value types are independent copies.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public struct Point
+{
+    public X: int;
+    public Y: int;
+}
+
+public static func Main() -> void
+{
+    a: Point = new Point();
+    a.X = 1;
+
+    b: Point = a; // Copies the whole value.
+    b.X = 2;
+
+    println(a.X); // 1
+    println(b.X); // 2
+}`}
+  language="csharp"
+  filename="lifetime_value_types.shard"
+/>
+
+<Prose>
+  <strong>Reference types share identity.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Counter
+{
+    public Value: int;
+}
+
+public static func Main() -> void
+{
+    c: Counter = new Counter();
+    c.Value = 1;
+
+    d: Counter = c; // Copies the reference, not the object.
+    d.Value = 2;
+
+    println(c.Value); // 2
+    println(d.Value); // 2
+}`}
+  language="csharp"
+  filename="lifetime_reference_types.shard"
+/>
+
+<Prose>
+  <strong>Static fields extend lifetime to shutdown.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Buffer
+{
+    public Data: int[];
+}
+
+public static class Globals
+{
+    public static Shared: Buffer;
+}
+
+public static func Main() -> void
+{
+    local: Buffer = new Buffer();
+    local.Data = new int[4];
+
+    Globals.Shared = new Buffer();
+    Globals.Shared.Data = new int[8];
+
+    // 'local' is collected when Main returns.
+    // 'Globals.Shared' remains alive until the runtime terminates.
+}`}
+  language="csharp"
+  filename="lifetime_static_fields.shard"
+/>
+
+<Prose>
+  <strong>Closure capture keeps variables alive.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Logger
+{
+    public Prefix: string;
+}
+
+public static func Main() -> void
+{
+    logger: Logger = new Logger();
+    logger.Prefix = "app";
+
+    // 'logger' is captured by the delegate, so it stays alive
+    // even after Main would otherwise release the local variable.
+    action: func () -> void = () =>
+    {
+        println(logger.Prefix + ": action");
+    };
+
+    action();
+}`}
+  language="csharp"
+  filename="lifetime_closure_capture.shard"
+/>
+
+<Prose>
+  <strong>Async methods keep frames alive across suspension.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class Session
+{
+    public Id: int;
+}
+
+public class Program
+{
+    public static async func WorkAsync() -> Task
+    {
+        session: Session = new Session();
+        session.Id = 42;
+
+        println("before await: " + session.Id);
+        await Task.Delay(10);
+        println("after await: " + session.Id);
+
+        // 'session' is released when the async method completes.
+    }
+
+    public static func Main() -> void
+    {
+        Task.Wait(WorkAsync());
+    }
+}`}
+  language="csharp"
+  filename="lifetime_async_frame.shard"
+/>
+
+<Prose>
+  <strong>Deterministic disposal with <InlineCode>IDisposable</InlineCode>.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Resource : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("resource released");
+    }
+}
+
+public static func Main() -> void
+{
+    defer r: Resource = new Resource();
+    println("using resource");
+
+    // Dispose runs here before Main returns.
+}`}
+  language="csharp"
+  filename="lifetime_dispose.shard"
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>syntax/resource-management/garbage-collection</InlineCode> — the reference-counting collector
+    that implements automatic object lifetime.
+  </Bullet>
+  <Bullet>
+    <InlineCode>common-language-features/defer-and-idisposable</InlineCode> — the <InlineCode>defer</InlineCode>{" "}
+    statement and <InlineCode>IDisposable</InlineCode> pattern for deterministic cleanup.
+  </Bullet>
+  <Bullet>
+    <InlineCode>language-overview/type-system</InlineCode> — value types, reference types, and how they are stored.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/native-handles-and-object-lifetime</InlineCode> — pinning managed wrappers and
+    releasing native handles across async boundaries.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/garbage-collection-rules</InlineCode> — the native-library callback lifetime
+    contract.
+  </Bullet>
+</ul>

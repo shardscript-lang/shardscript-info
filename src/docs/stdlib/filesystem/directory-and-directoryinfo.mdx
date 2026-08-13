@@ -333,3 +333,23 @@ public static func Main() -> void
   delete a tree recursively, use <InlineCode>DirectoryInfo.Delete()</InlineCode> on a{' '}
   <InlineCode>DirectoryInfo</InlineCode> instance.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>File &amp; Path</InlineCode> — reading, writing, and parsing file-system paths.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Path Concatenation</InlineCode> — composing directory and file paths with the <InlineCode>/</InlineCode> operator.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.filesystem</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>Directory</InlineCode>,{" "}
+  <InlineCode>DirectoryInfo</InlineCode>, and related types is in{" "}
+  <InlineCode>ShardScript.Framework/system/filesystem.shard.cpp</InlineCode>.
+</Prose>

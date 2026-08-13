@@ -1,0 +1,525 @@
+---
+title: StructSymbol Builder
+group: Reference
+order: 6
+slug: struct-symbol-builder
+groupOrder: 4
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>SymbolBuilder&lt;StructSymbol&gt;</InlineCode> specialization registers a ShardScript{' '}
+  <strong>value type</strong> into the compiler&apos;s semantic model. It exposes a fluent API for declaring
+  fields, constructors, methods, properties, indexers, operators, type parameters, and implemented interfaces
+  on a struct. Unlike classes, structs are allocated inline and copied by value, so callbacks that return or
+  mutate them must follow the value-type contract.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A struct is declared from a namespace builder with an accessibility level, a linking mode, and a registration
+  callback. Inside the callback you attach members through the <InlineCode>SymbolBuilder&lt;StructSymbol&gt;</InlineCode>
+  instance.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"geometry");
+
+    ns.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> st)
+    {
+        st.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        st.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+
+        st.AddInit()
+            .AddParameter(L"x", TYPE_DOUBLE)
+            .AddParameter(L"y", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                self->SetField(0, context.Args[1]);
+                self->SetField(1, context.Args[2]);
+                return self;
+            });
+
+        st.AddMethod(L"Length", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                double x = self->GetField(0)->AsDouble();
+                double y = self->GetField(1)->AsDouble();
+                return context.Collector.FromValue(std::sqrt(x * x + y * y));
+            });
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<Prose>
+  All registration methods are called on the <InlineCode>SymbolBuilder&lt;StructSymbol&gt;</InlineCode> instance
+  passed to the <InlineCode>AddStruct</InlineCode> callback. Arguments use the same accessibility and linking
+  values as classes.
+</Prose>
+
+<DocsTable
+  headers={['Member', 'Arguments', 'Description']}
+  rows={[
+    [<InlineCode>AddStruct</InlineCode>, 'name, accessibility, linking, callback', 'Registers a new struct symbol under the containing namespace.'],
+    [<InlineCode>AddField</InlineCode>, 'name, type, linking, accessibility', 'Adds a field. Store the returned FieldSymbol pointer and read SlotIndex at runtime.'],
+    [<InlineCode>AddMethod</InlineCode>, 'name, returnType, linking, accessibility', 'Adds a method. Chain AddParameter and SetCallback to complete the signature.'],
+    [<InlineCode>AddInit</InlineCode>, 'none', 'Registers a constructor. Chain AddParameter and SetCallback. The callback receives the new instance as context.Args[0] and must return it.'],
+    [<InlineCode>AddProperty</InlineCode>, 'name, type, linking, accessibility', 'Registers a property. Use AddGetter and AddSetter to attach callbacks.'],
+    [<InlineCode>AddIndexer</InlineCode>, 'elementType, linking, accessibility', 'Registers an indexer. Use AddParameter for the index, then AddGetter and AddSetter.'],
+    [<InlineCode>AddOperator</InlineCode>, 'tokenType, returnType, linking', 'Registers an operator overload such as AddOperator, SubOperator, or EqualsOperator.'],
+    [<InlineCode>AddCastOperator</InlineCode>, 'targetType, linking', 'Registers an implicit or explicit cast operator.'],
+    [<InlineCode>AddTypeParameter</InlineCode>, 'name', 'Adds a generic type parameter to the struct.'],
+    [<InlineCode>Implements</InlineCode>, 'trait', 'Declares that the struct implements an interface such as TRAIT_DISPOSABLE.'],
+  ]}
+/>
+
+<Prose>
+  The accessibility values are <InlineCode>ACS_PUBLIC</InlineCode> and <InlineCode>ACS_PRIVATE</InlineCode>. The linking values are{' '}
+  <InlineCode>LINK_INSTANCE</InlineCode> for instance members and <InlineCode>LINK_STATIC</InlineCode> for static
+  members.
+</Prose>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member / Call', 'Return type', 'Description']}
+  rows={[
+    [<InlineCode>NamespaceSymbol::AddStruct</InlineCode>, <InlineCode>StructSymbol*</InlineCode>, 'Pointer to the registered type.'],
+    [<InlineCode>StructSymbol::AddField</InlineCode>, <InlineCode>FieldSymbol*</InlineCode>, 'Read SlotIndex to access the field at runtime.'],
+    [<InlineCode>StructSymbol::AddMethod</InlineCode>, <InlineCode>SymbolBuilder&lt;MethodSymbol&gt;</InlineCode>, 'Chain AddParameter and SetCallback.'],
+    [<InlineCode>StructSymbol::AddInit</InlineCode>, <InlineCode>SymbolBuilder&lt;ConstructorSymbol&gt;</InlineCode>, 'The callback must return the instance it receives.'],
+    [<InlineCode>StructSymbol::AddProperty</InlineCode>, <InlineCode>SymbolBuilder&lt;PropertySymbol&gt;</InlineCode>, 'Adds a property to the struct.'],
+    [<InlineCode>StructSymbol::AddIndexer</InlineCode>, <InlineCode>SymbolBuilder&lt;IndexatorSymbol&gt;</InlineCode>, 'Adds an indexer to the struct.'],
+    [<InlineCode>StructSymbol::AddOperator</InlineCode>, <InlineCode>SymbolBuilder&lt;OperatorSymbol&gt;</InlineCode>, 'Adds an operator overload to the struct.'],
+    [<InlineCode>StructSymbol::AddCastOperator</InlineCode>, <InlineCode>SymbolBuilder&lt;OperatorSymbol&gt;</InlineCode>, 'Adds a cast operator to the struct.'],
+    [<InlineCode>StructSymbol::AddTypeParameter</InlineCode>, <InlineCode>SymbolBuilder&lt;TypeParameterSymbol&gt;</InlineCode>, 'Call Get to obtain the TypeParameterSymbol pointer.'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Struct used as a reference type</strong> — Structs are value types. A
+    callback that mutates a struct instance through <InlineCode>context.Args[0]</InlineCode> mutates only the
+    local copy. The caller&apos;s copy is unaffected unless the value is reassigned through a return value or an
+    explicit out or ref parameter.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Constructor does not return self</strong> — The{' '}
+    <InlineCode>AddInit</InlineCode> callback receives the newly allocated instance as{' '}
+    <InlineCode>context.Args[0]</InlineCode>. Returning <InlineCode>nullptr</InlineCode> or a different object leaves
+    the new struct uninitialized.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static/instance linking mismatch</strong> — A method registered with{' '}
+    <InlineCode>LINK_INSTANCE</InlineCode> is called through a variable, while one registered with{' '}
+    <InlineCode>LINK_STATIC</InlineCode> is called through the type name. Mismatching the mode produces a semantic
+    error or an unexpected <InlineCode>this</InlineCode> argument.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Field slot index is stale</strong> — Always read{' '}
+    <InlineCode>FieldSymbol::SlotIndex</InlineCode> after registration. Hard-coding slot indices breaks when fields
+    are reordered or when base types are introduced later.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Callback not registered</strong> — Forgetting{' '}
+    <InlineCode>.SetCallback(...)</InlineCode> on a method, property getter, or operator leaves the symbol without a
+    native target. The call resolves but no code runs.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Private field accessed from ShardScript</strong> — Fields marked{' '}
+    <InlineCode>ACS_PRIVATE</InlineCode> are accessible only to callbacks registered in the same library. Exposing a
+    private field in a public API requires a public property or method wrapper.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Value-type semantics.</strong> A struct is a value type. Variables of a struct type hold the data
+  directly rather than a reference to a heap object. Assigning one struct variable to another copies every field.
+  Passing a struct to a method passes a copy, so instance methods mutate only the copy that the VM pushes for the
+  call. Return the modified struct if the caller needs the updated value.
+</Prose>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Struct versus class.</strong> Use <InlineCode>SymbolBuilder&lt;StructSymbol&gt;</InlineCode> for small,
+  immutable or copy-by-value data such as points, colors, ranges, and options. Use{' '}
+  <InlineCode>SymbolBuilder&lt;ClassSymbol&gt;</InlineCode> for identity-bearing objects with lifetime semantics,
+  native handles, or inheritance requirements.
+</Prose>
+
+<Prose>
+  <strong>Constructors.</strong> Struct constructors are registered with <InlineCode>AddInit</InlineCode>, not with
+  a special constructor name. Multiple overloads are supported. The callback receives the freshly allocated instance
+  as <InlineCode>context.Args[0]</InlineCode>; constructor parameters start at{' '}
+  <InlineCode>context.Args[1]</InlineCode>. The callback must initialize the fields and return{' '}
+  <InlineCode>self</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Fields and slot indices.</strong> Store the <InlineCode>FieldSymbol*</InlineCode> returned by{' '}
+  <InlineCode>AddField</InlineCode> and use <InlineCode>field-&gt;SlotIndex</InlineCode> at runtime. The slot index is
+  stable for the lifetime of the loaded program, so caching it in a static pointer is safe once the entry point has
+  run. Do not compute slot indices manually.
+</Prose>
+
+<Prose>
+  <strong>Static members.</strong> A struct may declare static fields and static methods by passing{' '}
+  <InlineCode>LINK_STATIC</InlineCode>. Static fields share storage across all uses of the type, and static methods
+  have no implicit <InlineCode>this</InlineCode> argument. Constants and factory methods are common static members on
+  structs.
+</Prose>
+
+<Prose>
+  <strong>Returning structs.</strong> To return a struct from a native callback, allocate it with{' '}
+  <InlineCode>context.Collector.AllocateInstance(structSymbol)</InlineCode>, initialize the fields, and return the
+  instance. The VM copies the value as needed. Returning the instance is correct even for value types because the
+  collector allocates a temporary object that the VM then copies into the caller&apos;s value slot.
+</Prose>
+
+<Prose>
+  <strong>Operators and casts.</strong> Operator overloads use token types from{' '}
+  <InlineCode>shard::TokenType</InlineCode>. Cast operators produce conversions between the struct and another type.
+  Instance operators receive <InlineCode>this</InlineCode> as <InlineCode>context.Args[0]</InlineCode>; static
+  operators receive the first operand at <InlineCode>context.Args[0]</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Prefer structs for data that is small and copy-safe. If the type wraps a native handle, owns unmanaged memory, or
+  needs reference equality, register it as a class instead.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic struct with public fields.</strong> This registers a two-dimensional vector with public instance
+  fields and no constructor.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_vector2X = nullptr;
+static FieldSymbol* g_vector2Y = nullptr;
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+
+    geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
+    {
+        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using geometry;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    v: Vector2 = Vector2();
+    v.X = 3.0;
+    v.Y = 4.0;
+    println(v.X + v.Y);   // 7.0
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Struct with a constructor and an instance method.</strong> The constructor initializes the fields; the
+  instance method reads them through the <InlineCode>this</InlineCode> argument.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_vector2X = nullptr;
+static FieldSymbol* g_vector2Y = nullptr;
+
+static ObjectInstance* vector2_length(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    double x = self->GetField(g_vector2X->SlotIndex)->AsDouble();
+    double y = self->GetField(g_vector2Y->SlotIndex)->AsDouble();
+
+    return context.Collector.FromValue(std::sqrt(x * x + y * y));
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+
+    geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
+    {
+        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+
+        v2.AddInit()
+            .AddParameter(L"x", TYPE_DOUBLE)
+            .AddParameter(L"y", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                self->SetField(g_vector2X->SlotIndex, context.Args[1]);
+                self->SetField(g_vector2Y->SlotIndex, context.Args[2]);
+                return self;
+            });
+
+        v2.AddMethod(L"Length", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC)
+            .SetCallback(&vector2_length);
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using geometry;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    v: Vector2 = new Vector2(3.0, 4.0);
+    len: double = v.Length();
+    println(len);   // 5.0
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Static factory method on a struct.</strong> Static methods are called through the type name and have no
+  implicit <InlineCode>this</InlineCode> argument.
+</Prose>
+
+<CodeBlock
+  code={`static StructSymbol* g_vector2Symbol = nullptr;
+static FieldSymbol* g_vector2X = nullptr;
+static FieldSymbol* g_vector2Y = nullptr;
+
+static ObjectInstance* vector2_zero(const CallState& context)
+{
+    ObjectInstance* value = context.Collector.AllocateInstance(g_vector2Symbol);
+    value->SetField(g_vector2X->SlotIndex, context.Collector.FromValue(0.0));
+    value->SetField(g_vector2Y->SlotIndex, context.Collector.FromValue(0.0));
+    return value;
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+
+    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
+    {
+        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+
+        v2.AddMethod(L"Zero", g_vector2Symbol, LINK_STATIC, ACS_PUBLIC)
+            .SetCallback(&vector2_zero);
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using geometry;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    origin: Vector2 = Vector2.Zero();
+    println(origin.X);   // 0.0
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Returning a struct by value from a method.</strong> The callback allocates a new struct instance,
+  initializes it, and returns it. The VM copies the result into the caller&apos;s value slot.
+</Prose>
+
+<CodeBlock
+  code={`static StructSymbol* g_vector2Symbol = nullptr;
+static FieldSymbol* g_vector2X = nullptr;
+static FieldSymbol* g_vector2Y = nullptr;
+
+static ObjectInstance* vector2_add(const CallState& context)
+{
+    ObjectInstance* left = context.Args[0];
+    ObjectInstance* right = context.Args[1];
+
+    double x = left->GetField(g_vector2X->SlotIndex)->AsDouble()
+             + right->GetField(g_vector2X->SlotIndex)->AsDouble();
+    double y = left->GetField(g_vector2Y->SlotIndex)->AsDouble()
+             + right->GetField(g_vector2Y->SlotIndex)->AsDouble();
+
+    ObjectInstance* result = context.Collector.AllocateInstance(g_vector2Symbol);
+    result->SetField(g_vector2X->SlotIndex, context.Collector.FromValue(x));
+    result->SetField(g_vector2Y->SlotIndex, context.Collector.FromValue(y));
+    return result;
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+
+    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
+    {
+        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+
+        v2.AddOperator(shard::TokenType::AddOperator, g_vector2Symbol, LINK_STATIC)
+            .AddParameter(L"left", g_vector2Symbol)
+            .AddParameter(L"right", g_vector2Symbol)
+            .SetCallback(&vector2_add);
+    });
+}`}
+  language="cpp"
+  filename="geometry.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using geometry;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    a: Vector2 = new Vector2(1.0, 2.0);
+    b: Vector2 = new Vector2(3.0, 4.0);
+    c: Vector2 = a + b;
+    println(c.X);   // 4.0
+    println(c.Y);   // 6.0
+}`}
+  language="csharp"
+/>
+
+<Prose>
+  <strong>Private backing field with a public property.</strong> Native handles or cached values can be stored in
+  private fields and exposed through public properties.
+</Prose>
+
+<CodeBlock
+  code={`static FieldSymbol* g_colorR = nullptr;
+static FieldSymbol* g_colorG = nullptr;
+static FieldSymbol* g_colorB = nullptr;
+static FieldSymbol* g_colorPacked = nullptr;
+
+static ObjectInstance* color_get_packed(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+
+    std::int64_t r = self->GetField(g_colorR->SlotIndex)->AsInteger();
+    std::int64_t g = self->GetField(g_colorG->SlotIndex)->AsInteger();
+    std::int64_t b = self->GetField(g_colorB->SlotIndex)->AsInteger();
+    std::int64_t packed = (r << 16) | (g << 8) | b;
+
+    return context.Collector.FromValue(packed);
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> graphics(context, L"graphics");
+
+    graphics.AddStruct(L"Color", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> color)
+    {
+        g_colorR = color.AddField(L"R", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
+        g_colorG = color.AddField(L"G", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
+        g_colorB = color.AddField(L"B", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
+        g_colorPacked = color.AddField(L"_packed", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
+
+        color.AddProperty(L"Packed", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC)
+            .AddGetter()
+            .SetCallback(&color_get_packed);
+    });
+}`}
+  language="cpp"
+  filename="graphics.shard.cpp"
+/>
+
+<Prose>
+  ShardScript usage:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using graphics;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    c: Color = Color();
+    c.R = 255;
+    c.G = 128;
+    c.B = 64;
+    println(c.Packed);   // 16744640
+}`}
+  language="csharp"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/class-symbol-builder</InlineCode> — class registration.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/property-symbol-builder</InlineCode> — property registration for struct members.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/working-with-fields</InlineCode> — reading and writing fields.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/semantic/SymbolBuilder.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/semantic/SymbolBuilder.hpp</InlineCode>.
+</Prose>

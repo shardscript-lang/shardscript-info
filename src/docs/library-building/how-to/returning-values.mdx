@@ -1,0 +1,463 @@
+---
+title: Returning Values
+group: How-To Guides
+order: 3
+slug: returning-values
+groupOrder: 3
+type: How-To
+---
+
+<Prose>
+  Every native C++ callback registered through <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> has the same
+  return type: <InlineCode>shard::ObjectInstance*</InlineCode>. The value you return is not the raw C++ value
+  you computed; it must be a GC-owned ShardScript object produced through the{' '}
+  <InlineCode>context.Collector</InlineCode> helpers. This guide shows how to return primitives, strings,
+  opaque native pointers, new class or struct instances, arrays, and void from a native library.
+</Prose>
+
+<Prose>
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode>,{' '}
+  <InlineCode>.so</InlineCode>, or <InlineCode>.dylib</InlineCode>) that exports the two C-linkage symbols
+  <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be
+  built from one source file or many, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a
+  completely separate project, and use whatever build system you prefer. It only needs to link against the
+  ShardScript runtime shared library and include headers from <InlineCode>ShardScript/include</InlineCode>.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A built ShardScript runtime shared library and the headers in{' '}
+    <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    A native library project that already exports <InlineCode>ShardLib_GetMetadata</InlineCode> and{' '}
+    <InlineCode>ShardLib_EntryPoint</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Basic familiarity with registering namespaces and methods through{' '}
+    <InlineCode>SymbolBuilder&lt;T&gt;</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Implement native callbacks that return every common ShardScript value category: value types via{' '}
+  <InlineCode>Collector.FromValue</InlineCode>, opaque pointers via <InlineCode>Collector.FromNint</InlineCode>,
+  objects via <InlineCode>Collector.AllocateInstance</InlineCode>, arrays via{' '}
+  <InlineCode>Collector.AllocateArray</InlineCode>, and void by returning <InlineCode>nullptr</InlineCode>.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Return primitives and strings with FromValue.</strong>
+</Prose>
+
+<Prose>
+  <InlineCode>Collector.FromValue</InlineCode> boxes C++ scalars into GC-managed ShardScript objects. The
+  overloads accept <InlineCode>std::int64_t</InlineCode>, <InlineCode>double</InlineCode>,{' '}
+  <InlineCode>bool</InlineCode>, <InlineCode>wchar_t</InlineCode>, <InlineCode>std::uint8_t</InlineCode>,
+  <InlineCode>const wchar_t*</InlineCode>, and <InlineCode>std::wstring</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* DoubleValue(const CallState& context)
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    return context.Collector.FromValue(value * 2);
+}
+
+static ObjectInstance* Greet(const CallState& context)
+{
+    ObjectInstance* arg = context.Args[0];
+    if (arg == nullptr || arg == GarbageCollector::NullInstance)
+    {
+        // Defensive fallback so AsString is never called on a null reference.
+        return context.Collector.FromValue(std::wstring(L"nobody"));
+    }
+
+    std::wstring name = arg->AsString();
+    return context.Collector.FromValue(name + L" from native");
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>2. Return opaque native pointers with FromNint.</strong>
+</Prose>
+
+<Prose>
+  Use <InlineCode>Collector.FromNint(void* pointer, bool isTransient)</InlineCode> to store a native pointer
+  in a ShardScript <InlineCode>nint</InlineCode>. Set <InlineCode>isTransient</InlineCode> to{' '}
+  <InlineCode>true</InlineCode> when the memory is owned by external code (for example, an OS handle or a
+  static variable) and must never be freed by the GC.
+</Prose>
+
+<CodeBlock
+  code={`static int s_counter = 0;
+
+static ObjectInstance* GetNativeCounter(const CallState& context)
+{
+    void* pointer = reinterpret_cast<void*>(&s_counter);
+
+    // true because the static variable is not owned by the ShardScript GC.
+    return context.Collector.FromNint(pointer, true);
+}`}
+  language="cpp"
+/>
+
+<Callout tone="blue">
+  Only pass <InlineCode>false</InlineCode> for <InlineCode>isTransient</InlineCode> when the pointer points to
+  memory the GC should eventually free. Most handles and borrowed references must be marked transient.
+</Callout>
+
+<Prose>
+  <strong>3. Return new instances with AllocateInstance.</strong>
+</Prose>
+
+<Prose>
+  Allocate a class or struct instance by passing its registered <InlineCode>ClassSymbol*</InlineCode> to{' '}
+  <InlineCode>Collector.AllocateInstance</InlineCode>. The returned object is already GC-owned; fill its
+  fields and return the same pointer.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* MakeWidget(const CallState& context)
+{
+    ObjectInstance* widget = context.Collector.AllocateInstance(g_widgetClass);
+    widget->SetField(g_valueField->SlotIndex, context.Collector.FromValue(42));
+    return widget;
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>4. Return arrays with AllocateArray.</strong>
+</Prose>
+
+<Prose>
+  <InlineCode>Collector.AllocateArray(TYPE_INT, length)</InlineCode> creates a one-dimensional ShardScript
+  array. Use <InlineCode>SetElement</InlineCode> to populate it, passing <InlineCode>context.Frame</InlineCode>
+  so the runtime can resolve generic type information when needed.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* MakeIntArray(const CallState& context)
+{
+    std::int64_t count = context.Args[0]->AsInteger();
+    if (count < 0)
+    {
+        throw std::runtime_error("count must be non-negative");
+    }
+
+    std::size_t length = static_cast<std::size_t>(count);
+    ObjectInstance* arr = context.Collector.AllocateArray(TYPE_INT, length);
+
+    for (std::size_t i = 0; i < length; i++)
+    {
+        arr->SetElement(
+            i,
+            context.Collector.FromValue(static_cast<std::int64_t>(i)),
+            context.Frame);
+    }
+
+    return arr;
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>5. Return void with nullptr.</strong>
+</Prose>
+
+<Prose>
+  A method registered with return type <InlineCode>TYPE_VOID</InlineCode> must return{' '}
+  <InlineCode>nullptr</InlineCode>. The runtime treats <InlineCode>nullptr</InlineCode> as the absence of a
+  value, not as a null reference.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* LogMessage(const CallState& context)
+{
+    ObjectInstance* arg = context.Args[0];
+    if (arg != nullptr && arg != GarbageCollector::NullInstance)
+    {
+        const wchar_t* text = arg->AsString();
+        // Forward text to the host logger here.
+    }
+
+    return nullptr;
+}`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>6. Observe the GC ownership rules.</strong>
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Arguments in <InlineCode>context.Args</InlineCode> are borrowed. Never call <InlineCode>delete</InlineCode>
+    , <InlineCode>free</InlineCode>, or <InlineCode>Collector.Release</InlineCode> on them.
+  </Bullet>
+  <Bullet>
+    Values produced by <InlineCode>FromValue</InlineCode>, <InlineCode>FromNint</InlineCode>,{' '}
+    <InlineCode>AllocateInstance</InlineCode>, and <InlineCode>AllocateArray</InlineCode> are owned by the GC
+    and are safe to return.
+  </Bullet>
+  <Bullet>
+    Do not return pointers to stack-local C++ variables. The GC will eventually access the object and crash
+    or corrupt memory.
+  </Bullet>
+</ul>
+
+<H2>Verification</H2>
+
+<Prose>
+  The following complete source file combines every return style shown above. Register the class, fields,
+  array type, and methods in <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>, then build the shared library
+  and load it with the <InlineCode>-l</InlineCode> interpreter flag.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+#include <shard/semantic/SymbolBuilder.hpp>
+#include <shard/semantic/SymbolFactory.hpp>
+#include <shard/runtime/ObjectInstance.hpp>
+#include <shard/runtime/MethodCallState.hpp>
+#include <stdexcept>
+
+using namespace shard;
+
+static ClassSymbol* g_widgetClass = nullptr;
+static FieldSymbol* g_valueField = nullptr;
+static TypeSymbol* g_intArrayType = nullptr;
+static int s_counter = 0;
+
+static ObjectInstance* DoubleValue(const CallState& context)
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    return context.Collector.FromValue(value * 2);
+}
+
+static ObjectInstance* Greet(const CallState& context)
+{
+    ObjectInstance* arg = context.Args[0];
+    if (arg == nullptr || arg == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(std::wstring(L"nobody"));
+    }
+
+    std::wstring name = arg->AsString();
+    return context.Collector.FromValue(name + L" from native");
+}
+
+static ObjectInstance* GetNativeCounter(const CallState& context)
+{
+    void* pointer = reinterpret_cast<void*>(&s_counter);
+    return context.Collector.FromNint(pointer, true);
+}
+
+static ObjectInstance* MakeWidget(const CallState& context)
+{
+    ObjectInstance* widget = context.Collector.AllocateInstance(g_widgetClass);
+    widget->SetField(g_valueField->SlotIndex, context.Collector.FromValue(42));
+    return widget;
+}
+
+static ObjectInstance* MakeIntArray(const CallState& context)
+{
+    std::int64_t count = context.Args[0]->AsInteger();
+    if (count < 0)
+    {
+        throw std::runtime_error("count must be non-negative");
+    }
+
+    std::size_t length = static_cast<std::size_t>(count);
+    ObjectInstance* arr = context.Collector.AllocateArray(TYPE_INT, length);
+
+    for (std::size_t i = 0; i < length; i++)
+    {
+        arr->SetElement(
+            i,
+            context.Collector.FromValue(static_cast<std::int64_t>(i)),
+            context.Frame);
+    }
+
+    return arr;
+}
+
+static ObjectInstance* LogMessage(const CallState& context)
+{
+    ObjectInstance* arg = context.Args[0];
+    if (arg != nullptr && arg != GarbageCollector::NullInstance)
+    {
+        const wchar_t* text = arg->AsString();
+        // Forward text to the host logger here.
+    }
+
+    return nullptr;
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.returning";
+    lib.Description = L"Demonstrates native callback return values.";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolFactory factory(context.GetSemanticModel().Table.get());
+    g_intArrayType = factory.Array(TYPE_INT);
+
+    SymbolBuilder<NamespaceSymbol> returning(context, L"returning");
+
+    g_widgetClass = returning.AddClass(L"Widget", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> cls)
+    {
+        g_valueField = cls.AddField(L"Value", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
+    }).Get();
+
+    returning.AddMethod(L"Double", TYPE_INT, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"value", TYPE_INT)
+        .SetCallback(&DoubleValue);
+
+    returning.AddMethod(L"Greet", TYPE_STRING, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"name", TYPE_STRING)
+        .SetCallback(&Greet);
+
+    returning.AddMethod(L"GetNativeCounter", TYPE_NINT, LINK_STATIC, ACS_PUBLIC)
+        .SetCallback(&GetNativeCounter);
+
+    returning.AddMethod(L"MakeWidget", g_widgetClass, LINK_STATIC, ACS_PUBLIC)
+        .SetCallback(&MakeWidget);
+
+    returning.AddMethod(L"MakeIntArray", g_intArrayType, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"count", TYPE_INT)
+        .SetCallback(&MakeIntArray);
+
+    returning.AddMethod(L"LogMessage", TYPE_VOID, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"message", TYPE_STRING)
+        .SetCallback(&LogMessage);
+}`}
+  language="cpp"
+  filename="returning-values.cpp"
+/>
+
+<Prose>
+  Consume the library from ShardScript:
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using returning;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println(returning.Double(21));
+
+    string greeting = returning.Greet("shard");
+    println(greeting);
+
+    nint counter = returning.GetNativeCounter();
+    println(counter);
+
+    returning.Widget widget = returning.MakeWidget();
+    println(widget.Value);
+
+    int[] numbers = returning.MakeIntArray(5);
+    println(numbers.Length);
+
+    returning.LogMessage("done");
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  Build and run the library:
+</Prose>
+
+<CodeBlock
+  code={`# Configure and build the shared library.
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target returning-values
+
+# Run the ShardScript program with the library.
+# On Windows:
+shard app.shard -l build/bin/returning-values.dll
+
+# On Linux:
+shard app.shard -l build/bin/libreturning-values.so
+
+# On macOS:
+shard app.shard -l build/bin/libreturning-values.dylib`}
+  language="bash"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`42
+shard from native
+0x7ff...   // the actual pointer value of s_counter
+42
+5`}
+  language="bash"
+  filename="expected output"
+/>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Crash after returning a local variable.</strong> Never return a
+    pointer to a stack-local C++ object. Always create ShardScript objects through the collector.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native pointer is freed by the GC.</strong> Pass{' '}
+    <InlineCode>true</InlineCode> for the <InlineCode>isTransient</InlineCode> argument of{' '}
+    <InlineCode>FromNint</InlineCode> unless the collector owns the underlying memory.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Array elements appear null.</strong> Use{' '}
+    <InlineCode>SetElement(index, boxedValue, context.Frame)</InlineCode>; raw C++ values are not implicitly
+    boxed when assigned to array slots.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Method return type mismatch.</strong> The symbol registered with
+    <InlineCode>AddMethod</InlineCode> must match the object you return. Returning <InlineCode>nullptr</InlineCode>
+    is valid for methods declared with <InlineCode>TYPE_VOID</InlineCode>. For methods that return a reference
+    type, <InlineCode>nullptr</InlineCode> is mapped to the managed <InlineCode>null</InlineCode> instance.
+    Returning <InlineCode>nullptr</InlineCode> for a value-type return is an error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Null reference in callback.</strong> Always guard argument pointers
+    against <InlineCode>nullptr</InlineCode> and <InlineCode>GarbageCollector::NullInstance</InlineCode> before
+    calling <InlineCode>AsString()</InlineCode> or dereferencing them.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/reading-arguments</InlineCode> — reading arguments from ShardScript.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/working-with-objects</InlineCode> — allocating and returning objects.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/native-callback-helpers</InlineCode> — helper functions for boxing values.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/garbage-collection-rules</InlineCode> — object lifetime and GC rules.
+  </Bullet>
+</ul>

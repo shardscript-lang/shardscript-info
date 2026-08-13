@@ -1,0 +1,289 @@
+---
+title: Garbage Collection Rules
+group: Concepts
+order: 3
+slug: garbage-collection-rules
+groupOrder: 1
+type: Concept
+---
+
+<Prose>
+  Every native callback operates inside the ShardScript runtime's tracing garbage collector. The callback
+  receives raw <InlineCode>ObjectInstance*</InlineCode> pointers and a <InlineCode>GarbageCollector</InlineCode>
+  reference, and it must follow a strict ownership contract: arguments are borrowed, returns must be GC-owned,
+  native handles must declare their lifetime, and objects that outlive the synchronous call must be pinned.
+</Prose>
+
+<H2>Summary</H2>
+
+<Prose>
+  Native library callbacks never own their arguments, always produce GC-owned return values, and must explicitly
+  declare whether native pointers are transient or managed. Strings returned by <InlineCode>AsString()</InlineCode>
+  are views into GC memory, and any object used across an async or thread-pool boundary must be kept alive with an
+  <InlineCode>ObjectRef</InlineCode>. Violating any of these rules causes use-after-free crashes, double frees,
+  or premature collection.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  A native library is a normal shared library (<InlineCode>.dll</InlineCode>, <InlineCode>.so</InlineCode>, or
+  <InlineCode>.dylib</InlineCode>) that exports <InlineCode>ShardLib_GetMetadata</InlineCode> and{' '}
+  <InlineCode>ShardLib_EntryPoint</InlineCode>. It can contain one source file or many, live inside{' '}
+  <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and be built with CMake,
+  MSBuild, Make, or any other C++ toolchain. Because the runtime passes managed objects across the C++ boundary
+  as raw pointers, the library author needs a clear contract that separates borrowed references from owned
+  allocations. The garbage collection rules prevent memory corruption without forcing every callback to manage
+  refcounts manually.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  The runtime stops the world, traces from roots, and reclaims unreachable objects. During a native callback the
+  collector treats the callback's arguments as live because they are reachable from the call frame. Anything the
+  callback returns must either be a value already tracked by the collector or a freshly allocated object that the
+  collector can later trace. Native pointers stored as <InlineCode>nint</InlineCode> are opaque to the GC unless
+  the callback tells the collector how to treat them.
+</Prose>
+
+<DocsTable
+  headers={['Rule', 'What to do', 'Why it matters']}
+  rows={[
+    ['Arguments are borrowed', 'Read from context.Args but never delete or free them.', 'The caller owns the argument objects; freeing them corrupts the caller frame.'],
+    ['Returns are GC-owned', 'Box return values through context.Collector.', 'The caller expects to receive a live object that the GC can trace.'],
+    ['Native pointers declare lifetime', 'Use FromNint(ptr, isTransient) with the correct flag.', 'The GC must know whether it can free the underlying memory.'],
+    ['Async objects are pinned', 'Wrap objects in ObjectRef before handing them to a thread pool or timer.', 'An object reachable only from native code is collected when the callback returns.'],
+    ['Strings are copied for native use', 'Copy AsString() into std::wstring if you keep it.', 'AsString() is a view into a GC-managed string that may move or be reclaimed.'],
+  ]}
+/>
+
+<Prose>
+  <strong>1. Arguments are borrowed.</strong> The objects in <InlineCode>context.Args</InlineCode> belong to the
+  caller. You can read their fields, call their methods through the runtime API, and pass them back as return
+  values, but you must not call <InlineCode>delete</InlineCode>, <InlineCode>free</InlineCode>, or any destructor
+  on them.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* Increment(const CallState& context)
+{
+    // The argument is borrowed; we only read from it.
+    ObjectInstance* arg = context.Args[0];
+
+    if (arg == nullptr || arg == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(static_cast<std::int64_t>(0));
+    }
+
+    std::int64_t value = arg->AsInteger();
+
+    // Returning the boxed value gives ownership to the GC, not to the caller's stack.
+    return context.Collector.FromValue(value + 1);
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<Prose>
+  <strong>2. Return values must be GC-owned.</strong> Always allocate or box return values through{' '}
+  <InlineCode>context.Collector</InlineCode>. Returning a stack pointer, a local variable address, or an
+  unboxed primitive pointer crashes the runtime when the collector tries to trace it.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* MakeGreeting(const CallState& context)
+{
+    // The collector allocates the string object and owns it.
+    return context.Collector.FromValue(L"Hello from native code");
+}
+
+static ObjectInstance* AllocateBuffer(const CallState& context)
+{
+    // The returned array is GC-owned and safe to hand back to ShardScript.
+    ObjectInstance* buffer = context.Collector.AllocateArray(TYPE_BYTE, 1024);
+    return buffer;
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<Prose>
+  <strong>3. Native pointers are transient or managed.</strong> When you store a C++ pointer inside a managed
+  <InlineCode>nint</InlineCode>, tell the collector whether it should treat the pointer as opaque data. Use{' '}
+  <InlineCode>isTransient = true</InlineCode> for raw OS handles, external library pointers, and anything the
+  GC must never free. Use <InlineCode>isTransient = false</InlineCode> only when the GC is allowed to reclaim
+  the memory.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* OpenHandle(const CallState& context)
+{
+    // A raw OS handle must never be freed by the GC.
+    void* osHandle = OpenSomeNativeResource();
+
+    return context.Collector.FromNint(osHandle, true);
+}
+
+static ObjectInstance* CreateNativeBuffer(const CallState& context)
+{
+    // A buffer allocated by the native library and intended to be released by the GC.
+    std::uint8_t* buffer = new std::uint8_t[256];
+
+    return context.Collector.FromNint(buffer, false);
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<Prose>
+  <strong>4. Pin objects that escape the synchronous callback.</strong> When an object is captured by a
+  thread-pool callback, a libuv handle, or any other async continuation, the runtime's stack frame no longer
+  keeps it alive. Create an <InlineCode>ObjectRef</InlineCode> to pin the object until the continuation runs.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* ReadAsync(const CallState& context)
+{
+    ObjectInstance* stream = context.Args[0];
+
+    // Pin the stream so it survives past the end of this callback.
+    ObjectRef pinnedStream(stream);
+
+    return shard::DoAsync(context, [pinnedStream](shard::AsyncScope async)
+    {
+        async.RunOnThreadPool([pinnedStream, async]() mutable
+        {
+            ObjectInstance* buffer = ReadFromNativeHandle(pinnedStream.Get());
+
+            async.Complete(buffer);
+        });
+    });
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<Prose>
+  <strong>5. Strings are views into GC memory.</strong> <InlineCode>AsString()</InlineCode> returns a pointer
+  to the characters inside a managed string instance. If you need the string after the callback returns, copy
+  it into a <InlineCode>std::wstring</InlineCode>. Never store the raw pointer in native state that outlives the
+  callback.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* ToUpperCase(const CallState& context)
+{
+    ObjectInstance* arg = context.Args[0];
+
+    if (arg == nullptr || arg == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(std::wstring());
+    }
+
+    // Copy the view so we can safely manipulate it.
+    std::wstring text = arg->AsString();
+
+    for (std::size_t i = 0; i < text.size(); i++)
+    {
+        text[i] = static_cast<wchar_t>(std::towupper(static_cast<wint_t>(text[i])));
+    }
+
+    return context.Collector.FromValue(text);
+}`}
+  language="cpp"
+  filename="callbacks.cpp"
+/>
+
+<H2>Key ideas</H2>
+
+<Prose>
+  <strong>Borrowed means read-only with respect to lifetime.</strong> You can inspect, measure, and traverse
+  argument objects, but their destruction is the caller's responsibility. Returning an argument without
+  allocating a new object is valid because the caller already owns it.
+</Prose>
+
+<Prose>
+  <strong>The collector is the only owner of returned objects.</strong> Box primitives, allocate instances, and
+  create arrays through <InlineCode>context.Collector</InlineCode>. The runtime expects every return value to be
+  either <InlineCode>nullptr</InlineCode> for <InlineCode>void</InlineCode> or a valid GC object.
+</Prose>
+
+<Prose>
+  <strong>Transient is the safe default for opaque handles.</strong> Most native resources — file descriptors,
+  sockets, OS handles, third-party library pointers — should be passed with <InlineCode>isTransient = true</InlineCode>.
+  Only set <InlineCode>isTransient = false</InlineCode> when you have designed an explicit disposal path and want the
+  GC to call it.
+</Prose>
+
+<Prose>
+  <strong>ObjectRef is refcount pinning, not a root.</strong> It keeps the object alive while the reference exists,
+  but it does not prevent finalization logic from running elsewhere. Use it whenever an object leaves the
+  synchronous call stack.
+</Prose>
+
+<Prose>
+  <strong>String views are invalidated by collection and compaction.</strong> Treat <InlineCode>AsString()</InlineCode>
+  like a temporary span. Copy before suspending, before allocating more GC objects, or before returning control to
+  the runtime if you need the text later.
+</Prose>
+
+<H2>When to use</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    You are writing a callback that returns a managed object, string, array, or boxed primitive.
+  </Bullet>
+  <Bullet>
+    You are wrapping a native handle or pointer in a <InlineCode>nint</InlineCode> field.
+  </Bullet>
+  <Bullet>
+    You are scheduling async work or thread-pool work that references a managed object.
+  </Bullet>
+  <Bullet>
+    You need to store text from a ShardScript string beyond the lifetime of the current callback.
+  </Bullet>
+</ul>
+
+<H2>When not to use</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    You are writing pure ShardScript code. These rules apply only to the C++ callback boundary; managed code
+    follows the normal ShardScript garbage-collection semantics.
+  </Bullet>
+  <Bullet>
+    You only need to read a primitive value from an argument and perform a side effect. In that case return{' '}
+    <InlineCode>nullptr</InlineCode> for <InlineCode>void</InlineCode> and do not allocate.
+  </Bullet>
+  <Bullet>
+    You are passing a pointer that is owned by static process state and never freed. Mark it transient, but do
+    not try to make the GC manage it.
+  </Bullet>
+</ul>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/native-library-overview</InlineCode> — what a native library is and how the
+    runtime loads it.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/shardlib-entrypoint</InlineCode> — registering namespaces, types, and callbacks.
+  </Bullet>
+  <Bullet>
+    <InlineCode>syntax/resource-management/01-garbage-collection</InlineCode> — garbage collection from the
+    ShardScript language perspective.
+  </Bullet>
+  <Bullet>
+    <InlineCode>stdlib/interop/native-interop</InlineCode> — loading arbitrary shared libraries and raw C pointers.
+  </Bullet>
+  <Bullet>
+    <InlineCode>syntax/async/04-task-and-valuetask</InlineCode> — producing async primitives from native code.
+  </Bullet>
+  <Bullet>
+    <InlineCode>common-language-features/defer-and-idisposable</InlineCode> — releasing native handles held by managed
+    objects.
+  </Bullet>
+</ul>

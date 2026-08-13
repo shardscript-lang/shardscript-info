@@ -1,0 +1,536 @@
+---
+title: ClassSymbol Builder
+group: Reference
+order: 5
+slug: class-symbol-builder
+groupOrder: 4
+type: Reference
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  <InlineCode>SymbolBuilder&lt;ClassSymbol&gt;</InlineCode> is the fluent registration API for adding a
+  managed class to the ShardScript semantic model. It is used inside{' '}
+  <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> to declare fields, constructors, methods, properties,
+  indexers, operators, type parameters, and implemented interfaces, and to bind each callable member to
+  a native C++ callback.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A class is created from a <InlineCode>NamespaceSymbol</InlineCode> builder. The registration lambda
+  receives a <InlineCode>SymbolBuilder&lt;ClassSymbol&gt;</InlineCode> by value and returns nothing;
+  all configuration is performed through fluent method calls.
+</Prose>
+
+<CodeBlock
+  code={`ns.AddClass(L"ClassName", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> cls)
+{
+    cls.AddField(L"_field", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
+
+    cls.AddInit()
+        .AddParameter(L"value", TYPE_INT)
+        .SetCallback(&constructor_callback);
+
+    cls.AddMethod(L"Method", TYPE_VOID, LINK_INSTANCE, ACS_PUBLIC)
+        .AddParameter(L"arg", TYPE_STRING)
+        .SetCallback(&method_callback);
+});`}
+  language="cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Parameter', 'Type / Values', 'Description']}
+  rows={[
+    [<InlineCode>name</InlineCode>, 'Wide string (<InlineCode>const wchar_t*</InlineCode>)', 'The ShardScript-visible name of the class.'],
+    [<InlineCode>accessibility</InlineCode>, 'ACS_PUBLIC or ACS_PRIVATE', 'Visibility of the class itself.'],
+    [<InlineCode>linking</InlineCode>, 'LINK_INSTANCE or LINK_STATIC', 'LINK_INSTANCE for instance classes; LINK_STATIC for classes that contain only static members.'],
+    [<InlineCode>configure</InlineCode>, '<InlineCode>void(SymbolBuilder&lt;ClassSymbol&gt;)</InlineCode>', 'Lambda that registers fields, members, and interfaces.'],
+  ]}
+/>
+
+<Prose>
+  The following methods are available on the <InlineCode>SymbolBuilder&lt;ClassSymbol&gt;</InlineCode>:
+</Prose>
+
+<DocsTable
+  headers={['Method', 'Typical parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>AddField</InlineCode>, 'name, type, linking, accessibility', 'FieldSymbol*', 'Adds an instance or static field.'],
+    [<InlineCode>AddMethod</InlineCode>, 'name, returnType, linking, accessibility', 'SymbolBuilder&lt;MethodSymbol&gt;', 'Adds a method; chain AddParameter and SetCallback.'],
+    [<InlineCode>AddInit</InlineCode>, 'none', 'SymbolBuilder&lt;ConstructorSymbol&gt;', 'Adds a constructor (initializer). Use LINK_STATIC and return self.'],
+    [<InlineCode>AddProperty</InlineCode>, 'name, type, linking, accessibility', 'SymbolBuilder&lt;PropertySymbol&gt;', 'Adds a property; chain AddGetter/AddSetter and SetCallback.'],
+    [<InlineCode>AddIndexer</InlineCode>, 'elementType, linking, accessibility', 'SymbolBuilder&lt;IndexatorSymbol&gt;', 'Adds an indexer; chain AddParameter, AddGetter, AddSetter.'],
+    [<InlineCode>AddOperator</InlineCode>, 'tokenType, returnType, linking', 'SymbolBuilder&lt;OperatorSymbol&gt;', 'Adds an operator overload.'],
+    [<InlineCode>AddCastOperator</InlineCode>, 'returnType, linking', 'SymbolBuilder&lt;OperatorSymbol&gt;', 'Adds an explicit or implicit cast operator.'],
+    [<InlineCode>AddTypeParameter</InlineCode>, 'name', 'SymbolBuilder&lt;TypeParameterSymbol&gt;', 'Adds a generic type parameter; call .Get() for the symbol pointer.'],
+    [<InlineCode>Implements</InlineCode>, 'interfaceSymbol or trait constant', 'void', 'Declares that the class implements an interface.'],
+    [<InlineCode>DeclareGlobal</InlineCode>, 'none', 'void', 'Declares the class in the global namespace.'],
+    [<InlineCode>SetFullName</InlineCode>, 'fullName', 'void', 'Overrides the fully qualified symbol name.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  <InlineCode>AddClass</InlineCode> returns a pointer to the registered <InlineCode>ClassSymbol</InlineCode>.
+  <InlineCode>AddField</InlineCode> returns a <InlineCode>FieldSymbol*</InlineCode> whose{' '}
+  <InlineCode>SlotIndex</InlineCode> is used at runtime to read and write instance state. The remaining
+  builder methods return a chained builder reference so that parameters, callbacks, getters, and setters
+  can be added in a single expression.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Callback is never invoked</strong> — Forgetting{' '}
+    <InlineCode>.SetCallback(...)</InlineCode> on a method, property getter/setter, indexer, operator, or
+    constructor leaves the symbol registered but with no native target.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Instance callback reads the wrong argument</strong> — For{' '}
+    <InlineCode>LINK_INSTANCE</InlineCode> members, <InlineCode>context.Args[0]</InlineCode> is{' '}
+    <InlineCode>this</InlineCode>. Real parameters start at index <InlineCode>1</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Constructor does not return self</strong> — An{' '}
+    <InlineCode>AddInit</InlineCode> callback receives the freshly allocated instance as{' '}
+    <InlineCode>context.Args[0]</InlineCode> and must return that same pointer.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static member called on an instance</strong> — A member registered
+    with <InlineCode>LINK_STATIC</InlineCode> must be invoked through the type name, not an instance.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Property has no getter or setter</strong> — A property must declare
+    at least one accessor with <InlineCode>AddGetter</InlineCode> or <InlineCode>AddSetter</InlineCode> and
+    attach a callback to it.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Operator token is unsupported</strong> — Not every{' '}
+    <InlineCode>shard::TokenType</InlineCode> can be used as an operator overload. Use common arithmetic,
+    comparison, and delimiter tokens such as <InlineCode>AddOperator</InlineCode>, <InlineCode>SubOperator</InlineCode>,
+    <InlineCode>EqualsOperator</InlineCode>, or <InlineCode>Delimeter</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Generic type argument is missing</strong> — Generic classes must
+    declare type parameters with <InlineCode>AddTypeParameter</InlineCode> in the same order they are read
+    from <InlineCode>{'context.Frame->TypeArguments'}</InlineCode> at runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Interface is not visible</strong> — The interface symbol passed to{' '}
+    <InlineCode>Implements</InlineCode> must be public and must be registered before the class that implements
+    it.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Registration is compile-time.</strong> All <InlineCode>SymbolBuilder</InlineCode> calls run inside
+  the <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> callback while the runtime is building the semantic model.
+  They describe the public surface of the library; the actual behavior is provided by C++ callbacks attached
+  with <InlineCode>.SetCallback(...)</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Linking determines the call contract.</strong> <InlineCode>LINK_INSTANCE</InlineCode> members receive
+  the instance pointer as <InlineCode>context.Args[0]</InlineCode>. <InlineCode>LINK_STATIC</InlineCode>{' '}
+  members receive the first real argument at index <InlineCode>0</InlineCode>. Constructors registered with{' '}
+  <InlineCode>AddInit</InlineCode> use <InlineCode>LINK_STATIC</InlineCode> because the runtime allocates the
+  instance before calling the callback, then passes it as <InlineCode>context.Args[0]</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Field slot indices.</strong> Store the <InlineCode>FieldSymbol*</InlineCode> returned by{' '}
+  <InlineCode>AddField</InlineCode>. Its <InlineCode>SlotIndex</InlineCode> is the stable runtime offset used
+  with <InlineCode>ObjectInstance::GetField</InlineCode> and <InlineCode>SetField</InlineCode>. Do not assume
+  a fixed numeric index.
+</Prose>
+
+<Prose>
+  <strong>Properties and indexers.</strong> Properties expose named values; indexers expose bracket access.
+  Both support separate getter and setter callbacks. For an auto-backing property, call{' '}
+  <InlineCode>AddBackingField()</InlineCode> and use the returned <InlineCode>FieldSymbol*</InlineCode> inside
+  the getter and setter.
+</Prose>
+
+<Prose>
+  <strong>Generic classes.</strong> Declare type parameters in the order they appear in ShardScript source.
+  Use the returned <InlineCode>TypeParameterSymbol*</InlineCode> as the type for fields, parameters, and
+  return values. At runtime, resolve the concrete substitution from{' '}
+  <InlineCode>{'context.Frame->TypeArguments'}</InlineCode>. When allocating a generic instance, use{' '}
+  <InlineCode>{'context.Collector.AllocateGeneric(rawClass, { concreteT })'}</InlineCode>, not{' '}
+  <InlineCode>AllocateInstance</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Interfaces.</strong> Register the interface first, capture its symbol pointer, then pass it to{' '}
+  <InlineCode>Implements</InlineCode>. For framework interfaces such as <InlineCode>IDisposable</InlineCode>,
+  use the predefined trait constant, for example <InlineCode>TRAIT_DISPOSABLE</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Keep field symbols in static pointers so callbacks can read and write instance state. Every other member
+  can usually be registered and chained without storing intermediate builders.
+</Callout>
+
+<Callout tone="amber" title="Inheritance is not yet implemented">
+  While <InlineCode>Implements</InlineCode> works for interfaces, class inheritance and method overriding are
+  not fully implemented. Model shared behavior through interfaces or composition for now.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Instance class with a field, constructor, and method.</strong> This pattern is the starting point
+  for most native types: store per-instance state in a private field and expose public methods that operate
+  on <InlineCode>this</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`// Person.shard.cpp
+#include <ShardScript.hpp>
+
+using namespace shard;
+
+static FieldSymbol* g_nameField = nullptr;
+
+static ObjectInstance* person_greet(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    ObjectInstance* nameObj = self->GetField(g_nameField->SlotIndex);
+    const wchar_t* name = nameObj->AsString();
+
+    std::wstring message = L"Hello, ";
+    message += name;
+
+    return context.Collector.FromValue(message);
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.people";
+    lib.Description = L"Person class example";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"people");
+
+    ns.AddClass(L"Person", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> person)
+    {
+        g_nameField = person.AddField(L"_name", TYPE_STRING, LINK_INSTANCE, ACS_PRIVATE);
+
+        person.AddInit()
+            .AddParameter(L"name", TYPE_STRING)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* name = context.Args[1];
+                self->SetField(g_nameField->SlotIndex, name);
+                return self;
+            });
+
+        person.AddMethod(L"Greet", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC)
+            .SetCallback(&person_greet);
+    });
+}`}
+  language="cpp"
+  filename="Person.shard.cpp"
+/>
+
+<Prose>ShardScript usage:</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using people;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    p: Person = new Person("World");
+    println(p.Greet());   // Hello, World
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  <strong>Properties and indexers.</strong> A property exposes <InlineCode>Count</InlineCode> as a read-only
+  value, while an indexer provides bracket access to the underlying byte array.
+</Prose>
+
+<CodeBlock
+  code={`// Buffer.shard.cpp
+#include <ShardScript.hpp>
+
+using namespace shard;
+
+static FieldSymbol* g_bufferData = nullptr;
+
+static ObjectInstance* buffer_get_count(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    ObjectInstance* data = self->GetField(g_bufferData->SlotIndex);
+    std::int64_t count = static_cast<std::int64_t>(data->GetArrayLength());
+    return context.Collector.FromValue(count);
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.buffers";
+    lib.Description = L"Buffer with property and indexer";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolFactory factory(context.GetSemanticModel().Table.get());
+    SymbolBuilder<NamespaceSymbol> ns(context, L"buffers");
+
+    ns.AddClass(L"Buffer", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> buffer)
+    {
+        ArrayTypeSymbol* byteArray = factory.Array(TYPE_BYTE);
+        g_bufferData = buffer.AddField(L"_data", byteArray, LINK_INSTANCE, ACS_PRIVATE);
+
+        buffer.AddInit()
+            .AddParameter(L"capacity", TYPE_INT)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                std::int64_t capacity = context.Args[1]->AsInteger();
+                ObjectInstance* data = context.Collector.AllocateArray(TYPE_BYTE, static_cast<std::size_t>(capacity));
+                self->SetField(g_bufferData->SlotIndex, data);
+                return self;
+            });
+
+        buffer.AddProperty(L"Count", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC)
+            .AddGetter()
+            .SetCallback(&buffer_get_count);
+
+        buffer.AddIndexer(TYPE_BYTE, LINK_INSTANCE)
+            .AddParameter(L"index", TYPE_INT)
+            .AddGetter().SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                std::int64_t index = context.Args[1]->AsInteger();
+                ObjectInstance* data = self->GetField(g_bufferData->SlotIndex);
+                return data->GetElement(static_cast<std::size_t>(index), context.Frame);
+            })
+            .AddSetter().SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                std::int64_t index = context.Args[1]->AsInteger();
+                ObjectInstance* value = context.Args[2];
+                ObjectInstance* data = self->GetField(g_bufferData->SlotIndex);
+                data->SetElement(static_cast<std::size_t>(index), value, context.Frame);
+                return nullptr;
+            });
+    });
+}`}
+  language="cpp"
+  filename="Buffer.shard.cpp"
+/>
+
+<Prose>ShardScript usage:</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using buffers;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    b: Buffer = new Buffer(4);
+    b[0] = 42;
+    println(b[0]);     // 42
+    println(b.Count);  // 4
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  <strong>Operator overloads.</strong> Operators are registered with a token type, a return type, and a
+  linking mode. The callback receives the operands in <InlineCode>context.Args</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`// Counter.shard.cpp
+#include <ShardScript.hpp>
+
+using namespace shard;
+
+static ObjectInstance* counter_add(const CallState& context)
+{
+    std::int64_t left  = context.Args[0]->AsInteger();
+    std::int64_t right = context.Args[1]->AsInteger();
+    return context.Collector.FromValue(left + right);
+}
+
+static ObjectInstance* counter_equals(const CallState& context)
+{
+    std::int64_t left  = context.Args[0]->AsInteger();
+    std::int64_t right = context.Args[1]->AsInteger();
+    return context.Collector.FromValue(left == right);
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.counters";
+    lib.Description = L"Counter with operator overloads";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"counters");
+
+    ns.AddClass(L"Counter", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> counter)
+    {
+        counter.AddOperator(shard::TokenType::AddOperator, TYPE_INT, LINK_STATIC)
+            .AddParameter(L"a", TYPE_INT)
+            .AddParameter(L"b", TYPE_INT)
+            .SetCallback(&counter_add);
+
+        counter.AddOperator(shard::TokenType::EqualsOperator, TYPE_BOOL, LINK_STATIC)
+            .AddParameter(L"a", TYPE_INT)
+            .AddParameter(L"b", TYPE_INT)
+            .SetCallback(&counter_equals);
+    });
+}`}
+  language="cpp"
+  filename="Counter.shard.cpp"
+/>
+
+<Prose>ShardScript usage:</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using counters;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println(Counter + (3, 4));        // 7
+    println(Counter == (3, 3));       // true
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  <strong>Generic class and interface implementation.</strong> The class declares a type parameter, uses it
+  for a field and a method return type, and implements a namespace-level interface.
+</Prose>
+
+<CodeBlock
+  code={`// Box.shard.cpp
+#include <ShardScript.hpp>
+
+using namespace shard;
+
+static TypeParameterSymbol* g_box_T = nullptr;
+static FieldSymbol*         g_box_value = nullptr;
+
+static ObjectInstance* box_get_value(const CallState& context)
+{
+    ObjectInstance* self = context.Args[0];
+    return self->GetField(g_box_value->SlotIndex);
+}
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.boxes";
+    lib.Description = L"Generic Box<T> example";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"boxes");
+
+    InterfaceSymbol* boxable = ns.AddInterface(L"IBoxable", ACS_PUBLIC, [](SymbolBuilder<InterfaceSymbol> iface)
+    {
+        iface.AddMethod(L"GetValue", TYPE_ANY, LINK_INSTANCE);
+    });
+
+    ns.AddClass(L"Box", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> box)
+    {
+        g_box_T = box.AddTypeParameter(L"T").Get();
+        g_box_value = box.AddField(L"_value", g_box_T, LINK_INSTANCE, ACS_PRIVATE);
+
+        box.Implements(boxable);
+
+        box.AddInit()
+            .AddParameter(L"value", g_box_T)
+            .SetCallback([](const CallState& context)
+            {
+                ObjectInstance* self = context.Args[0];
+                ObjectInstance* value = context.Args[1];
+                self->SetField(g_box_value->SlotIndex, value);
+                return self;
+            });
+
+        box.AddMethod(L"GetValue", g_box_T, LINK_INSTANCE, ACS_PUBLIC)
+            .SetCallback(&box_get_value);
+    });
+}`}
+  language="cpp"
+  filename="Box.shard.cpp"
+/>
+
+<Prose>ShardScript usage:</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using boxes;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    b: Box<int> = new Box<int>(42);
+    println(b.GetValue());   // 42
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/namespace-symbol-builder</InlineCode> — registering namespaces.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/method-symbol-builder</InlineCode> — registering methods on a class.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/property-symbol-builder</InlineCode> — registering properties.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/generic-types-and-type-parameters</InlineCode> — generic class registration.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The native side of this API is implemented in <InlineCode>{'shard/semantic/SymbolBuilder.hpp'}</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript/include/shard/semantic/SymbolBuilder.hpp</InlineCode>.
+</Prose>

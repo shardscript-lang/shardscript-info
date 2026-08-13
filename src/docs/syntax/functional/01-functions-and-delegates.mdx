@@ -1,8 +1,8 @@
 ---
-title: Functions and Delegates
+title: Delegates
 group: Functional Programming
 order: 1
-slug: functions-and-delegates
+slug: delegates
 type: Reference
 groupOrder: 4
 ---
@@ -10,16 +10,13 @@ groupOrder: 4
 <H2>Summary</H2>
 
 <Prose>
-  In ShardScript, functions are <strong>first-class values</strong>: a method or lambda can be stored in a
-  variable, passed as an argument, returned from another function, and invoked later through a
-  delegate type. A <InlineCode>delegate</InlineCode> is a named or inline function type that describes the
-  parameter and return signature of a callable value.
+  A <InlineCode>delegate</InlineCode> is a named or inline function type that describes the parameter and return signature of a callable value. Delegates let functions be stored in variables, passed as arguments, returned from other functions, and invoked later.
 </Prose>
 
 <H2>Syntax</H2>
 
 <Prose>
-  There are two ways to express a delegate type and two ways to create a function value.
+  There are two ways to express a delegate type and two ways to create a delegate value.
 </Prose>
 
 <DocsTable
@@ -34,9 +31,7 @@ groupOrder: 4
 />
 
 <Prose>
-  A named delegate is declared at namespace or type scope just like a class. An inline delegate type
-  is written wherever a type appears: variable declarations, parameters, fields, and return types. The
-  inline form lists only parameter <em>types</em>, not parameter names.
+  A named delegate is declared at namespace or type scope just like a class. An inline delegate type is written wherever a type appears: variable declarations, parameters, fields, and return types. The inline form lists only parameter <em>types</em>, not parameter names.
 </Prose>
 
 <H2>Parameters / Arguments</H2>
@@ -52,9 +47,7 @@ groupOrder: 4
 />
 
 <Prose>
-  When a named method is bound to a delegate, every parameter type and the return type must match
-  exactly. The parameter <em>names</em> in the delegate declaration are not part of the signature for
-  matching purposes, but they serve as documentation.
+  When a named method is bound to a delegate, every parameter type and the return type must match exactly. The parameter <em>names</em> in the delegate declaration are not part of the signature for matching purposes, but they serve as documentation.
 </Prose>
 
 <H2>Returns</H2>
@@ -73,74 +66,46 @@ groupOrder: 4
 
 <ul className="space-y-2 text-text-secondary">
   <Bullet>
-    <strong className="text-text-primary">Signature mismatch</strong> — Assigning a lambda or method to a
-    delegate whose parameter or return types differ produces a compile-time error.
+    <strong className="text-text-primary">Signature mismatch</strong> — Assigning a lambda or method to a delegate whose parameter or return types differ produces a compile-time error.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Missing <InlineCode>lambda</InlineCode> keyword</strong> — A bare
-    expression such as <InlineCode>(x) =&gt; x + 1</InlineCode> does not parse; the{' '}
-    <InlineCode>lambda</InlineCode> keyword is mandatory.
+    <strong className="text-text-primary">Missing <InlineCode>lambda</InlineCode> keyword</strong> — A bare expression such as <InlineCode>(x) =&gt; x + 1</InlineCode> does not parse; the <InlineCode>lambda</InlineCode> keyword is mandatory.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Async lambda without explicit return type</strong> — An{' '}
-    <InlineCode>async lambda</InlineCode> must declare an explicit return type such as{' '}
-    <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>; the{' '}
-    <InlineCode>=&gt;</InlineCode> inferred form is not allowed.
+    <strong className="text-text-primary">Async lambda without explicit return type</strong> — An <InlineCode>async lambda</InlineCode> must declare an explicit return type such as <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>; the <InlineCode>=&gt;</InlineCode> inferred form is not allowed.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Null invocation</strong> — Calling a delegate variable whose value
-    is <InlineCode>null</InlineCode> throws a runtime null-reference exception.
+    <strong className="text-text-primary">Null invocation</strong> — Calling a delegate variable whose value is <InlineCode>null</InlineCode> throws a runtime null-reference exception.
   </Bullet>
   <Bullet>
-    <strong className="text-text-primary">Argument count mismatch</strong> — Invoking a delegate with too many
-    or too few arguments fails at compile time.
+    <strong className="text-text-primary">Argument count mismatch</strong> — Invoking a delegate with too many or too few arguments fails at compile time.
   </Bullet>
 </ul>
 
 <H2>Remarks</H2>
 
 <Prose>
-  <strong>Named versus inline delegate types.</strong> A named delegate is useful when the same signature
-  appears in many places or when you want a self-documenting type name. An inline delegate type is
-  convenient for one-off callbacks and local variables. Both are functionally equivalent: a value of
-  type <InlineCode>GetIntegerDelegate</InlineCode> can be assigned to a variable of type{' '}
-  <InlineCode>delegate int(int)</InlineCode> only if the signatures match, and the compiler treats both
-  as instances of the same underlying delegate machinery.
+  <strong>Named versus inline delegate types.</strong> A named delegate is useful when the same signature appears in many places or when you want a self-documenting type name. An inline delegate type is convenient for one-off callbacks and local variables. Both are functionally equivalent: a value of type <InlineCode>GetIntegerDelegate</InlineCode> can be assigned to a variable of type <InlineCode>delegate int(int)</InlineCode> only if the signatures match, and the compiler treats both as instances of the same underlying delegate machinery.
 </Prose>
 
 <Prose>
-  <strong>First-class functions.</strong> Because delegates are values, you can pass them into methods,
-  return them from methods, store them in fields, and place them in collections. The VM represents a
-  delegate as a small object that holds a reference to the target method and, for instance methods, a
-  receiver object. Static methods and lambdas produce delegates with no receiver.
+  <strong>First-class functions.</strong> Because delegates are values, you can pass them into methods, return them from methods, store them in fields, and place them in collections. The VM represents a delegate as a small object that holds a reference to the target method and, for instance methods, a receiver object. Static methods and lambdas produce delegates with no receiver.
 </Prose>
 
 <Prose>
-  <strong>Method group conversion.</strong> When a method name appears in a context that expects a delegate
-  type, the compiler creates a delegate that wraps the method directly. No explicit lambda wrapper is
-  required. The conversion works for both static and instance methods, provided the signature matches.
+  <strong>Method group conversion.</strong> When a method name appears in a context that expects a delegate type, the compiler creates a delegate that wraps the method directly. No explicit lambda wrapper is required. The conversion works for both static and instance methods, provided the signature matches.
 </Prose>
 
 <Prose>
-  <strong>Invocation syntax.</strong> A delegate variable is invoked with ordinary call syntax:{' '}
-  <InlineCode>myDelegate(arg1, arg2)</InlineCode>. The compiler rewrites the call to invoke the delegate's
-  underlying <InlineCode>Invoke</InlineCode> method, which the runtime dispatches through the{' '}
-  <InlineCode>CALLDELEGATE</InlineCode> opcode.
+  <strong>Invocation syntax.</strong> A delegate variable is invoked with ordinary call syntax: <InlineCode>myDelegate(arg1, arg2)</InlineCode>. The compiler rewrites the call to invoke the delegate's underlying <InlineCode>Invoke</InlineCode> method, which the runtime dispatches through the <InlineCode>CALLDELEGATE</InlineCode> opcode.
 </Prose>
 
 <Callout tone="blue">
-  ShardScript delegates currently hold a <strong>single target</strong>. Combining delegates with{' '}
-  <InlineCode>+</InlineCode> or <InlineCode>+=</InlineCode> to create multicast delegates is not supported.
-  If you need to call several handlers in sequence, iterate over a collection of delegates or invoke
-  them explicitly.
+  ShardScript delegates currently hold a <strong>single target</strong>. Combining delegates with <InlineCode>+</InlineCode> or <InlineCode>+=</InlineCode> to create multicast delegates is not supported. If you need to call several handlers in sequence, iterate over a collection of delegates or invoke them explicitly.
 </Callout>
 
 <Callout tone="amber" title="Async lambdas need an explicit return type">
-  Prefix a lambda with <InlineCode>async</InlineCode> to create a closure that can <InlineCode>await</InlineCode>.
-  Because the async state machine must know the result type up front, you must write{' '}
-  <InlineCode>{'async lambda (params) -> Task { ... }'}</InlineCode> or{' '}
-  <InlineCode>{'async lambda (params) -> ValueTask<T> { ... }'}</InlineCode>. The inferred{' '}
-  <InlineCode>=&gt;</InlineCode> form is rejected for async lambdas.
+  Prefix a lambda with <InlineCode>async</InlineCode> to create a closure that can <InlineCode>await</InlineCode>. Because the async state machine must know the result type up front, you must write <InlineCode>{'async lambda (params) -> Task { ... }'}</InlineCode> or <InlineCode>{'async lambda (params) -> ValueTask<T> { ... }'}</InlineCode>. The inferred <InlineCode>=&gt;</InlineCode> form is rejected for async lambdas.
 </Callout>
 
 <H2>Examples</H2>
@@ -340,7 +305,25 @@ public static func Main() -> void
 />
 
 <Callout tone="amber" title="Mismatched signatures are caught early">
-  The compiler checks delegate compatibility at the assignment site. For example, assigning a
-  <InlineCode>lambda (a: int) -&gt; string</InlineCode> to a <InlineCode>delegate int(int)</InlineCode>
-  fails with a type error before the program ever runs.
+  The compiler checks delegate compatibility at the assignment site. For example, assigning a <InlineCode>lambda (a: int) -&gt; string</InlineCode> to a <InlineCode>delegate int(int)</InlineCode> fails with a type error before the program ever runs.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Functions</InlineCode> — core function declaration and call syntax.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Lambda Expressions</InlineCode> — anonymous functions and inferred-return delegates.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Closures</InlineCode> — lambdas that capture variables from their enclosing scope.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Delegate declarations are parsed into <InlineCode>DelegateDeclarationSyntax</InlineCode> nodes and delegate invocation is handled through the <InlineCode>CALLDELEGATE</InlineCode> opcode in <InlineCode>ShardScript/ShardScript/src/parsing/SourceParser.cpp</InlineCode> and the runtime dispatch code in <InlineCode>ShardScript/ShardScript/src/runtime/VirtualMachine.cpp</InlineCode>.
+</Prose>

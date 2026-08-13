@@ -569,3 +569,24 @@ public static func Main() -> void
     ['Runtime heap dump', 'debug.Debug.PrintGcInfo'],
   ]}
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Developer Tools</InlineCode> — runtime helpers such as <InlineCode>PrintStackFrameInfo</InlineCode>{" "}
+    and <InlineCode>PrintGcInfo</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Type Introspection</InlineCode> — runtime type inspection that complements bytecode analysis.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>ProgramDisassembler</InlineCode> C++ class is part of the core compiler. Its header is{" "}
+  <InlineCode>ShardScript/include/shard/compilation/ProgramDisassembler.hpp</InlineCode> and its implementation is{" "}
+  <InlineCode>ShardScript/src/compilation/ProgramDisassembler.cpp</InlineCode>. The runtime <InlineCode>Debug</InlineCode>{" "}
+  helpers are in <InlineCode>ShardScript.Framework/system/debug.shard.cpp</InlineCode>.
+</Prose>

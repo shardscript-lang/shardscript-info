@@ -341,3 +341,23 @@ public static func Main() -> void
     </Bullet>
   </ul>
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>CancellationToken &amp; CancellationTokenSource</InlineCode> — cooperative cancellation for async work.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Stream Interfaces</InlineCode> — async read/write contracts that consume <InlineCode>ValueTask&lt;T&gt;</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.async</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for{" "}
+  <InlineCode>TaskCompletionSource&lt;T&gt;</InlineCode>, <InlineCode>ValueTask&lt;T&gt;</InlineCode>, and the async
+  state machine helpers is in <InlineCode>ShardScript.Framework/system/async.shard.cpp</InlineCode>.
+</Prose>

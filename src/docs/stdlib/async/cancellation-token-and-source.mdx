@@ -418,3 +418,23 @@ public class Program
   Cancellation is not preemptive. If an operation does not check{' '}
   <InlineCode>IsCancellationRequested</InlineCode>, it continues until it finishes on its own.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>TaskCompletionSource&lt;T&gt;</InlineCode> — manual completion of async operations.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Stream Interfaces</InlineCode> — async I/O overloads that accept <InlineCode>CancellationToken</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.async</InlineCode> cancellation model ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for{" "}
+  <InlineCode>CancellationTokenSource</InlineCode> and <InlineCode>CancellationToken</InlineCode> is in{" "}
+  <InlineCode>ShardScript.Framework/system/async.shard.cpp</InlineCode>.
+</Prose>

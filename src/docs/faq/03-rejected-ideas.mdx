@@ -1,0 +1,139 @@
+---
+title: Rejected Ideas
+group: FAQ
+order: 3
+slug: rejected-ideas
+groupOrder: 12
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript is intentionally conservative about the features it includes. Several capabilities that are
+  common in other languages were considered and rejected because they conflict with the language&apos;s core
+  goals: strict static typing, a small embeddable runtime, predictable memory behavior, and single-threaded
+  cooperative concurrency.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  Every rejected feature is a trade-off. Explaining why something is absent helps readers understand the
+  boundaries of the language and avoids repeated proposals for capabilities that are incompatible with its
+  design.
+</Prose>
+
+<H2>How the decision process works</H2>
+
+<Prose>
+  A feature is rejected when it violates one or more of the non-negotiable design constraints: compile-time
+  type safety, embeddability, deterministic cleanup, or single-threaded cooperative execution. Rejected
+  ideas are not revisited unless the underlying constraint changes.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">No implicit or duck typing.</strong> Every variable, parameter,
+    field, and return type has an explicit compile-time type. Dynamic dispatch and duck typing make static
+    error detection impossible, so they are out of scope.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No just-in-time (JIT) compilation.</strong> ShardScript compiles
+    to bytecode ahead of time and executes it on a stack-based VM. A JIT would increase runtime size,
+    complicate embedding, and introduce platform-specific code generation that the project avoids.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No multi-threading in script code.</strong> Concurrency is
+    provided by a single-threaded libuv event loop and async/await. OS threads in scripts would introduce
+    data races and require complex synchronization inside the VM.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No unsafe pointers or manual memory layout.</strong> Script code
+    cannot dereference raw pointers or control object layout. Native code handles those concerns through the
+    C++ interop contract.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No preprocessor or textual macros.</strong> Code generation is
+    not part of the language surface. The compiler operates on a parsed syntax tree, and metaprogramming is
+    provided through generics rather than macro expansion.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No runtime code emission or reflection emit.</strong> The compiler
+    produces a fixed bytecode image at build time. Scripts cannot generate new types or methods while
+    running.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No multiple inheritance.</strong> A class may implement multiple
+    interfaces but can inherit from at most one base class. Multiple inheritance of implementation adds
+    layout and dispatch complexity that interfaces already solve.
+  </Bullet>
+</ul>
+
+<H2>What is included instead</H2>
+
+<Prose>
+  Each rejected idea has a deliberate replacement within the language:
+</Prose>
+
+<DocsTable
+  headers={['Rejected idea', 'ShardScript alternative']}
+  rows={[
+    [
+      <>Duck typing / dynamic dispatch</>,
+      <>Interfaces, generics, and compile-time overload resolution</>,
+    ],
+    [
+      <>JIT compilation</>,
+      <>Ahead-of-time bytecode + stack VM</>,
+    ],
+    [
+      <>Multi-threaded scripts</>,
+      <>Cooperative async/await over a libuv event loop</>,
+    ],
+    [
+      <>Unsafe pointers</>,
+      <>Reference-counted objects, <InlineCode>nint</InlineCode> for opaque handles, and C++ native libraries</>,
+    ],
+    [
+      <>Textual macros</>,
+      <>Generics and the symbol-builder API for native-library code generation</>,
+    ],
+    [
+      <>Reflection emit</>,
+      <>Runtime type introspection and compile-time symbol registration</>,
+    ],
+    [
+      <>Multiple inheritance</>,
+      <>Single inheritance + multiple interfaces</>,
+    ],
+  ]}
+/>
+
+<H2>When to use / When not to use</H2>
+
+<Prose>
+  These rejections are not temporary. If your project requires JIT compilation, multi-threaded script code,
+  unsafe memory access, or runtime code generation, ShardScript is the wrong tool. If you need strict typing,
+  a small runtime, and deterministic cleanup, the omissions are features, not gaps.
+</Prose>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Design Goals</InlineCode> — the principles that motivate these rejections.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Comparison with Other Languages</InlineCode> — how ShardScript differs from languages that
+    include some of these features.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — why the VM and event loop make certain features
+    impractical.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Garbage Collection</InlineCode> — the memory model that replaces manual management.
+  </Bullet>
+</ul>

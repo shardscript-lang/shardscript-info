@@ -1,0 +1,171 @@
+---
+title: Project Configuration
+group: Build Your Project
+order: 2
+slug: project-configuration
+type: How-To
+groupOrder: 6
+---
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working ShardScript installation. Follow the <InlineCode>Installation</InlineCode> guide if you have
+    not installed the interpreter yet.
+  </Bullet>
+  <Bullet>
+    A directory containing one or more <InlineCode>.shard</InlineCode> source files.
+  </Bullet>
+  <Bullet>
+    Familiarity with the <InlineCode>shard</InlineCode> CLI.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Organize a ShardScript project so that source files, shard libraries, and build output are separated,
+  and create a reproducible invocation of the <InlineCode>shard</InlineCode> compiler for your project.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create a project directory layout.</strong>
+</Prose>
+
+<Prose>
+  A simple project keeps source files under <InlineCode>src/</InlineCode>, local shard libraries under{' '}
+  <InlineCode>libs/</InlineCode>, and build scripts at the root.
+</Prose>
+
+<CodeBlock
+  code={`my-project/
+|-- src/
+|   |-- main.shard
+|   \-- utils.shard
+|-- libs/
+|   \-- (optional local .dll shards)
+|-- build.sh
+\-- run.sh`}
+  language="text"
+  filename="layout.txt"
+/>
+
+<Prose>
+  <strong>2. Write a build or run script.</strong>
+</Prose>
+
+<Prose>
+  Because the interpreter compiles source on every run, a project is usually driven by a small shell or
+  batch script that captures the correct flags and globs.
+</Prose>
+
+<CodeBlock
+  code={`#!/bin/bash
+# run.sh — build and run the project
+set -e
+
+shard src/**/*.shard "$@"`}
+  language="bash"
+  filename="run.sh"
+/>
+
+<Prose>
+  If the project depends on local shards, add the <InlineCode>-l</InlineCode> flag to the script.
+</Prose>
+
+<CodeBlock
+  code={`#!/bin/bash
+# run.sh — build and run the project with local shards
+set -e
+
+shard src/**/*.shard -l "libs/*.dll" "$@"`}
+  language="bash"
+  filename="run-with-libs.sh"
+/>
+
+<Prose>
+  <strong>3. Ensure the entry point is discoverable.</strong>
+</Prose>
+
+<Prose>
+  Exactly one source file should declare a public static <InlineCode>Main</InlineCode> method. Place it in
+  <InlineCode>src/main.shard</InlineCode> or another clearly named file so the project is easy to understand.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace myproject;
+
+public static func Main() -> void
+{
+    println("running");
+}`}
+  language="csharp"
+  filename="src/main.shard"
+/>
+
+<Prose>
+  <strong>4. Keep the project runnable from a clean terminal.</strong>
+</Prose>
+
+<Prose>
+  The script should work without requiring a specific working directory. Relative paths inside the script are
+  resolved from the directory where the script is invoked, so running <InlineCode>./run.sh</InlineCode> from
+  the project root is the standard workflow.
+</Prose>
+
+<H2>Verification</H2>
+
+<Prose>
+  The configuration is correct if:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>./run.sh</InlineCode> compiles all source files and starts the program.
+  </Bullet>
+  <Bullet>
+    Adding a new <InlineCode>.shard</InlineCode> file under <InlineCode>src/</InlineCode> is picked up
+    automatically by the glob.
+  </Bullet>
+  <Bullet>
+    The program runs the same way on a fresh clone after installing the interpreter.
+  </Bullet>
+</ul>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Glob does not expand.</strong> Some shells do not expand{' '}
+    <InlineCode>**</InlineCode> by default. Quote the glob so the interpreter expands it, or enable
+    recursive globbing in your shell.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Entry point not found.</strong> Make sure <InlineCode>Main</InlineCode>
+    is <InlineCode>public</InlineCode>, <InlineCode>static</InlineCode>, and returns <InlineCode>void</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing standard shards.</strong> Verify that the <InlineCode>shard</InlineCode>
+    executable has a <InlineCode>system/</InlineCode> directory beside it, or use the{' '}
+    <InlineCode>SHARDSCRIPT</InlineCode> environment variable if your toolchain supports it.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>The shard CLI</InlineCode> — the full command-line reference.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Package Management with Geode</InlineCode> — managing external dependencies.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Library Search Paths</InlineCode> — how the interpreter resolves shard DLLs.
+  </Bullet>
+</ul>

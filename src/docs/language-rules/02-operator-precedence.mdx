@@ -1,0 +1,250 @@
+---
+title: Operator Precedence
+group: Language Rules
+order: 2
+slug: operator-precedence
+type: Reference
+groupOrder: 9
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript resolves expressions according to a fixed precedence table. Operators with higher
+  precedence bind tighter than operators with lower precedence. When operators share the same
+  precedence, they associate left-to-right except for exponentiation, which associates
+  right-to-left. Parentheses override precedence entirely.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  The precedence table below is taken directly from the parser. Higher numbers bind tighter. Range
+  operators (<InlineCode>..</InlineCode>, <InlineCode>..&amp;</InlineCode>), null-coalescing
+  (<InlineCode>??</InlineCode>), and the conditional operator (<InlineCode>? :</InlineCode>) are shown
+  for completeness even though they are documented in detail on other pages.
+</Prose>
+
+<DocsTable
+  headers={['Precedence', 'Operators', 'Associativity', 'Notes']}
+  rows={[
+    ['11', <InlineCode>++ -- ! +x -x await</InlineCode>, 'left-to-right', 'Postfix/prefix increment, decrement, unary plus/minus, logical NOT'],
+    ['10', <InlineCode>^</InlineCode>, 'right-to-left', 'Exponentiation (not bitwise XOR)'],
+    ['9', <InlineCode>* / %</InlineCode>, 'left-to-right', 'Multiplication, division, modulo'],
+    ['8', <InlineCode>+ -</InlineCode>, 'left-to-right', 'Addition and subtraction; + also concatenates strings'],
+    ['7', <InlineCode>&lt;&lt; &gt;&gt; .. ..&amp;</InlineCode>, 'left-to-right', 'Bit shifts and range operators'],
+    ['6', <InlineCode>&lt; &lt;= &gt; &gt;=</InlineCode>, 'left-to-right', 'Ordering comparisons'],
+    ['5', <InlineCode>== != is as</InlineCode>, 'left-to-right', 'Equality and type tests'],
+    ['4', <InlineCode>&amp; and &amp;&amp;</InlineCode>, 'left-to-right', 'Bitwise AND or logical AND'],
+    ['3', <InlineCode>| or ||</InlineCode>, 'left-to-right', 'Bitwise OR or logical OR'],
+    ['2', <InlineCode>?? ? :</InlineCode>, 'right-to-left', 'Null-coalescing and conditional'],
+    ['1', <InlineCode>= += -= *= /= %= ^= &amp;= |=</InlineCode>, 'right-to-left', 'Assignment and compound assignment'],
+  ]}
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Operand count.</strong> Unary operators take one operand.
+    Binary operators take a left and a right operand. Assignment operators require a modifiable
+    lvalue on the left.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Operand evaluation.</strong> Operands are evaluated
+    left-to-right regardless of operator precedence. Precedence only determines how the results are
+    combined.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Parentheses.</strong> Any expression may be wrapped in
+    parentheses to force a specific grouping. Parenthesized subexpressions are evaluated before the
+    surrounding expression uses their value.
+  </Bullet>
+</ul>
+
+<H2>Returns</H2>
+
+<Prose>
+  Precedence rules determine the shape of the expression tree, not the final value. The result type
+  of an expression depends on the operators involved and is documented on the{' '}
+  <InlineCode>operators</InlineCode> reference page.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Invalid assignment target</strong> — The left side of an
+    assignment operator must be a variable, field, property, or indexer expression.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Operator not defined</strong> — Applying an operator to a
+    user-defined type that has no matching <InlineCode>operator</InlineCode> overload produces a
+    compile error, regardless of precedence.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Runtime errors from grouped subexpressions</strong> —
+    Precedence may change which subexpression runs first, but each subexpression is still subject to
+    its own runtime errors such as division by zero.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Exponentiation associativity.</strong> <InlineCode>^</InlineCode> is the only arithmetic
+  operator that associates right-to-left. <InlineCode>2 ^ 3 ^ 2</InlineCode> is parsed as{' '}
+  <InlineCode>2 ^ (3 ^ 2)</InlineCode>, which equals 512, not 64.
+</Prose>
+
+<Prose>
+  <strong>Bitwise and logical sharing.</strong> <InlineCode>&amp;</InlineCode> and{' '}
+  <InlineCode>|</InlineCode> serve double duty: with <InlineCode>bool</InlineCode> operands they act
+  as logical AND/OR, and with integral operands they act as bitwise AND/OR. The keyword forms{' '}
+  <InlineCode>and</InlineCode>, <InlineCode>or</InlineCode>, and <InlineCode>not</InlineCode> produce
+  the same tokens as <InlineCode>&amp;</InlineCode>, <InlineCode>|</InlineCode>, and{' '}
+  <InlineCode>!</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>No short-circuiting logical operators.</strong> ShardScript does not have separate
+  short-circuiting <InlineCode>&amp;&amp;</InlineCode> / <InlineCode>||</InlineCode> operators; even
+  when you type <InlineCode>&amp;&amp;</InlineCode> or <InlineCode>||</InlineCode>, both operands are
+  always evaluated. Do not rely on the right-hand side being skipped.
+</Prose>
+
+<Prose>
+  <strong>Compound assignment status.</strong> Compound assignment operators (<InlineCode>+= -= *= /=
+  %= ^= &amp;= |=</InlineCode>) are recognized by the lexer and parser, but the current VM emission
+  lowers them as a plain assignment of the right-hand side. Until this is fixed, expand them manually
+  — for example, write <InlineCode>x = x + 1</InlineCode> instead of <InlineCode>x += 1</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Use parentheses whenever the precedence is not immediately obvious. Parentheses are cheap and make
+  intent explicit; they do not affect generated-code quality.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Arithmetic precedence without parentheses.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Multiplication binds tighter than addition.
+    println(2 + 3 * 4);      // 14, not 20
+
+    // Exponentiation binds tighter than multiplication.
+    println(2 * 3 ^ 2);      // 18 (3^2 == 9, then *2)
+
+    // Exponentiation is right-associative.
+    println(2 ^ 3 ^ 2);      // 512 (3^2 == 9, then 2^9)
+}`}
+  language="csharp"
+  filename="arithmetic_precedence.shard"
+/>
+
+<Prose>
+  <strong>Using parentheses to override precedence.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Parentheses force the addition first.
+    println((2 + 3) * 4);    // 20
+
+    // Parentheses make the exponentiation explicit.
+    println((2 ^ 3) ^ 2);    // 64 (2^3 == 8, then 8^2)
+}`}
+  language="csharp"
+  filename="parentheses.shard"
+/>
+
+<Prose>
+  <strong>Comparison and arithmetic precedence.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Comparison has lower precedence than arithmetic.
+    result: bool = 1 + 2 < 4;
+    println(result);         // true
+
+    // The following is parsed as (a + b) == c, which is false.
+    a: int = 1;
+    b: int = 2;
+    c: int = 4;
+    println(a + b == c);     // false
+}`}
+  language="csharp"
+  filename="comparison_precedence.shard"
+/>
+
+<Prose>
+  <strong>Logical and bitwise operators share precedence levels.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    // Bitwise AND binds tighter than OR.
+    println(12 | 10 & 8);    // 12 (10 & 8 == 8, then 12 | 8)
+
+    // Both operands are evaluated: side effects always run.
+    x: int = 0;
+    a: bool = true;
+    b: bool = false;
+
+    if (a and b)
+    {
+        x = 1;
+    }
+
+    println(x);              // 0 because b is false
+}`}
+  language="csharp"
+  filename="logical_precedence.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>operators</InlineCode> — full operator semantics, type rules, and return types.
+  </Bullet>
+  <Bullet>
+    <InlineCode>implicit-conversions</InlineCode> — how operands are promoted before operators are
+    applied.
+  </Bullet>
+  <Bullet>
+    <InlineCode>operator-overloading</InlineCode> — defining custom operators on classes and structs.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Operator precedence is encoded in the recursive-descent expression parser. The relevant grammar
+  lives in <InlineCode>ShardScript/src/compiler/Parser.cpp</InlineCode>.
+</Prose>

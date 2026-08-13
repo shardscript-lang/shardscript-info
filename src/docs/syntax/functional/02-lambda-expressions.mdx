@@ -463,3 +463,23 @@ public static func Main() -> void
   Until variable capture is implemented, rewrite the lambda to accept the value as a
   parameter or store the value in a static field that both scopes can access.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Delegates</InlineCode> — named and inline callable value types.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Closures</InlineCode> — lambdas that capture variables from their enclosing scope.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Functions</InlineCode> — core function declaration and call syntax.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Lambda expressions are parsed into <InlineCode>LambdaExpressionSyntax</InlineCode> nodes in <InlineCode>ShardScript/ShardScript/src/parsing/SourceParser.cpp</InlineCode>. The syntax node definition is in <InlineCode>ShardScript/ShardScript/include/shard/parsing/nodes/Expressions/LambdaExpressionSyntax.hpp</InlineCode>.
+</Prose>

@@ -299,3 +299,23 @@ public static func Main() -> void
     [<InlineCode>Path.Join(string[])</InlineCode>, 'string', 'Join a runtime-collected list of segments.'],
   ]}
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>File &amp; Path</InlineCode> — parsing and composing file-system paths.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Directory &amp; DirectoryInfo</InlineCode> — creating and inspecting directories.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.filesystem</InlineCode> path helpers ship as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>Path.Join</InlineCode>,{" "}
+  the <InlineCode>/</InlineCode> operator overloads, and related utilities is in{" "}
+  <InlineCode>ShardScript.Framework/system/filesystem.shard.cpp</InlineCode>.
+</Prose>

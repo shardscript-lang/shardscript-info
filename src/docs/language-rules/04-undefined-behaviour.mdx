@@ -1,0 +1,105 @@
+---
+title: Undefined Behaviour
+group: Language Rules
+order: 4
+slug: undefined-behaviour
+type: Concept
+groupOrder: 9
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  Undefined behaviour in ShardScript is any program action for which the language and virtual machine
+  make no guarantee. Code that triggers undefined behaviour may crash, produce incorrect results,
+  behave differently between runs, or appear to work until surrounding code changes.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  Explicitly calling out undefined behaviour helps programmers distinguish between errors that are
+  guaranteed to throw a catchable exception and errors that the VM is allowed to handle arbitrarily.
+  It also documents the boundaries where the current implementation is incomplete or where native
+  interop hands responsibility back to the programmer.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  The ShardScript compiler and runtime validate many error conditions: type mismatches are caught at
+  compile time, array bounds and null dereferences are checked at runtime, and division by zero on
+  integers throws <InlineCode>DivideByZeroException</InlineCode>. Operations that fall outside the
+  validated set are undefined. The VM may still detect some of them, but programs must not rely on
+  any specific failure mode.
+</Prose>
+
+<DocsTable
+  headers={['Category', 'Example', 'Why it is undefined']}
+  rows={[
+    ['Incomplete features', 'Capturing a local variable in a lambda that escapes its scope', 'The compiler parses the capture but the VM does not lift locals to the heap.'],
+    ['Incomplete features', 'Using compound assignment operators such as +=', 'The parser accepts the syntax but the VM emits only a plain assignment.'],
+    ['Switch expressions', 'A switch expression with no matching arm and no default', 'No handler is selected and no value is produced.'],
+    ['Native interop', 'Reading past the end of a pinned native buffer', 'The VM cannot check bounds outside managed memory.'],
+    ['Native interop', 'Passing a mismatched pointer width to a native call', 'The signature is trusted; incorrect sizes corrupt the call stack.'],
+    ['Object lifetime', 'Returning a borrowed argument pointer after the call returns', 'The GC may move or collect the backing object.'],
+    ['Reflection', 'Modifying internal VM state through undocumented APIs', 'Invariants assumed by the compiler and GC may be violated.'],
+  ]}
+/>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Undefined is not the same as unspecified.</strong>{' '}
+    Unspecified behaviour is guaranteed to be safe but may vary between implementations. Undefined
+    behaviour carries no guarantee at all.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Current implementation details can mask bugs.</strong>{' '}
+    A program with undefined behaviour may run correctly today and fail after a compiler or runtime
+    update.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native boundaries are the highest risk.</strong> Once
+    execution crosses into a native library, the VM can no longer enforce memory safety or type
+    safety. Native code must uphold the contracts documented in the native-library guides.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Defensive coding removes ambiguity.</strong> Adding
+    default arms to switch expressions, checking pointers and lengths, and avoiding incomplete
+    features keeps behaviour defined.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<Prose>
+  <strong>When to accept undefined behaviour.</strong> In rare performance-critical paths, a
+  programmer may intentionally rely on implementation-defined behaviour, but such code should be
+  isolated, documented, and covered by tests that run on the exact target runtime.
+</Prose>
+
+<Prose>
+  <strong>When to avoid undefined behaviour.</strong> Almost always. Production ShardScript code
+  should stay within the validated subset of the language. If a construct is marked as incomplete in
+  the documentation, use the recommended workaround until it is fully implemented.
+</Prose>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>runtime-exceptions</InlineCode> — errors that are guaranteed to throw a catchable
+    exception.
+  </Bullet>
+  <Bullet>
+    <InlineCode>lambda-expressions</InlineCode> — capture rules and current limitations.
+  </Bullet>
+  <Bullet>
+    <InlineCode>switch-expressions</InlineCode> — how to provide a default arm for full coverage.
+  </Bullet>
+  <Bullet>
+    <InlineCode>native-library-overview</InlineCode> — contracts native libraries must uphold.
+  </Bullet>
+</ul>

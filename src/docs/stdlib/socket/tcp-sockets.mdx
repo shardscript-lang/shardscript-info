@@ -745,3 +745,27 @@ public static func Main() -> void
   language="csharp"
   filename="socket_dispose_client.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Stream Interfaces</InlineCode> — <InlineCode>IReadableStream</InlineCode> and{" "}
+    <InlineCode>IWritableStream</InlineCode> contracts implemented by <InlineCode>SocketStream</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>BinaryReader &amp; BinaryWriter</InlineCode> — typed I/O over a <InlineCode>SocketStream</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>HttpServer</InlineCode> and <InlineCode>HttpClient</InlineCode> — higher-level networking APIs.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.socket</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>Socket</InlineCode>,{" "}
+  <InlineCode>SocketStream</InlineCode>, and related networking helpers is in{" "}
+  <InlineCode>ShardScript.Framework/system/socket.shard.cpp</InlineCode>.
+</Prose>

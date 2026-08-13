@@ -1,0 +1,160 @@
+---
+title: Hello World
+group: Getting Started
+order: 3
+slug: hello-world
+type: Tutorial
+groupOrder: 1
+---
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working ShardScript installation. Follow the <InlineCode>Installation</InlineCode> guide if you have
+    not installed the interpreter yet.
+  </Bullet>
+  <Bullet>
+    A text editor. Any editor that edits plain text works; syntax highlighting for <InlineCode>.shard</InlineCode>{' '}
+    files is optional.
+  </Bullet>
+  <Bullet>
+    A terminal where you can run the <InlineCode>shard</InlineCode> command.
+  </Bullet>
+</ul>
+
+<H2>Scenario</H2>
+
+<Prose>
+  You will create a minimal ShardScript program, compile and run it, and then extend it to read a name from
+  the console and print a personalized greeting. By the end you will know how to structure a source file,
+  import a namespace, declare an entry point, and run the interpreter.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create a new file.</strong>
+</Prose>
+
+<Prose>
+  Open your editor and create a file named <InlineCode>hello.shard</InlineCode> in an empty directory.
+</Prose>
+
+<Prose>
+  <strong>2. Add the program structure.</strong>
+</Prose>
+
+<Prose>
+  Every ShardScript file lives in a namespace. The entry point is a public static method named{" "}
+  <InlineCode>Main</InlineCode> that returns <InlineCode>void</InlineCode>. To write to the console, import
+  the <InlineCode>stdio</InlineCode> namespace.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace hello;
+
+public static func Main() -> void
+{
+    println("Hello, World!");
+}`}
+  language="csharp"
+  filename="hello.shard"
+/>
+
+<Prose>
+  <strong>3. Run the program.</strong>
+</Prose>
+
+<Prose>
+  Open a terminal in the same directory and run the interpreter with the source file as a positional
+  argument.
+</Prose>
+
+<CodeBlock
+  code={`shard hello.shard`}
+  language="bash"
+  filename="run.sh"
+/>
+
+<Prose>
+  <strong>4. Read input and personalize the greeting.</strong>
+</Prose>
+
+<Prose>
+  Change the program to ask for a name and print a greeting that uses the entered value. The{" "}
+  <InlineCode>input</InlineCode> function reads one line from the console.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace hello;
+
+public static func Main() -> void
+{
+    name: string = input("Enter your name: ");
+    println("Hello, " + name + "!");
+}`}
+  language="csharp"
+  filename="hello.shard"
+/>
+
+<Prose>
+  <strong>5. Run the extended program.</strong>
+</Prose>
+
+<CodeBlock
+  code={`shard hello.shard`}
+  language="bash"
+  filename="run.sh"
+/>
+
+<H2>Expected Output</H2>
+
+<Prose>
+  For the first version you should see:
+</Prose>
+
+<CodeBlock
+  code={`Hello, World!`}
+  language="bash"
+  filename="output.txt"
+/>
+
+<Prose>
+  For the personalized version, type a name when prompted:
+</Prose>
+
+<CodeBlock
+  code={`Enter your name: shard
+Hello, shard!`}
+  language="bash"
+  filename="output.txt"
+/>
+
+<H2>What&apos;s next?</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Learn the language fundamentals in <InlineCode>Variables and Types</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Explore the standard library starting with <InlineCode>Console I/O</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Read <InlineCode>Runtime Architecture</InlineCode> to understand how your source becomes bytecode.
+  </Bullet>
+  <Bullet>
+    If you want to compile the interpreter itself, follow <InlineCode>Building from Source</InlineCode>.
+  </Bullet>
+  <Bullet>
+    See the language at a glance in <InlineCode>Feature Tour</InlineCode> and <InlineCode>Type System</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Learn how to organize and run projects in <InlineCode>Project Configuration</InlineCode> and{' '}
+    <InlineCode>The shard CLI</InlineCode>.
+  </Bullet>
+</ul>

@@ -1,0 +1,128 @@
+---
+title: Design Goals
+group: FAQ
+order: 5
+slug: design-goals
+groupOrder: 12
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript is designed to give C++ applications a statically typed, compiled scripting layer that is
+  small enough to embed and safe enough to expose to users. Its goals are strict compile-time checking, a
+  minimal runtime footprint, first-class C++ interoperability, familiar syntax, pragmatic features, and
+  single-threaded cooperative concurrency.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  Host applications usually choose between dynamically typed embeddable languages that are easy to ship but
+  hard to debug, and statically typed application languages that are safe but heavy to host. ShardScript
+  targets the middle ground: the compile-time confidence of a static language with the embedding model of a
+  script engine.
+</Prose>
+
+<H2>How the goals shape the language</H2>
+
+<Prose>
+  Each design goal translates directly into a language or runtime decision. The table below connects the
+  goal to the mechanism that implements it.
+</Prose>
+
+<DocsTable
+  headers={['Goal', 'How it is realized']}
+  rows={[
+    [
+      <>Strict static typing</>,
+      <>Every variable, parameter, field, and return has a compile-time type; generics and interfaces are first-class.</>,
+    ],
+    [
+      <>Small runtime footprint</>,
+      <>A custom stack-based VM and compact bytecode, with no JIT or full language runtime.</>,
+    ],
+    [
+      <>Embeddable by design</>,
+      <>The runtime is a C++ library; hosts compile source into an <InlineCode>ApplicationDomain</InlineCode> and call <InlineCode>VM::Run()</InlineCode>.</>,
+    ],
+    [
+      <>First-class C++ interop</>,
+      <>Native libraries are ordinary shared libraries exporting <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>.</>,
+    ],
+    [
+      <>Familiar syntax</>,
+      <>C-style grammar with classes, generics, delegates, lambdas, properties, and async/await.</>,
+    ],
+    [
+      <>Pragmatic features</>,
+      <>Both <InlineCode>defer</InlineCode> and <InlineCode>IDisposable</InlineCode> are available; operator overloading, indexers, and extension methods are supported.</>,
+    ],
+    [
+      <>Cooperative concurrency</>,
+      <>Async methods compile to state machines that yield on <InlineCode>await</InlineCode>; the libuv event loop schedules continuations on a single thread.</>,
+    ],
+  ]}
+/>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compiled, not interpreted.</strong> Source is transformed into
+    bytecode ahead of time so errors are caught early and hot paths start faster.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static types are non-negotiable.</strong> The language does not
+    fall back to dynamic dispatch; overload resolution and member access are resolved at compile time.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The host owns the runtime.</strong> There is no standalone
+    ShardScript process; the runtime is initialized and driven by the embedding application.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Native code is a peer, not a hack.</strong> Native libraries use
+    the same registration API as the standard library and can extend the type system cleanly.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Concurrency is safe by default.</strong> Removing OS threads from
+    script code eliminates data races and simplifies memory safety.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Use ShardScript when', 'Consider alternatives when']}
+  rows={[
+    [
+      <>You need compile-time safety for user-written scripts inside a C++ application.</>,
+      <>You need a REPL, duck typing, or runtime code generation.</>,
+    ],
+    [
+      <>You want a small runtime that compiles scripts ahead of time.</>,
+      <>You need a large package ecosystem or mature IDE marketplace.</>,
+    ],
+    [
+      <>You want deterministic cleanup alongside garbage collection.</>,
+      <>You need multi-threaded parallelism or zero-overhead memory layout control.</>,
+    ],
+  ]}
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>ShardScript Philosophy</InlineCode> — the broader motivation behind these goals.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Comparison with Other Languages</InlineCode> — how ShardScript compares to C#, C++, Lua, and Python.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Rejected Ideas</InlineCode> — features that were left out because they conflict with these goals.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — how the goals are implemented in the compiler, VM, and event loop.
+  </Bullet>
+</ul>

@@ -435,3 +435,26 @@ public static func Main() -> void
     ['Built-in implementers', 'Array, List<T>, Dictionary<K, V>, Queue<T>, Stack<T>'],
   ]}
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>List&lt;T&gt;</InlineCode> — dynamic array collection that implements <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> — hash table collection that implements <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Queue &amp; Stack</InlineCode> — FIFO and LIFO collections that implement <InlineCode>IEnumerable&lt;T&gt;</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>IEnumerable&lt;T&gt;</InlineCode> and <InlineCode>IEnumerator&lt;T&gt;</InlineCode> interfaces are
+  registered by the compiler and implemented by the <InlineCode>shard.collections</InlineCode> library. The concrete
+  collection registrations and enumerator bindings are in{" "}
+  <InlineCode>ShardScript.Framework/system/collections.shard.cpp</InlineCode>.
+</Prose>

@@ -384,3 +384,23 @@ public static func Main() -> void
     empty collection this throws a runtime exception.
   </Bullet>
 </ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>IEnumerable &amp; IEnumerator</InlineCode> — the iteration contract implemented by queues and stacks.
+  </Bullet>
+  <Bullet>
+    <InlineCode>List&lt;T&gt;</InlineCode> — a dynamic array collection with indexed access.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.collections</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>Queue&lt;T&gt;</InlineCode>,{" "}
+  <InlineCode>Stack&lt;T&gt;</InlineCode>, and their enumerators is in{" "}
+  <InlineCode>ShardScript.Framework/system/collections.shard.cpp</InlineCode>.
+</Prose>

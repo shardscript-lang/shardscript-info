@@ -1,0 +1,332 @@
+---
+title: Installation
+group: Getting Started
+order: 2
+slug: installation
+type: How-To
+groupOrder: 1
+---
+
+<Prose>
+  Getting ShardScript running is a three-piece affair: the <InlineCode>shard</InlineCode> interpreter
+  (which includes the compiler, the virtual machine, and the event loop), the{' '}
+  <strong>Standard Shards Collection</strong> of dynamic libraries, and — for dependency management —
+  the <InlineCode>geode</InlineCode> package manager (in development). This guide walks through
+  installing the interpreter and shards, configuring library paths, and wiring editors to the language
+  server.
+</Prose>
+
+<H2>Install from a Release</H2>
+
+<Prose>
+  Prebuilt binaries are published for Windows and Linux on the{' '}
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.2" className="underline">0.5.2 release</a>{' '}
+  page. The installer scripts below download the matching archive, extract it into a system-wide directory,
+  and set up the <InlineCode>SHARDSCRIPT</InlineCode> environment variable.
+</Prose>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Windows</h3>
+
+<Prose>
+  The PowerShell installer extracts the Windows archive into{' '}
+  <InlineCode>%ProgramFiles%\ShardScript</InlineCode> and creates the{' '}
+  <InlineCode>%SHARDSCRIPT%</InlineCode> environment variable.
+</Prose>
+
+<CodeBlock
+  code={`# Option A: one-liner (run in an elevated PowerShell window)
+irm https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1 | iex
+
+# Option B: download the script first so you can inspect it
+Invoke-WebRequest -Uri "https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1" -OutFile "install-shardscript.ps1"
+.\install-shardscript.ps1
+
+# Optional: also add the install directory to your machine PATH
+.\install-shardscript.ps1 -AddToPath
+
+# One-liner with PATH registration
+& ([scriptblock]::Create((irm https://shardscript-lang.github.io/shardscript-info/install-shardscript.ps1))) -AddToPath`}
+  language="powershell"
+  filename="install-windows.ps1"
+/>
+
+<Prose>
+  After the script finishes, open a new terminal. The interpreter will be located at{' '}
+  <InlineCode>%ProgramFiles%\ShardScript\shard.exe</InlineCode> and the standard shards will be in the{' '}
+  <InlineCode>system</InlineCode> folder beside it.
+</Prose>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Linux</h3>
+
+<Prose>
+  The Bash installer extracts the Linux archive into <InlineCode>/opt/shardscript</InlineCode>, symlinks{' '}
+  <InlineCode>shard</InlineCode> into <InlineCode>/usr/local/bin</InlineCode> so it is on the default PATH,
+  and writes <InlineCode>SHARDSCRIPT</InlineCode> to <InlineCode>/etc/profile.d/shardscript.sh</InlineCode>{' '}
+  for all users.
+</Prose>
+
+<CodeBlock
+  code={`# Option A: one-liner (run as root or with sudo)
+curl -fsSL https://shardscript-lang.github.io/shardscript-info/install-shardscript.sh | sudo bash
+
+# Option B: download the script first so you can inspect it
+curl -fsSL https://shardscript-lang.github.io/shardscript-info/install-shardscript.sh -o install-shardscript.sh
+sudo bash install-shardscript.sh`}
+  language="bash"
+  filename="install-linux.sh"
+/>
+
+<Prose>
+  After the script finishes, open a new terminal or run{' '}
+  <InlineCode>source /etc/profile.d/shardscript.sh</InlineCode>. The interpreter will be located at{' '}
+  <InlineCode>/opt/shardscript/shard</InlineCode>, the standard shards will be in{' '}
+  <InlineCode>/opt/shardscript/system</InlineCode>, and the <InlineCode>shard</InlineCode> command will be
+  available from any prompt.
+</Prose>
+
+<Callout tone="blue" title="What the scripts do">
+  Both installers require root/Administrator privileges because they write to system directories. They
+  download <InlineCode>shardscript-0.5.2-windows.zip</InlineCode> or{' '}
+  <InlineCode>shardscript-0.5.2-linux.tar.gz</InlineCode> from the{' '}
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.2" className="underline">0.5.2 release</a>,
+  extract the archive, set <InlineCode>SHARDSCRIPT</InlineCode> to the install root, and make the{' '}
+  <InlineCode>shard</InlineCode> command available. The Windows script optionally appends the install root to
+  machine <InlineCode>PATH</InlineCode>; the Linux script creates a symlink in{' '}
+  <InlineCode>/usr/local/bin</InlineCode> instead.
+</Callout>
+
+<H2>The shard Command Line</H2>
+
+<Prose>
+  The <InlineCode>shard</InlineCode> binary is the friendly front-end for the{' '}
+  <InlineCode>ShardScript.Interpreter</InlineCode>. After installation you can run scripts, start the REPL, or
+  decompile bytecode. See <InlineCode>The shard CLI</InlineCode> in the Build Your Project section for the full
+  command reference.
+</Prose>
+
+<H2>The Standard Shards Collection</H2>
+
+<Prose>
+  ShardScript has no monolithic standard library. Instead the <strong>Standard Shards Collection</strong>{' '}
+  ships each subsystem as its own DLL — a <em>shard</em>. At startup the interpreter auto-loads every
+  shard from its <InlineCode>system/</InlineCode> directory, so a script can simply{' '}
+  <InlineCode>using</InlineCode> the ones it needs. The collection currently includes:
+</Prose>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">stdio</code>
+    <p className="text-sm text-text-secondary mt-1">Console I/O: print, println, input, cursor control</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">collections</code>
+    <p className="text-sm text-text-secondary mt-1">List&lt;T&gt;, Dictionary&lt;K,V&gt;, Stack&lt;T&gt;, Queue&lt;T&gt;</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">strings</code>
+    <p className="text-sm text-text-secondary mt-1">String manipulation and formatting</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">math</code>
+    <p className="text-sm text-text-secondary mt-1">Math functions; math.random for RNG</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">json</code>
+    <p className="text-sm text-text-secondary mt-1">JSON parsing and serialization</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">http</code>
+    <p className="text-sm text-text-secondary mt-1">HTTP client and server</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">socket</code>
+    <p className="text-sm text-text-secondary mt-1">TCP socket operations</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">async</code>
+    <p className="text-sm text-text-secondary mt-1">Task, TaskCompletionSource, cancellation</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">streams</code>
+    <p className="text-sm text-text-secondary mt-1">Stream-based I/O</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">filesystem</code>
+    <p className="text-sm text-text-secondary mt-1">File, directory, and path operations</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">environment</code>
+    <p className="text-sm text-text-secondary mt-1">Environment variable access</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">interop</code>
+    <p className="text-sm text-text-secondary mt-1">Native library calls and marshalling (cinterop.dll)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">debug</code>
+    <p className="text-sm text-text-secondary mt-1">typeof, sizeof, PrintGcInfo</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">reflection</code>
+    <p className="text-sm text-text-secondary mt-1">Type, method, and field inspection</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">subprocess</code>
+    <p className="text-sm text-text-secondary mt-1">Spawn and manage child processes</p>
+  </div>
+</div>
+
+<Callout tone="green" title="Scope control">
+  Pass <InlineCode>--no-std</InlineCode> to skip auto-loading the <InlineCode>system/</InlineCode>{' '}
+  directory entirely, then add only the shards you trust with <InlineCode>-l</InlineCode>. Combined with
+  the symbol-injection model, this lets the host control exactly which APIs a script can reach.
+</Callout>
+
+<H2>Optional Third-Party Shards</H2>
+
+<Prose>
+  The framework repository also builds several optional shards in{' '}
+  <InlineCode>third_party/</InlineCode>. These are not loaded by default and must be referenced explicitly
+  with <InlineCode>-l</InlineCode> or copied into the host&apos;s shard search path.
+</Prose>
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">raylib</code>
+    <p className="text-sm text-text-secondary mt-1">2D/3D graphics, windowing, input, audio (optional third-party shard)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">Database</code>
+    <p className="text-sm text-text-secondary mt-1">SQLite3 connection and command execution (optional third-party shard)</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">terminality</code>
+    <p className="text-sm text-text-secondary mt-1">Terminal UI host and controls (optional third-party shard)</p>
+  </div>
+</div>
+
+<H2>Library Paths and Package Management</H2>
+
+<Prose>
+  After installation the standard shards live in a <InlineCode>system/</InlineCode> folder next to the
+  interpreter. For details on how the interpreter discovers libraries, how to load extra shards, and the
+  planned <InlineCode>%SHARDSCRIPT%</InlineCode> layout, see <InlineCode>Library Search Paths</InlineCode>.
+</Prose>
+
+<Prose>
+  Dependency management is handled by <InlineCode>geode</InlineCode>, the planned package manager. See{' '}
+  <InlineCode>Package Management with Geode</InlineCode> for setup instructions and the planned CLI verbs.
+</Prose>
+
+<H2>Editor Integration</H2>
+
+<Prose>
+  ShardScript includes a Language Server (the <InlineCode>lsp</InlineCode> binary, built from{' '}
+  <InlineCode>ShardScript.LspServer</InlineCode>) that speaks the Language Server Protocol over stdio.
+  Editors connect to it like any other LSP server.
+</Prose>
+
+<Callout tone="amber" title="In development and Win32-only">
+  The language server builds and runs on Windows today. Linux/Unix support is not yet implemented, and
+  the server is still rough — expect missing diagnostics and incomplete completions.
+</Callout>
+
+<Callout tone="blue" title="No first-party extensions yet">
+  There are no packaged Zed, VS Code, or Neovim extensions published today. Each editor is wired to the{' '}
+  <InlineCode>lsp</InlineCode> binary manually as a generic LSP server; some editors may also need a small
+  file-type association for <InlineCode>.shard</InlineCode> files.
+</Callout>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Neovim</h3>
+
+<Prose>
+  With <InlineCode>nvim-lspconfig</InlineCode>, register a custom server pointing at the binary:
+</Prose>
+
+<CodeBlock
+  code={`-- Neovim: register the ShardScript language server via lspconfig
+local configs = require('lspconfig.configs')
+local util    = require('lspconfig.util')
+
+configs.shardscript = {
+  default_config = {
+    cmd = { '/absolute/path/to/lsp' },
+    filetypes = { 'shard' },
+    root_dir = util.find_git_ancestor,
+  },
+}
+
+require('lspconfig').shardscript.setup({})`}
+  language="lua"
+  filename="init.lua"
+/>
+
+<h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">VS Code and Zed</h3>
+
+<Prose>
+  VS Code needs a client extension to launch an arbitrary server; use a generic LSP-client extension (or
+  a tiny generated extension) configured to spawn <InlineCode>lsp</InlineCode> for{' '}
+  <InlineCode>.shard</InlineCode> files. In Zed, register the binary under the{' '}
+  <InlineCode>lsp</InlineCode> key in your settings and associate it with the ShardScript language. In both
+  cases the server itself is the same <InlineCode>lsp</InlineCode> binary — only the hosting glue differs.
+</Prose>
+
+<Callout tone="green" title="You are set up">
+  With <InlineCode>shard</InlineCode> installed, the standard shards in <InlineCode>system/</InlineCode>,
+  and your editor wired to the language server, you have the core toolchain. Geode and additional SDKs are
+  in development. Head to <InlineCode>Hello World</InlineCode> to run your first program.
+</Callout>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">
+      <InlineCode>shard</InlineCode> is not recognized after installation.
+    </strong>{' '}
+    On Windows make sure the install directory is on your machine PATH, or restart your terminal after the
+    installer finishes. On Linux run <InlineCode>source /etc/profile.d/shardscript.sh</InlineCode> or open a
+    new shell.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Standard shards are missing.</strong> Verify that a{' '}
+    <InlineCode>system/</InlineCode> folder exists next to the <InlineCode>shard</InlineCode> executable and
+    contains the DLLs or shared objects.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Linux installer fails.</strong> The Bash installer must run as root
+    or with <InlineCode>sudo</InlineCode> because it writes to <InlineCode>/opt</InlineCode> and creates a
+    symlink in <InlineCode>/usr/local/bin</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Language server does not start.</strong> The <InlineCode>lsp</InlineCode>{' '}
+    binary is separate from the interpreter. Make sure it is built and that the editor configuration points to
+    its absolute path.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Hello World</InlineCode> — write and run your first ShardScript program.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Building from Source</InlineCode> — compile the interpreter and standard shards yourself.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — how the compiler, VM, and event loop work together.
+  </Bullet>
+  <Bullet>
+    <InlineCode>The shard CLI</InlineCode> — command-line reference for the interpreter.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Project Configuration</InlineCode> — organizing source files and compiler options.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Library Search Paths</InlineCode> — how the interpreter discovers shards at startup.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Package Management with Geode</InlineCode> — resolving and publishing shard packages.
+  </Bullet>
+</ul>

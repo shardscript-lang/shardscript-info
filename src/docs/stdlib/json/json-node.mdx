@@ -427,3 +427,25 @@ public static func Main() -> void
   <InlineCode>&quot;[1,2]&quot;</InlineCode>. Use <InlineCode>Kind</InlineCode> first if you need
   to distinguish strings from other types.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>JsonSerializer</InlineCode> — typed serialization and deserialization to and from JSON.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Console I/O</InlineCode> — <InlineCode>stdio</InlineCode> helpers such as{" "}
+    <InlineCode>println</InlineCode>, which can print a <InlineCode>JsonNode</InlineCode> directly.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.json</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for{" "}
+  <InlineCode>JsonNode</InlineCode>, <InlineCode>JsonNodeKind</InlineCode>, and the shared{" "}
+  <InlineCode>JsonDom</InlineCode> tree is in{" "}
+  <InlineCode>ShardScript.Framework/system/json.shard.cpp</InlineCode>.
+</Prose>

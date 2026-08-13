@@ -1,0 +1,164 @@
+---
+title: Package Management with Geode
+group: Build Your Project
+order: 3
+slug: package-management-with-geode
+type: How-To
+groupOrder: 6
+---
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    The .NET SDK, to build the Geode solution.
+  </Bullet>
+  <Bullet>
+    A clone of the ShardScript repository, which contains the Geode solution.
+  </Bullet>
+  <Bullet>
+    Familiarity with the <InlineCode>shard</InlineCode> CLI and library search paths.
+  </Bullet>
+</ul>
+
+<Callout tone="amber" title="In development">
+  Geode is the planned package manager for ShardScript. It is under active development and is not yet
+  available for general use. The design described here is the target shape, not the shipping
+  implementation.
+</Callout>
+
+<H2>Goal</H2>
+
+<Prose>
+  Set up a Geode-managed project, declare dependencies, restore them into a local <InlineCode>./libs</InlineCode>
+  directory, and run a ShardScript program using the resolved library paths.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Build the Geode tooling.</strong>
+</Prose>
+
+<CodeBlock
+  code={`cd Geode
+dotnet build`}
+  language="bash"
+  filename="build-geode.sh"
+/>
+
+<Prose>
+  <strong>2. Start the package registry backend.</strong>
+</Prose>
+
+<CodeBlock
+  code={`cd src/Geode.Backend.Api
+dotnet run`}
+  language="bash"
+  filename="run-registry.sh"
+/>
+
+<Prose>
+  The registry defaults to <InlineCode>http://localhost:5000</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>3. Initialize a project manifest.</strong>
+</Prose>
+
+<CodeBlock
+  code={`geode init my-app`}
+  language="bash"
+  filename="geode-init.sh"
+/>
+
+<Prose>
+  This creates a <InlineCode>geode.env</InlineCode> file in the current directory.
+</Prose>
+
+<Prose>
+  <strong>4. Declare dependencies.</strong>
+</Prose>
+
+<CodeBlock
+  code={`# geode.env -- a project manifest (TOML-like)
+[project]
+name = "my-app"
+version = "1.0.0"
+authors = []
+
+[dependencies]
+# shard.collections = "1.0.0"
+
+[environment]
+SHARDSCRIPT_ENV = "development"`}
+  language="toml"
+  filename="geode.env"
+/>
+
+<Prose>
+  <strong>5. Restore dependencies.</strong>
+</Prose>
+
+<CodeBlock
+  code={`geode restore`}
+  language="bash"
+  filename="geode-restore.sh"
+/>
+
+<Prose>
+  <InlineCode>restore</InlineCode> resolves dependencies from <InlineCode>geode.env</InlineCode>, caches them
+  under <InlineCode>~/.geode/cache</InlineCode>, and copies them into <InlineCode>./libs</InlineCode> for the
+  interpreter.
+</Prose>
+
+<Prose>
+  <strong>6. Run the project.</strong>
+</Prose>
+
+<CodeBlock
+  code={`geode run src/main.shard`}
+  language="bash"
+  filename="geode-run.sh"
+/>
+
+<H2>Verification</H2>
+
+<Prose>
+  The setup is correct if:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>geode restore</InlineCode> populates <InlineCode>./libs</InlineCode> with the requested shard
+    DLLs.
+  </Bullet>
+  <Bullet>
+    <InlineCode>geode run</InlineCode> starts the program and the dependencies are available through{' '}
+    <InlineCode>using</InlineCode> declarations.
+  </Bullet>
+</ul>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Registry unreachable.</strong> Make sure the backend is running on{' '}
+    <InlineCode>http://localhost:5000</InlineCode> or set the registry URL explicitly.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Dependency not found.</strong> Check the package name and version
+    constraint in <InlineCode>geode.env</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>The shard CLI</InlineCode> — running ShardScript programs directly.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Library Search Paths</InlineCode> — how the interpreter finds restored shard DLLs.
+  </Bullet>
+</ul>

@@ -1,0 +1,138 @@
+---
+title: Comparison with Other Languages
+group: FAQ
+order: 2
+slug: comparison-with-other-languages
+groupOrder: 12
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript occupies a narrow niche: it is a compiled, statically typed scripting language designed to be
+  embedded in C++ applications. It is closest to C# in syntax and type system, closest to Lua or Python in
+  embedding shape, and deliberately avoids the low-level control model of C or C++.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  Choosing a scripting or extension language means balancing compile-time safety, runtime footprint,
+  embedding complexity, and ecosystem maturity. This article compares ShardScript against the languages most
+  often considered for the same role so you can judge whether its trade-offs match your project.
+</Prose>
+
+<H2>How the comparison is framed</H2>
+
+<Prose>
+  The table below evaluates each language on the dimensions that matter most for an embedded scripting
+  scenario: type discipline, memory management, concurrency model, how easy it is to host inside a C++
+  application, and the shape of native interoperability.
+</Prose>
+
+<DocsTable
+  headers={['Language', 'Type system', 'Memory', 'Concurrency', 'Embedding', 'Interop']}
+  rows={[
+    [
+      <>ShardScript</>,
+      <>Static, strict, with generics and interfaces</>,
+      <>Reference-counted GC + <InlineCode>defer</InlineCode> / <InlineCode>IDisposable</InlineCode></>,
+      <>Single-threaded cooperative async/await</>,
+      <>Small C++ runtime library; shared-library extensions</>,
+      <>Two-symbol C++ contract (<InlineCode>ShardLib_GetMetadata</InlineCode>, <InlineCode>ShardLib_EntryPoint</InlineCode>)</>,
+    ],
+    [
+      <>C#</>,
+      <>Static, with generics, LINQ, and a large BCL</>,
+      <>Tracing GC; IDisposable for deterministic cleanup</>,
+      <>Multi-threaded Task/ThreadPool</>,
+      <>Heavy CLR host or .NET embedding API</>,
+      <>P/Invoke and COM interop</>,
+    ],
+    [
+      <>C++</>,
+      <>Static, manual templates, no runtime type safety</>,
+      <>Manual (RAII, smart pointers)</>,
+      <>OS threads and atomics</>,
+      <>Not embedded; it is the host</>,
+      <>Native by definition</>,
+    ],
+    [
+      <>Lua</>,
+      <>Dynamic, duck-typed</>,
+      <>Tracing GC</>,
+      <>Cooperative coroutines</>,
+      <>Small C embedding API</>,
+      <>C bindings via the stack API</>,
+    ],
+    [
+      <>Python</>,
+      <>Dynamic, with optional type hints</>,
+      <>Tracing GC</>,
+      <>Multi-processing / GIL-bound threads</>,
+      <>Large C API and runtime</>,
+      <>C extensions, ctypes, cffi</>,
+    ],
+  ]}
+/>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Like C#, but smaller.</strong> ShardScript borrows classes,
+    generics, properties, async/await, and exceptions, but it ships as a library rather than a full runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Like Lua, but statically typed.</strong> The embedding surface is
+    small and the runtime is a C++ library, yet type errors are caught before execution.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unlike C++, it is sandboxed.</strong> Script code cannot take raw
+    pointers, manipulate memory layout, or spawn OS threads directly.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Unlike Python, it is single-threaded by design.</strong>
+    Concurrency is cooperative and event-loop driven, which removes data races in script code.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Choose ShardScript when', 'Consider an alternative when']}
+  rows={[
+    [
+      <>You want C-style static typing inside a C++ host without the overhead of a full .NET or JVM runtime.</>,
+      <>You need a mature package ecosystem, IDE, or hiring market today. Use C#, Python, or Lua.</>,
+    ],
+    [
+      <>You want user-facing scripts validated at build or mod-publish time.</>,
+      <>You need a REPL, runtime metaprogramming, or duck typing. ShardScript is compiled and strict.</>,
+    ],
+    [
+      <>You need deterministic cleanup patterns and native interop in the same language.</>,
+      <>You need multi-threaded parallelism in script code. ShardScript concurrency is cooperative.</>,
+    ],
+  ]}
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>ShardScript Philosophy</InlineCode> — the design goals behind the language.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Design Goals</InlineCode> — the specific principles that shape ShardScript.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — how the compiler, VM, and event loop work together.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Garbage Collection</InlineCode> — memory management and cleanup patterns.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Native Library Overview</InlineCode> — extending ShardScript from C++.
+  </Bullet>
+</ul>

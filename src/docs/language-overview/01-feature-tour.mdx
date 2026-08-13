@@ -1,0 +1,335 @@
+---
+title: Feature Tour
+group: Language Overview
+order: 1
+slug: feature-tour
+type: Tutorial
+groupOrder: 2
+---
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working ShardScript installation. Follow the <InlineCode>Installation</InlineCode> guide if you have
+    not installed the interpreter yet.
+  </Bullet>
+  <Bullet>
+    Completion of <InlineCode>Hello World</InlineCode>, or familiarity with namespaces, the{" "}
+    <InlineCode>Main</InlineCode> entry point, and the <InlineCode>shard</InlineCode> command.
+  </Bullet>
+  <Bullet>
+    A text editor and a terminal for running the examples.
+  </Bullet>
+</ul>
+
+<H2>Scenario</H2>
+
+<Prose>
+  You will write a single ShardScript program that touches most of the language in one place: classes,
+  interfaces, generics, arrays, switch expressions, deferred cleanup, and async/await. By the end you will
+  recognize the shape of everyday ShardScript code and know where to look for deeper coverage of each
+  feature.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create a new file.</strong>
+</Prose>
+
+<Prose>
+  Open your editor and create a file named <InlineCode>tour.shard</InlineCode> in an empty directory.
+</Prose>
+
+<Prose>
+  <strong>2. Add the namespaces and a class with a constructor.</strong>
+</Prose>
+
+<Prose>
+  ShardScript uses namespaces to organize code. The <InlineCode>stdio</InlineCode> namespace provides console
+  output, and <InlineCode>async</InlineCode> provides task types. Declare a class with public fields and a
+  constructor.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace tour;
+
+public class Widget
+{
+    public Id: int;
+    public Label: string;
+
+    public init(id: int, label: string)
+    {
+        this.Id = id;
+        this.Label = label;
+    }
+
+    public func Describe() -> string
+    {
+        return "Widget " + this.Id + ": " + this.Label;
+    }
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>3. Add an interface and two implementations.</strong>
+</Prose>
+
+<Prose>
+  Interfaces declare a contract. A class implements an interface by providing matching public members. The
+  virtual machine resolves the right implementation at runtime.
+</Prose>
+
+<CodeBlock
+  code={`public interface IShape
+{
+    func Area() -> double;
+}
+
+public class Rectangle : IShape
+{
+    public Width: double;
+    public Height: double;
+
+    public init(width: double, height: double)
+    {
+        this.Width = width;
+        this.Height = height;
+    }
+
+    public func Area() -> double
+    {
+        return this.Width * this.Height;
+    }
+}
+
+public class Circle : IShape
+{
+    public Radius: double;
+
+    public init(radius: double)
+    {
+        this.Radius = radius;
+    }
+
+    public func Area() -> double
+    {
+        return 3.14159 * this.Radius * this.Radius;
+    }
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>4. Add a generic container.</strong>
+</Prose>
+
+<Prose>
+  Generic types use a placeholder type <InlineCode>T</InlineCode> that is filled in when the type is used.
+  The compiler creates a concrete layout for every instantiation.
+</Prose>
+
+<CodeBlock
+  code={`public class Box<T>
+{
+    public Value: T;
+
+    public func Set(v: T) -> void
+    {
+        this.Value = v;
+    }
+
+    public func Get() -> T
+    {
+        return this.Value;
+    }
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>5. Use arrays, ranges, and a switch expression.</strong>
+</Prose>
+
+<Prose>
+  Arrays are fixed-size and indexed from zero. Ranges such as <InlineCode>1..5</InlineCode> produce{" "}
+  <InlineCode>int[]</InlineCode> values. The <InlineCode>switch</InlineCode> expression selects an arm by
+  matching the scrutinee against constant or type patterns.
+</Prose>
+
+<CodeBlock
+  code={`public static func DescribeShape(shape: IShape) -> string
+{
+    return switch shape
+    {
+        is Rectangle r => "rectangle " + r.Width + "x" + r.Height,
+        is Circle c    => "circle radius " + c.Radius,
+        _              => "unknown shape",
+    };
+}
+
+public static func SumAreas(shapes: IShape[]) -> double
+{
+    total: double = 0.0;
+
+    foreach (shape in shapes)
+    {
+        total = total + shape.Area();
+    }
+
+    return total;
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>6. Add deterministic cleanup with defer.</strong>
+</Prose>
+
+<Prose>
+  The <InlineCode>defer</InlineCode> statement schedules cleanup that runs when the enclosing scope exits.
+  A resource defer declares a variable whose type implements <InlineCode>IDisposable</InlineCode> and calls{" "}
+  <InlineCode>Dispose()</InlineCode> automatically.
+</Prose>
+
+<CodeBlock
+  code={`public class TraceScope : IDisposable
+{
+    private name: string;
+
+    public init(name: string)
+    {
+        this.name = name;
+        println("enter " + this.name);
+    }
+
+    public func Dispose() -> void
+    {
+        println("exit " + this.name);
+    }
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>7. Add an async method.</strong>
+</Prose>
+
+<Prose>
+  Async methods return <InlineCode>Task</InlineCode> or <InlineCode>ValueTask&lt;T&gt;</InlineCode>. They
+  compile into state machines that yield control at <InlineCode>await</InlineCode> and resume through the
+  event loop.
+</Prose>
+
+<CodeBlock
+  code={`public static async func FetchLabelAsync(id: int) -> ValueTask<string>
+{
+    await Task.Delay(10);
+    return "label-" + id;
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>8. Wire everything together in Main.</strong>
+</Prose>
+
+<Prose>
+  The entry point is a public static method named <InlineCode>Main</InlineCode> that returns{" "}
+  <InlineCode>void</InlineCode>. It creates objects, calls methods, and waits for async work to complete.
+</Prose>
+
+<CodeBlock
+  code={`public static func Main() -> void
+{
+    defer scope: TraceScope = new TraceScope("Main");
+
+    widget: Widget = new Widget(1, "demo");
+    println(widget.Describe());
+
+    shapes: IShape[] = [new Rectangle(4.0, 5.0), new Circle(3.0)];
+    println(DescribeShape(shapes[0]));
+    println(DescribeShape(shapes[1]));
+    println("total area: " + SumAreas(shapes));
+
+    box: Box<int> = new Box<int>();
+    box.Set(42);
+    println("boxed: " + box.Get());
+
+    range: int[] = 0..3;
+    println("range length: " + range.Length);
+
+    task: ValueTask<string> = FetchLabelAsync(7);
+    ValueTask.Wait(task);
+    println("fetched: " + task.Result);
+}`}
+  language="csharp"
+  filename="tour.shard"
+/>
+
+<Prose>
+  <strong>9. Run the program.</strong>
+</Prose>
+
+<CodeBlock
+  code={`shard tour.shard`}
+  language="bash"
+  filename="run.sh"
+/>
+
+<H2>Expected Output</H2>
+
+<Prose>
+  The exact output may vary slightly depending on the timing of the async delay, but you should see something
+  like the following.
+</Prose>
+
+<CodeBlock
+  code={`enter Main
+Widget 1: demo
+rectangle 4x5
+circle radius 3
+total area: 48.27431
+boxed: 42
+range length: 3
+fetched: label-7
+exit Main`}
+  language="bash"
+  filename="output.txt"
+/>
+
+<H2>What&apos;s next?</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    Read <InlineCode>Type System</InlineCode> for a deeper look at value and reference types, generics,
+    arrays, interfaces, and enums.
+  </Bullet>
+  <Bullet>
+    Work through the language fundamentals starting with <InlineCode>Primitive Types</InlineCode> and{" "}
+    <InlineCode>Variables and Types</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Learn more about object-oriented features in <InlineCode>Classes</InlineCode> and{" "}
+    <InlineCode>Interfaces and Abstractions</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Explore asynchronous programming in <InlineCode>Async Functions</InlineCode> and{" "}
+    <InlineCode>Await and State Machines</InlineCode>.
+  </Bullet>
+  <Bullet>
+    Study resource cleanup in <InlineCode>Deferred Execution</InlineCode>.
+  </Bullet>
+</ul>

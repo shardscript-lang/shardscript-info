@@ -581,3 +581,24 @@ public static func Main() -> void
   language="csharp"
   filename="interop_wrong_family.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Native Library Development</InlineCode> — building the shared libraries loaded by{" "}
+    <InlineCode>NativeLibrary.Load</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Type Introspection</InlineCode> — runtime type inspection for marshalled values.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.cinterop</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for{" "}
+  <InlineCode>NativeLibrary</InlineCode>, <InlineCode>Marshal</InlineCode>, and <InlineCode>NativeCall</InlineCode>{" "}
+  is in <InlineCode>ShardScript.Framework/system/cinterop.shard.cpp</InlineCode>.
+</Prose>

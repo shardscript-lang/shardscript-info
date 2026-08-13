@@ -1,0 +1,275 @@
+---
+title: switch Statements
+group: Control Flow
+order: 4
+slug: switch-statements
+type: Reference
+groupOrder: 2
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  A <InlineCode>switch</InlineCode> statement selects a statement block to execute by comparing a
+  scrutinee expression against a series of case patterns. Patterns may be constant values, type
+  patterns (<InlineCode>is Type</InlineCode>), or type patterns that bind a variable
+  (<InlineCode>is Type varName</InlineCode>). A <InlineCode>default</InlineCode> block runs when no
+  other pattern matches.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  Write <InlineCode>switch</InlineCode> followed by the parenthesized scrutinee, then a brace-delimited
+  list of clauses. Each clause starts with <InlineCode>case</InlineCode> or <InlineCode>default</InlineCode>,
+  followed by a colon, then a statement block.
+</Prose>
+
+<CodeBlock
+  code={`switch (scrutinee)
+{
+    case constantPattern:
+    {
+        // statements
+        break;
+    }
+
+    case is Type:
+    {
+        // statements
+        break;
+    }
+
+    case is Type varName:
+    {
+        // statements
+        break;
+    }
+
+    default:
+    {
+        // statements
+        break;
+    }
+}`}
+  language="csharp"
+  filename="switch_statement_syntax.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Part', 'Required', 'Description']}
+  rows={[
+    ['scrutinee', 'Yes', 'The expression whose value is matched. It is evaluated exactly once.'],
+    ['constant pattern', 'Yes, per case', 'A constant expression compared against the scrutinee using equality. The first matching case runs.'],
+    ['is Type', 'Yes, per case', 'A type pattern that matches when the scrutinee is an instance of Type or a derived type.'],
+    ['is Type varName', 'Yes, per case', 'A type pattern that matches the same way and binds the casted instance to varName inside the case block.'],
+    ['default', 'No', 'The catch-all clause. It runs when no case pattern matches.'],
+    ['case body', 'Yes', 'A brace-delimited statement block executed when the case matches.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  The <InlineCode>switch</InlineCode> statement itself has no value. Execution continues with the
+  statement that follows the entire <InlineCode>switch</InlineCode> block after a matched case body
+  completes or after a <InlineCode>break</InlineCode> statement.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Missing braces or colon</strong> — Omitting{' '}
+    <InlineCode>{'{'}</InlineCode>, <InlineCode>{'}'}</InlineCode>, or <InlineCode>:</InlineCode>{' '}
+    after a case pattern produces a parser error.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No matching case without default</strong> — If the
+    scrutinee does not match any pattern and there is no <InlineCode>default</InlineCode> clause,
+    the <InlineCode>switch</InlineCode> statement does nothing.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type pattern on value type</strong> — A type pattern such
+    as <InlineCode>is int</InlineCode> is rejected; type patterns work only with reference types.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Binding variable shadows an outer name</strong> — The
+    binder rejects an <InlineCode>is Type varName</InlineCode> case when <InlineCode>varName</InlineCode>{' '}
+    conflicts with an existing local or parameter in the enclosing scope.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">break outside switch or loop</strong> — A{' '}
+    <InlineCode>break</InlineCode> statement is allowed inside a <InlineCode>switch</InlineCode>{' '}
+    case body or inside a loop, but not at top level.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>No implicit fallthrough.</strong> Each case body is independent. The compiler emits a
+  jump to the end of the <InlineCode>switch</InlineCode> after every case block, so control does not
+  flow from one case into the next. You can still write <InlineCode>break</InlineCode> explicitly to
+  exit early.
+</Prose>
+
+<Prose>
+  <strong>Sequential matching.</strong> Cases are tested in source order and the first matching case
+  runs. Place the most specific type patterns before less specific ones; for example, put{' '}
+  <InlineCode>is Cat</InlineCode> before <InlineCode>is Animal</InlineCode> when both could match.
+</Prose>
+
+<Prose>
+  <strong>Single evaluation.</strong> The scrutinee is evaluated once and stored in a temporary
+  compiler variable. Case patterns are compared against that stored value, so side effects in the
+  scrutinee expression do not repeat.
+</Prose>
+
+<Prose>
+  <strong>Constant patterns and custom equality.</strong> Constant patterns are compared using
+  equality. For primitive types the compiler emits a direct comparison. For non-primitive value types
+  whose pattern type equals the scrutinee type, the compiler resolves a custom{' '}
+  <InlineCode>operator ==</InlineCode> if one exists.
+</Prose>
+
+<Prose>
+  <strong>Type patterns do not match null.</strong> An <InlineCode>is Type</InlineCode> or{' '}
+  <InlineCode>is Type varName</InlineCode> pattern treats <InlineCode>null</InlineCode> as a
+  non-matching value and continues to the next case.
+</Prose>
+
+<Prose>
+  <strong>Scope of the binding variable.</strong> A variable introduced by{' '}
+  <InlineCode>is Type varName</InlineCode> is scoped to its case body only. It is not visible in
+  other cases or after the <InlineCode>switch</InlineCode> statement.
+</Prose>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Matching an integer code.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    day: int = 2;
+
+    switch (day)
+    {
+        case 1:
+        {
+            println("Monday");
+            break;
+        }
+
+        case 2:
+        {
+            println("Tuesday");
+            break;
+        }
+
+        case 3:
+        {
+            println("Wednesday");
+            break;
+        }
+
+        default:
+        {
+            println("Weekend");
+            break;
+        }
+    }
+}`}
+  language="csharp"
+  filename="switch_statement_int.shard"
+/>
+
+<Prose>
+  <strong>Matching with type patterns.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Animal
+{
+    public func Speak() -> void
+    {
+        println("...");
+    }
+}
+
+public class Dog : Animal
+{
+    public func Bark() -> void
+    {
+        println("woof");
+    }
+}
+
+public class Cat : Animal
+{
+    public func Meow() -> void
+    {
+        println("meow");
+    }
+}
+
+public static func MakeSound(animal: Animal) -> void
+{
+    switch (animal)
+    {
+        case is Dog dog:
+        {
+            dog.Bark();
+            break;
+        }
+
+        case is Cat cat:
+        {
+            cat.Meow();
+            break;
+        }
+
+        default:
+        {
+            animal.Speak();
+            break;
+        }
+    }
+}`}
+  language="csharp"
+  filename="switch_statement_is_pattern.shard"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>syntax/switch-expressions</InlineCode> — expression-oriented pattern matching that
+    returns a value.
+  </Bullet>
+  <Bullet>
+    <InlineCode>syntax/conditionals</InlineCode> — <InlineCode>if</InlineCode> and{' '}
+    <InlineCode>unless</InlineCode> statements for boolean branching.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Parsing and binding live in <InlineCode>ShardScript/src/parsing/SourceParser.cpp</InlineCode> and{' '}
+  <InlineCode>ShardScript/src/semantic/ExpressionBinder.cpp</InlineCode>. Bytecode emission is in{' '}
+  <InlineCode>ShardScript/src/compilation/AbstractEmiter.cpp</InlineCode>.
+</Prose>

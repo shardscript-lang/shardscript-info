@@ -1,0 +1,114 @@
+---
+title: Virtual Machine Internals
+group: Implementation Details
+order: 3
+slug: virtual-machine-internals
+type: Concept
+groupOrder: 4
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The ShardScript virtual machine is a custom stack-based interpreter that executes the bytecode produced by
+  the compiler. It manages evaluation stacks, local slots, call frames, exception handlers, deferred
+  expressions, and reference-counted object lifetimes.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  A compiled language needs a compact, embeddable runtime. Rather than depending on a large external runtime
+  or JIT compiler, ShardScript ships a small stack VM that hosts can initialize, run, and tear down within
+  their own process.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  Execution is performed by the <InlineCode>VirtualMachine</InlineCode>, a classic stack machine: arithmetic
+  and calls consume their operands from the top of an evaluation stack and push their results back. Locals
+  live in a separate, slot-indexed area, not on the operand stack.
+</Prose>
+
+<Prose>
+  The dispatch loop lives in the VM&apos;s <InlineCode>ProcessCode</InlineCode> routine — one large{' '}
+  <InlineCode>switch</InlineCode> over the <InlineCode>OpCode</InlineCode> enum whose cases are the instruction
+  groups.
+</Prose>
+
+<CodeBlock
+  code={`while not end of bytecode stream:
+    opcode <- decode next opcode (and its operands)
+    switch (opcode) -> act on the current frame's eval stack`}
+  language="text"
+  filename="dispatch.txt"
+/>
+
+<Prose>
+  Every active method call gets a <InlineCode>CallStackFrame</InlineCode>. A frame holds:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet><strong className="text-text-primary">Evaluation stack</strong> — a stack of <InlineCode>ObjectInstance*</InlineCode> values that opcodes push and pop.</Bullet>
+  <Bullet><strong className="text-text-primary">Locals</strong> — a slot-indexed region using the offsets the emitter assigned.</Bullet>
+  <Bullet><strong className="text-text-primary">Type arguments</strong> — in force for generic methods.</Bullet>
+  <Bullet><strong className="text-text-primary">Exception-handler stack</strong> — recording protected (<InlineCode>try</InlineCode>) regions and their dispatch offsets.</Bullet>
+  <Bullet><strong className="text-text-primary">Defer stack</strong> — the deferred expressions registered in this scope.</Bullet>
+  <Bullet><strong className="text-text-primary">Pending-task counter</strong> — keeps the frame alive while async work it started is still outstanding.</Bullet>
+</ul>
+
+<Prose>
+  Calls push a new frame and transfer arguments; <InlineCode>RETURN</InlineCode> pops it, leaving the return
+  value (if any) on the caller&apos;s evaluation stack.
+</Prose>
+
+<Prose>
+  <strong>Garbage collection.</strong> Values are garbage-collected <InlineCode>ObjectInstance</InlineCode>{' '}
+  objects. The collector is reference-counting with object tracking: every value carries a reference count the
+  VM updates as it is stored in and removed from slots, fields, and stacks, and the instance is reclaimed when
+  the count reaches zero.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Stack discipline.</strong> Operand consumption and result pushing
+    are strictly defined for every opcode.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Reference counting.</strong> Most objects are reclaimed immediately
+    when their last reference disappears.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Frame isolation.</strong> Each call gets its own locals and
+    evaluation stack, preventing cross-call corruption.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Use', 'Avoid']}
+  rows={[
+    [
+      <>Read this article when embedding the VM or debugging runtime behavior.</>,
+      <>Do not implement performance-critical algorithms by hand-tuning bytecode; write native libraries instead.</>
+    ],
+  ]}
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Compiler Pipeline</InlineCode> — how the VM&apos;s input is produced.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Bytecode and OpCodes</InlineCode> — the instruction set executed by the VM.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Event Loop and libuv</InlineCode> — how async work is scheduled around the VM.
+  </Bullet>
+</ul>

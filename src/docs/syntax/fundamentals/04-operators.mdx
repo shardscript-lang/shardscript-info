@@ -35,28 +35,10 @@ groupOrder: 1
 />
 
 <Prose>
-  The precedence table below is taken directly from the parser. Higher numbers bind tighter.
-  Range (<InlineCode>..</InlineCode>, <InlineCode>..&amp;</InlineCode>), null-coalescing
-  (<InlineCode>??</InlineCode>), and the conditional operator (<InlineCode>? :</InlineCode>)
-  are shown for context even though they are covered on other pages.
+  For the complete precedence table, associativity rules, and parser-level details, see the{' '}
+  <InlineCode>operator-precedence</InlineCode> reference page. The tables below focus on operator
+  purpose and type rules.
 </Prose>
-
-<DocsTable
-  headers={['Precedence', 'Operators', 'Notes']}
-  rows={[
-    ['11', <InlineCode>++ -- ! +x -x await</InlineCode>, 'Postfix/prefix increment, decrement, unary plus/minus, logical NOT'],
-    ['10', <InlineCode>^</InlineCode>, 'Exponentiation (not bitwise XOR)'],
-    ['9', <InlineCode>* / %</InlineCode>, 'Multiplication, division, modulo'],
-    ['8', <InlineCode>+ -</InlineCode>, 'Addition and subtraction; + also concatenates strings'],
-    ['7', <InlineCode>&lt;&lt; &gt;&gt; .. ..&amp;</InlineCode>, 'Bit shifts and range operators'],
-    ['6', <InlineCode>&lt; &lt;= &gt; &gt;=</InlineCode>, 'Ordering comparisons'],
-    ['5', <InlineCode>== != is as</InlineCode>, 'Equality and type tests'],
-    ['4', <InlineCode>&amp; and &amp;&amp;</InlineCode>, 'Bitwise AND or logical AND'],
-    ['3', <InlineCode>| or ||</InlineCode>, 'Bitwise OR or logical OR'],
-    ['2', <InlineCode>?? ? :</InlineCode>, 'Null-coalescing and conditional'],
-    ['1', <InlineCode>= += -= *= /= %= ^= &= |=</InlineCode>, 'Assignment and compound assignment'],
-  ]}
-/>
 
 <H2>Parameters / Arguments</H2>
 
@@ -388,7 +370,8 @@ public static func Main() -> void
 />
 
 <Prose>
-  <strong>Precedence, parentheses, and edge cases.</strong>
+  <strong>Precedence, parentheses, and edge cases.</strong> See the{' '}
+  <InlineCode>operator-precedence</InlineCode> page for the full table and associativity rules.
 </Prose>
 
 <CodeBlock
@@ -427,6 +410,13 @@ public static func Main() -> void
 <H2>See also</H2>
 
 <ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>operator-precedence</InlineCode> — the full precedence and associativity table.
+  </Bullet>
+  <Bullet>
+    <InlineCode>implicit-conversions</InlineCode> — how operands are promoted before operators are
+    applied.
+  </Bullet>
   <Bullet>
     <InlineCode>Primitive Types</InlineCode> — the types that operands may have.
   </Bullet>

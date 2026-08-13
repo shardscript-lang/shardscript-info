@@ -375,7 +375,29 @@ public static func Main() -> void
 
     println(p.ReadToEnd());
     println("Exit code: " + p.WaitForExit());
-}`}
+}
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>I/O &amp; Lifecycle</InlineCode> — redirecting stdin, stdout, stderr and managing process lifetime.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Environment</InlineCode> — reading and writing environment variables inherited by child processes.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Console I/O</InlineCode> — <InlineCode>stdio</InlineCode> helpers for printing process output.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The subprocess implementation ships as part of <InlineCode>ShardScript.Framework</InlineCode>. The native
+  binding for <InlineCode>Process</InlineCode>, <InlineCode>ProcessStartInfo</InlineCode>, and related helpers is
+  in <InlineCode>ShardScript.Framework/system/subprocess.shard.cpp</InlineCode>.
+</Prose>`}
   language="csharp"
   filename="process_quoting.shard"
 />

@@ -467,7 +467,35 @@ public static func Main() -> void
     }
 
     ms.Dispose();
-}`}
+}
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>MemoryStream</InlineCode> — seekable in-memory implementation of the stream contracts.
+  </Bullet>
+  <Bullet>
+    <InlineCode>BinaryReader &amp; BinaryWriter</InlineCode> — typed adapters for{" "}
+    <InlineCode>IReadableStream</InlineCode> and <InlineCode>IWritableStream</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>StreamReader &amp; StreamWriter</InlineCode> — text adapters for{" "}
+    <InlineCode>IReadableStream</InlineCode> and <InlineCode>IWritableStream</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <InlineCode>TCP Sockets</InlineCode> — network-backed streams that implement the readable/writable interfaces.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>io</InlineCode> stream interfaces are defined and implemented in{" "}
+  <InlineCode>ShardScript.Framework/system/streams.shard.cpp</InlineCode>. The{" "}
+  <InlineCode>IDisposable</InlineCode> contract is declared alongside other runtime interfaces in the
+  framework registration code.
+</Prose>`}
   language="csharp"
   filename="stream_read_count.shard"
 />

@@ -1,5 +1,6 @@
 ---
 title: Random Number Generation
+type: Reference
 group: SHARD.MATH
 order: 3
 slug: random-number-generation
@@ -48,3 +49,19 @@ public static func Main() -> void
   Every call creates a fresh <InlineCode>std::mt19937</InlineCode> generator. For reproducible
   sequences (e.g., deterministic game seeds), a seedable API is not yet exposed.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Basic Math</InlineCode> — constants and arithmetic helpers on the <InlineCode>Math</InlineCode> class.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>math.random</InlineCode> shard ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for the static <InlineCode>Random</InlineCode>{" "}
+  class is in <InlineCode>ShardScript.Framework/system/math.random.shard.cpp</InlineCode>.
+</Prose>

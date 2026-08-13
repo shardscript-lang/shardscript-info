@@ -1,0 +1,140 @@
+---
+title: Compiler Pipeline
+group: Implementation Details
+order: 1
+slug: compiler-pipeline
+type: Concept
+groupOrder: 4
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The ShardScript compiler transforms source text into a ready-to-run <InlineCode>ApplicationDomain</InlineCode>
+  through a fixed sequence of stages: lexing, parsing, semantic analysis, async lowering, layout, and
+  bytecode emission. Every compile-time error is reported before the program ever reaches the virtual
+  machine.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  A scripting language must balance fast iteration with early error detection. By compiling source ahead of
+  execution, ShardScript catches lexical, syntactic, and type errors before the host runs the program, while
+  still keeping the compiler lightweight enough to embed inside an application.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  The <InlineCode>CompilationContext</InlineCode> owns each stage and threads a{' '}
+  <InlineCode>SemanticModel</InlineCode> — the resolved symbol and type information — through them. The final
+  product is an <InlineCode>ApplicationDomain</InlineCode>: a ready-to-run bundle handed to the host.
+</Prose>
+
+<CodeBlock
+  code={`Source text
+   |
+   v
+1. Lexer            -- tokens
+2. Parser           -- AST  (SyntaxTree)
+3. Semantic model   -- symbols, scopes, bound types   <-- all errors caught here
+4. Async lowering   -- async methods become state machines
+5. Layout           -- field/slot offsets assigned
+6. Emission         -- per-method bytecode + string pool
+   |
+   v
+ApplicationDomain  =  Program image  +  VirtualMachine  +  EventLoop  +  GarbageCollector
+   |
+   v
+7. VM::Run()        -- executes the entry point`}
+  language="text"
+  filename="pipeline.txt"
+/>
+
+<Prose>
+  <strong>Lexer.</strong> The <InlineCode>LexicalAnalyzer</InlineCode> turns source text into a stream of tokens
+  in a <InlineCode>LexicalBuffer</InlineCode>, recognising hexadecimal, binary, and decimal prefixes, backtick
+  digit separators, and SI-style size suffixes.
+</Prose>
+
+<Prose>
+  <strong>Parser.</strong> The <InlineCode>SourceParser</InlineCode> is a hand-written recursive-descent parser
+  that consumes the token stream and builds a <InlineCode>SyntaxTree</InlineCode> of{' '}
+  <InlineCode>CompilationUnit</InlineCode> nodes — at this stage purely syntactic structure, with no meaning
+  yet attached.
+</Prose>
+
+<Prose>
+  <strong>Semantic model.</strong> The semantic analyzer (<InlineCode>Semanter.Analyze</InlineCode>) walks the
+  syntax tree in four ordered passes:
+</Prose>
+
+<DocsTable
+  headers={['Pass', 'Component', 'Responsibility']}
+  rows={[
+    ['1. Declarations', 'DeclarationCollector', 'Register every declared type, method, field, and parameter into the SymbolTable.'],
+    ['2. Type binding', 'TypeBinder', 'Resolve type references (generics, base interfaces) to TypeSymbols.'],
+    ['3. Expression binding', 'ExpressionBinder', 'Bind each expression to its symbol and type; resolve overloads and member access.'],
+    ['4. Validation', 'SemanticValidator', 'Enforce the type rules and emit compile-time diagnostics.'],
+  ]}
+/>
+
+<Prose>
+  <strong>Async lowering.</strong> Before bytecode is emitted, <InlineCode>async</InlineCode> methods are
+  rewritten into compiler-generated state machines so that <InlineCode>await</InlineCode> can suspend and
+  resume without threads.
+</Prose>
+
+<Prose>
+  <strong>Layout and emission.</strong> <InlineCode>LayoutGenerator</InlineCode> assigns concrete offsets, and
+  the emitter produces a flat <InlineCode>ExecutableByteCode</InlineCode> stream plus a shared string pool.
+  The result is wrapped into a <InlineCode>ProgramVirtualImage</InlineCode> together with a fresh VM, event
+  loop, and garbage collector.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Errors are caught before execution.</strong> Lexical, syntax, and
+    type errors are all reported before stage 7 begins.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The semantic model is the source of truth.</strong> All later stages
+    read symbol and type information from the model rather than re-resolving names.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Async is lowered, not interpreted.</strong> State machines are
+    generated once at compile time, making suspension and resumption efficient at runtime.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Use', 'Avoid']}
+  rows={[
+    [
+      <>Study the pipeline when debugging compilation errors or embedding the compiler.</>,
+      <>Do not rely on undocumented stage ordering in external tools; the pipeline may evolve.</>
+    ],
+  ]}
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Bytecode and OpCodes</InlineCode> — the output of the emission stage.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Virtual Machine Internals</InlineCode> — how the compiled image is executed.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Event Loop and libuv</InlineCode> — how async work is scheduled after compilation.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — the high-level view of compiler, VM, and event loop.
+  </Bullet>
+</ul>

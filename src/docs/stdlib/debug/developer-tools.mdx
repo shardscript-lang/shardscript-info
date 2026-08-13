@@ -333,3 +333,24 @@ public static func Main() -> void
   vector and prints one line per live object, which is <InlineCode>O(n)</InlineCode> in the number of
   allocated objects.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>VM Inspection</InlineCode> — disassembling bytecode and dumping runtime frames.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Type Introspection</InlineCode> — runtime type inspection complementary to <InlineCode>typeof</InlineCode>.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.debug</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>typeof</InlineCode>,{" "}
+  <InlineCode>sizeof</InlineCode>, <InlineCode>PrintGcInfo</InlineCode>, and{" "}
+  <InlineCode>PrintStackFrameInfo</InlineCode> is in{" "}
+  <InlineCode>ShardScript.Framework/system/debug.shard.cpp</InlineCode>.
+</Prose>

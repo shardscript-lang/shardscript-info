@@ -1,0 +1,130 @@
+---
+title: Event Loop and libuv
+group: Implementation Details
+order: 4
+slug: event-loop-and-libuv
+type: Concept
+groupOrder: 4
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript concurrency is cooperative and single-threaded. A single <InlineCode>EventLoop</InlineCode> — a
+  thin wrapper around a libuv <InlineCode>uv_loop_t</InlineCode> — multiplexes all in-flight asynchronous work:
+  timers, socket and HTTP I/O, and thread-pool offloads.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  Multi-threaded parallelism is powerful but complicates memory safety and synchronization. ShardScript avoids
+  OS threads in script code by using a single event loop. Async methods suspend on <InlineCode>await</InlineCode>,
+  return control to the loop, and resume when their operation completes, all on the same thread where VM state
+  is safe.
+</Prose>
+
+<H2>How it works</H2>
+
+<Prose>
+  No async operation spawns a dedicated OS thread per task. Instead each registers a handle with the loop and
+  a continuation to run on completion.
+</Prose>
+
+<Prose>
+  <strong>Timers.</strong> <InlineCode>Task.Delay</InlineCode> is the canonical example. In the async shard it
+  calls the native helper <InlineCode>AsyncScope::Delay</InlineCode>, which creates a libuv timer, arms it, and
+  registers a completion callback.
+</Prose>
+
+<CodeBlock
+  code={`// Native helper behind Task.Delay(ms)
+uv_timer_t* timer = new uv_timer_t;
+uv_timer_init(loop, timer);
+
+uv_timer_start(timer, [](uv_timer_t* handle) {
+    // ...complete the task, which resumes the suspended awaiter...
+    // ...then close and free the timer handle...
+}, milliseconds, 0);`}
+  language="cpp"
+  filename="task_delay.cpp"
+/>
+
+<Prose>
+  When the timer fires, the callback completes the task, which resumes the suspended async method.
+</Prose>
+
+<Prose>
+  <strong>Suspending and resuming.</strong> An async method does not block its caller; it suspends at each{' '}
+  <InlineCode>await</InlineCode> and returns control to the loop. Two ways to make progress exist:
+</Prose>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Blocking wait</strong> — <InlineCode>Task.Wait</InlineCode> pumps the
+    loop until the awaited task completes, then reads its result.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Fire-and-forget</strong> — calling an async method without awaiting
+    starts it concurrently. The loop keeps it alive as long as needed.
+  </Bullet>
+</ul>
+
+<Prose>
+  Resumption mirrors suspension. When a libuv callback completes a pending operation, the runtime calls{' '}
+  <InlineCode>ResumeContinuation</InlineCode>: it reads the continuation off the task, finds the state
+  machine&apos;s <InlineCode>MoveNext</InlineCode> method, and invokes it. In-flight tasks are rooted so the
+  collector cannot reclaim them while they are suspended.
+</Prose>
+
+<Prose>
+  <strong>Offloading CPU-bound work.</strong> Because everything shares one thread, long CPU-bound work would
+  starve the loop. <InlineCode>RunOnThreadPool</InlineCode> runs heavy work on a background{' '}
+  <InlineCode>std::thread</InlineCode> and marshals completion back through a libuv{' '}
+  <InlineCode>uv_async_t</InlineCode>, so the resume happens on the single thread where VM state is safe to
+  touch.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Single-threaded concurrency.</strong> All script code runs on one
+    thread; the loop interleaves async operations.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">No data races in script code.</strong> Because there is no shared
+    mutable state between OS threads, race conditions are avoided by design.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">libuv as the backbone.</strong> Timers, sockets, and async handles
+    are all managed by libuv.
+  </Bullet>
+</ul>
+
+<H2>When to use / When not to use</H2>
+
+<DocsTable
+  headers={['Use', 'Avoid']}
+  rows={[
+    [
+      <>Use async/await for I/O-bound and timer-based concurrency.</>,
+      <>Do not use async/await for CPU-bound parallelism; offload heavy work to the thread pool or native libraries.</>
+    ],
+  ]}
+/>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Compiler Pipeline</InlineCode> — how async methods are lowered into state machines.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Virtual Machine Internals</InlineCode> — how the VM executes the state machines resumed by the
+    loop.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — the high-level integration of compiler, VM, and event loop.
+  </Bullet>
+</ul>

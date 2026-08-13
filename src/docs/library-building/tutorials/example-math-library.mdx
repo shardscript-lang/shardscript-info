@@ -1,0 +1,485 @@
+---
+title: 'Example: shard.math'
+group: Tutorials
+order: 2
+slug: example-math-library
+groupOrder: 2
+type: Tutorial
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard.math</InlineCode> native library registers a single static class,
+  <InlineCode>math.Math</InlineCode>, that exposes read-only mathematical constants as properties and
+  wraps standard C math functions as static methods. It is the smallest framework library and the
+  recommended starting point for learning how to author a stateless native shard.
+  <InlineCode>shard.math</InlineCode> is a shared library built from <InlineCode>system/math.shard.cpp</InlineCode>.
+  It exports <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>,
+  registers the <InlineCode>math</InlineCode> namespace, and adds a static <InlineCode>Math</InlineCode> class
+  containing the constants <InlineCode>PI</InlineCode> and <InlineCode>E</InlineCode> plus methods such as
+  <InlineCode>Sin</InlineCode>, <InlineCode>Pow</InlineCode>, and <InlineCode>Sqrt</InlineCode>. Every member
+  uses static linking, so ShardScript code calls them through the type name rather than through an instance.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A native math library is a normal shared library that defines the two required entry points and registers
+  symbols inside <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>. The static class pattern looks like this:
+</Prose>
+
+<CodeBlock
+  code={`SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.math";
+    lib.Description = L"High-performance native math library wrappers";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> mathNamespace(context, L"math");
+
+    mathNamespace.AddClass(L"Math", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> math)
+    {
+        math.AddProperty(L"PI", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddGetter().SetCallback([](const CallState& context)
+            {
+                return context.Collector.FromValue(3.14159265358979323846);
+            });
+
+        math.AddMethod(L"Sin", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::sin(value));
+            });
+    });
+}`}
+  language="cpp"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Method', 'Parameters', 'Returns', 'Description']}
+  rows={[
+    [<InlineCode>AddClass</InlineCode>, <><InlineCode>L"Math"</InlineCode>, <InlineCode>ACS_PUBLIC</InlineCode>, <InlineCode>LINK_STATIC</InlineCode></>, <InlineCode>ClassSymbol*</InlineCode>, 'Registers the static ShardScript-visible class name.'],
+    [<InlineCode>AddProperty</InlineCode>, <><InlineCode>L"PI" / L"E"</InlineCode>, <InlineCode>TYPE_DOUBLE</InlineCode>, <InlineCode>LINK_STATIC</InlineCode>, <InlineCode>ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;PropertySymbol&gt;&amp;</InlineCode>, 'Registers a read-only constant property.'],
+    [<InlineCode>AddMethod</InlineCode>, <><InlineCode>L"Sin" etc.</InlineCode>, <InlineCode>TYPE_DOUBLE</InlineCode>, <InlineCode>LINK_STATIC</InlineCode>, <InlineCode>ACS_PUBLIC</InlineCode></>, <InlineCode>SymbolBuilder&lt;MethodSymbol&gt;&amp;</InlineCode>, 'Registers a static method called as Math.Name(...).'],
+    [<InlineCode>AddParameter</InlineCode>, <><InlineCode>L"value" / L"a" / L"b" etc.</InlineCode>, <InlineCode>TYPE_DOUBLE</InlineCode></>, <InlineCode>SymbolBuilder&lt;MethodSymbol&gt;&amp;</InlineCode>, 'Adds a parameter used for overload resolution.'],
+    [<InlineCode>GetArgs&lt;T...&gt;</InlineCode>, <><InlineCode>T...</InlineCode></>, <InlineCode>std::tuple&lt;T...&gt;</InlineCode>, 'Reads context.Args into C++ primitive types in registration order.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<DocsTable
+  headers={['Member / Call', 'Return type', 'Description']}
+  rows={[
+    [<InlineCode>Math.PI</InlineCode>, <InlineCode>double</InlineCode>, 'The constant pi.'],
+    [<InlineCode>Math.E</InlineCode>, <InlineCode>double</InlineCode>, 'The constant e.'],
+    [<InlineCode>Math.Sin(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::sin(value).'],
+    [<InlineCode>Math.Cos(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::cos(value).'],
+    [<InlineCode>Math.Tan(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::tan(value).'],
+    [<InlineCode>Math.Asin(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::asin(value).'],
+    [<InlineCode>Math.Acos(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::acos(value).'],
+    [<InlineCode>Math.Atan(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::atan(value).'],
+    [<InlineCode>Math.Atan2(y, x)</InlineCode>, <InlineCode>double</InlineCode>, 'std::atan2(y, x).'],
+    [<InlineCode>Math.Pow(base, exponent)</InlineCode>, <InlineCode>double</InlineCode>, 'std::pow(base, exponent).'],
+    [<InlineCode>Math.Sqrt(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::sqrt(value).'],
+    [<InlineCode>Math.Cbrt(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::cbrt(value).'],
+    [<InlineCode>Math.Exp(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::exp(value).'],
+    [<InlineCode>Math.Log(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::log(value).'],
+    [<InlineCode>Math.Log10(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::log10(value).'],
+    [<InlineCode>Math.Abs(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::abs(value).'],
+    [<InlineCode>Math.Ceil(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::ceil(value).'],
+    [<InlineCode>Math.Floor(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::floor(value).'],
+    [<InlineCode>Math.Round(value)</InlineCode>, <InlineCode>double</InlineCode>, 'std::round(value).'],
+    [<InlineCode>Math.Min(a, b)</InlineCode>, <InlineCode>double</InlineCode>, 'std::fmin(a, b).'],
+    [<InlineCode>Math.Max(a, b)</InlineCode>, <InlineCode>double</InlineCode>, 'std::fmax(a, b).'],
+  ]}
+/>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Domain error from the C runtime</strong> — Methods such as
+    <InlineCode>Math.Sqrt</InlineCode> call <InlineCode>std::sqrt</InlineCode> directly. Passing a negative
+    value produces a NaN result rather than a ShardScript exception.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Argument count mismatch</strong> — Calling
+    <InlineCode>Math.Pow(2.0)</InlineCode> with one argument fails semantic overload resolution because the
+    method is registered with two <InlineCode>TYPE_DOUBLE</InlineCode> parameters.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Type mismatch</strong> — Passing an <InlineCode>int</InlineCode> to
+    <InlineCode>Math.Sin</InlineCode> is rejected at compile time unless an implicit conversion to
+    <InlineCode>double</InlineCode> exists.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Static member called on an instance</strong> — Because
+    <InlineCode>Math</InlineCode> is registered with <InlineCode>LINK_STATIC</InlineCode>, constructing an
+    instance with <InlineCode>new Math()</InlineCode> is invalid.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing callback</strong> — Forgetting
+    <InlineCode>.SetCallback(...)</InlineCode> on a property getter or method registers the symbol but never
+    runs native code when invoked.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Callout tone="blue" title="Native library shape">
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode> on Windows, <InlineCode>.so</InlineCode> on Linux, <InlineCode>.dylib</InlineCode> on macOS) that exports the two C-linkage symbols <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be built from one or many C++ source files, live inside <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project, and links against the ShardScript runtime shared library using headers from <InlineCode>ShardScript/include</InlineCode>. For the full registration contract, see <InlineCode>native-library-overview.mdx</InlineCode>.
+</Callout>
+
+<Prose>
+  <strong>Static class registration.</strong> The class itself is registered with
+  <InlineCode>LINK_STATIC</InlineCode>. This tells the semantic model that the type has no instance layout and
+  that every member is reached through the type name. Static classes are the right shape for stateless utility
+  libraries such as math, constants, or pure functions.
+</Prose>
+
+<Prose>
+  <strong>Read-only constants as properties.</strong> <InlineCode>PI</InlineCode> and <InlineCode>E</InlineCode>
+  are registered with <InlineCode>AddProperty</InlineCode> and a getter callback, not as fields. Properties with
+  only a getter are read-only from ShardScript and prevent callers from mutating the constant.
+</Prose>
+
+<Prose>
+  <strong>The GetArgs helper.</strong> The <InlineCode>GetArgs&lt;T...&gt;</InlineCode> convenience helper reads
+  <InlineCode>context.Args</InlineCode> from index zero in order and converts each argument to the requested C++
+  primitive type. For a static method, index zero is the first real parameter; for an instance method it would
+  be <InlineCode>this</InlineCode>.
+</Prose>
+
+<Callout tone="amber" title="Structured bindings and implicit typing">
+  The <InlineCode>auto [value] = GetArgs&lt;T&gt;(context);</InlineCode> syntax uses C++ structured bindings, which require <InlineCode>auto</InlineCode>. This is an intentional exception to the explicit-typing rule used elsewhere in native library code.
+</Callout>
+
+<Prose>
+  <strong>Returning values.</strong> Every callback boxes its result through
+  <InlineCode>context.Collector.FromValue(...)</InlineCode>. The collector owns the returned object, so the
+  callback does not free it. Properties and methods that produce <InlineCode>void</InlineCode> return
+  <InlineCode>nullptr</InlineCode>.
+</Prose>
+
+<Callout tone="blue">
+  Keep utility libraries stateless. If you find yourself adding instance fields to a math class, consider
+  whether the feature belongs in a separate type with <InlineCode>LINK_INSTANCE</InlineCode> instead.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Complete library source.</strong> This is the framework implementation of
+  <InlineCode>system/math.shard.cpp</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+#include <cmath>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name = L"shard.math";
+    lib.Description = L"High-performance native math library wrappers";
+    lib.Version = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> mathNamespace(context, L"math");
+
+    mathNamespace.AddClass(L"Math", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> math)
+    {
+        math.AddProperty(L"PI", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddGetter().SetCallback([](const CallState& context)
+            {
+                return context.Collector.FromValue(3.14159265358979323846);
+            });
+
+        math.AddProperty(L"E", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddGetter().SetCallback([](const CallState& context)
+            {
+                return context.Collector.FromValue(2.71828182845904523536);
+            });
+
+        math.AddMethod(L"Sin", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::sin(value));
+            });
+
+        math.AddMethod(L"Cos", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::cos(value));
+            });
+
+        math.AddMethod(L"Tan", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::tan(value));
+            });
+
+        math.AddMethod(L"Asin", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::asin(value));
+            });
+
+        math.AddMethod(L"Acos", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::acos(value));
+            });
+
+        math.AddMethod(L"Atan", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::atan(value));
+            });
+
+        math.AddMethod(L"Atan2", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"y", TYPE_DOUBLE)
+            .AddParameter(L"x", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [y, x] = GetArgs<double, double>(context);
+                return context.Collector.FromValue(std::atan2(y, x));
+            });
+
+        math.AddMethod(L"Pow", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"base", TYPE_DOUBLE)
+            .AddParameter(L"exponent", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [base, exponent] = GetArgs<double, double>(context);
+                return context.Collector.FromValue(std::pow(base, exponent));
+            });
+
+        math.AddMethod(L"Sqrt", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::sqrt(value));
+            });
+
+        math.AddMethod(L"Cbrt", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::cbrt(value));
+            });
+
+        math.AddMethod(L"Exp", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::exp(value));
+            });
+
+        math.AddMethod(L"Log", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::log(value));
+            });
+
+        math.AddMethod(L"Log10", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::log10(value));
+            });
+
+        math.AddMethod(L"Abs", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::abs(value));
+            });
+
+        math.AddMethod(L"Ceil", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::ceil(value));
+            });
+
+        math.AddMethod(L"Floor", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::floor(value));
+            });
+
+        math.AddMethod(L"Round", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"value", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [value] = GetArgs<double>(context);
+                return context.Collector.FromValue(std::round(value));
+            });
+
+        math.AddMethod(L"Min", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"a", TYPE_DOUBLE)
+            .AddParameter(L"b", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [a, b] = GetArgs<double, double>(context);
+                return context.Collector.FromValue(std::fmin(a, b));
+            });
+
+        math.AddMethod(L"Max", TYPE_DOUBLE, LINK_STATIC, ACS_PUBLIC)
+            .AddParameter(L"a", TYPE_DOUBLE)
+            .AddParameter(L"b", TYPE_DOUBLE)
+            .SetCallback([](const CallState& context)
+            {
+                auto [a, b] = GetArgs<double, double>(context);
+                return context.Collector.FromValue(std::fmax(a, b));
+            });
+    });
+}`}
+  language="cpp"
+  filename="math.shard.cpp"
+/>
+
+<Prose>
+  <strong>Build it as a standalone shared library.</strong> The file can be compiled outside the framework tree
+  with a normal CMake shared-library target.
+</Prose>
+
+<CodeBlock
+  code={`cmake_minimum_required(VERSION 3.20)
+project(shard.math CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Path to the ShardScript checkout or installation prefix.
+set(SHARDSCRIPT_ROOT "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript"
+    CACHE PATH "Root of the ShardScript repository or install prefix")
+
+find_library(SHARDSCRIPT_LIB
+    NAMES ShardScript libShardScript
+    PATHS "\${SHARDSCRIPT_ROOT}/build/bin" "\${SHARDSCRIPT_ROOT}/lib"
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+add_library(math SHARED math.shard.cpp)
+
+set_target_properties(math PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
+
+target_include_directories(math PRIVATE "\${SHARDSCRIPT_ROOT}/ShardScript/include")
+target_link_libraries(math PRIVATE \${SHARDSCRIPT_LIB})`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<CodeBlock
+  code={`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel`}
+  language="bash"
+/>
+
+<Prose>
+  <strong>ShardScript usage.</strong> Import the <InlineCode>math</InlineCode> namespace and call
+  <InlineCode>Math</InlineCode> members through the type name.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using math;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    radius: double = 5.0;
+    area: double = Math.PI * Math.Pow(radius, 2.0);
+    println("Area: " + area);
+
+    hypotenuse: double = Math.Sqrt(Math.Pow(3.0, 2.0) + Math.Pow(4.0, 2.0));
+    println("Hypotenuse: " + hypotenuse);
+
+    smaller: double = Math.Min(10.0, 3.0);
+    println("Min: " + smaller);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<Prose>
+  Run the program and load the shared library by path.
+</Prose>
+
+<CodeBlock
+  code={`# Windows
+shard app.shard -l build/math.dll
+
+# Linux
+shard app.shard -l build/libmath.so
+
+# macOS
+shard app.shard -l build/libmath.dylib`}
+  language="bash"
+/>
+
+<Callout tone="green" title="Expected output">
+  The program prints the calculated area, hypotenuse, and minimum value. Because the library is stateless, the
+  order of calls does not matter and repeated calls produce the same result for the same inputs.
+</Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/your-first-shard-cpp-library</InlineCode> — tutorial for building a first native library.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/native-callback-helpers</InlineCode> — helper functions for common argument and return patterns.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/design-best-practices</InlineCode> — design guidelines for native libraries.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The example implementation lives in <InlineCode>ShardScript.Framework/system/math.shard.cpp</InlineCode>.
+  View the source on GitHub: <InlineCode>https://github.com/Rikitav/ShardScript/blob/main/ShardScript.Framework/system/math.shard.cpp</InlineCode>.
+</Prose>

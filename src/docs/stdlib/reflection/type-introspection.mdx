@@ -445,3 +445,27 @@ public static func Main() -> void
   language="csharp"
   filename="type_null.shard"
 />
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>IEnumerable &amp; IEnumerator</InlineCode> — the iteration contract surfaced by reflected types.
+  </Bullet>
+  <Bullet>
+    <InlineCode>List&lt;T&gt;</InlineCode> — a generic collection whose members are visible through reflection.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Dictionary&lt;K, V&gt;</InlineCode> — a generic collection whose members are visible through reflection.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard.reflection</InlineCode> implementation ships as part of{" "}
+  <InlineCode>ShardScript.Framework</InlineCode>. The native binding for <InlineCode>Type</InlineCode>,{" "}
+  <InlineCode>MethodInfo</InlineCode>, <InlineCode>FieldInfo</InlineCode>, <InlineCode>PropertyInfo</InlineCode>,{" "}
+  and <InlineCode>ParameterInfo</InlineCode> is in{" "}
+  <InlineCode>ShardScript.Framework/system/reflection.shard.cpp</InlineCode>.
+</Prose>

@@ -1,0 +1,407 @@
+---
+title: Inter-Library Dependencies
+group: How-To Guides
+order: 9
+slug: inter-library-dependencies
+groupOrder: 3
+type: How-To
+---
+
+<Prose>
+  A ShardScript native library is any shared library (<InlineCode>.dll</InlineCode>,{' '}
+  <InlineCode>.so</InlineCode>, or <InlineCode>.dylib</InlineCode>) that exports the two C-linkage symbols
+  <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. It can be
+  built from one C++ source file or many, and it can live inside{' '}
+  <InlineCode>ShardScript.Framework</InlineCode> or in a completely separate project. This guide shows how
+  a standalone library declares that it needs symbols from another native library, and how to look those
+  symbols up lazily so the loader order does not introduce crashes.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working C++20 toolchain, CMake 3.20 or later, and a built ShardScript runtime shared library with
+    headers in <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    A library you depend on is already built and loadable. This guide uses{' '}
+    <InlineCode>shard.collections</InlineCode> as the dependency.
+  </Bullet>
+  <Bullet>
+    Familiarity with <InlineCode>SHARDLIB_GETMETADATA</InlineCode>,{' '}
+    <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode>, and the <InlineCode>SymbolBuilder&lt;T&gt;</InlineCode>{' '}
+    registration API.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Build a standalone native library named <InlineCode>shard.textutils</InlineCode> that depends on{' '}
+  <InlineCode>shard.collections</InlineCode>. The library will register a static method that returns a new{' '}
+  <InlineCode>List&lt;string&gt;</InlineCode> and another method that checks whether an object is a{' '}
+  <InlineCode>collections.List</InlineCode> at runtime. The dependency is declared in metadata, and the
+  cross-library type is resolved lazily through an <InlineCode>EnsureSymbols</InlineCode> helper.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create the project layout.</strong>
+</Prose>
+
+<Prose>
+  Place the library in its own directory. A single source file is enough for this example, but the same
+  patterns work when the code is split across multiple files.
+</Prose>
+
+<DocsTable
+  headers={['Path', 'Purpose']}
+  rows={[
+    ['textutils/CMakeLists.txt', 'Build script that produces the shared library.'],
+    ['textutils/textutils.cpp', 'Metadata, symbol registration, and callback bodies.'],
+    ['textutils/app.shard', 'ShardScript program that consumes the library.'],
+  ]}
+/>
+
+<Prose>
+  <strong>2. Declare the dependency in <InlineCode>SHARDLIB_GETMETADATA</InlineCode>.</strong>
+</Prose>
+
+<Prose>
+  Fill a <InlineCode>shard::ShardLibDependencyInfo</InlineCode> array and assign it to{' '}
+  <InlineCode>lib.Dependencies</InlineCode>. The runtime loader uses this list to enforce load order before
+  your entry point runs. Version strings can be exact versions or use common semver prefixes such as{' '}
+  <InlineCode>^</InlineCode> and <InlineCode>&gt;=</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.textutils";
+    lib.Description = L"Text helpers that reuse collections";
+    lib.Version     = L"1.0.0";
+
+    static const shard::ShardLibDependencyInfo deps[] =
+    {
+        { L"shard.collections", L"0.3.0" },
+        { L"shard.streams",     L"^0.2.0" }
+    };
+
+    lib.Dependencies = deps;
+    lib.DependenciesLength = sizeof(deps) / sizeof(deps[0]);
+}`}
+  language="cpp"
+  filename="textutils.cpp"
+/>
+
+<Callout tone="red" title="Avoid eager static initialization">
+  Do not assign cross-library symbol pointers during static initialization. The load order between libraries
+  is not guaranteed, so the other library&apos;s types may not exist when your static constructors run.
+</Callout>
+
+<CodeBlock
+  code={`// BAD: this pointer may be null or point to an incomplete symbol table.
+static ClassSymbol* g_listClass =
+    SemanticModel::FindTypeByName(nullptr, L"collections.List");
+
+// GOOD: leave the pointer null and resolve it later inside EnsureSymbols.
+static ClassSymbol* g_listClass = nullptr;`}
+  language="cpp"
+/>
+
+<Prose>
+  <strong>3. Register your own symbols.</strong>
+</Prose>
+
+<Prose>
+  Use <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> to create the <InlineCode>textutils</InlineCode>{' '}
+  namespace and register the static class. The callbacks are defined in the same file in this example, but
+  they can just as easily live in a separate translation unit.
+</Prose>
+
+<CodeBlock
+  code={`// Forward declarations for the callbacks defined later in the file.
+static ObjectInstance* TextUtils_CreateStringList(const CallState& context);
+static ObjectInstance* TextUtils_IsList(const CallState& context);
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> textutils(context, L"textutils");
+
+    textutils.AddClass(L"TextUtils", ACS_PUBLIC, LINK_STATIC, [](SymbolBuilder<ClassSymbol> type)
+    {
+        type.AddMethod(L"CreateStringList", TYPE_ANY, LINK_STATIC)
+            .SetCallback(&TextUtils_CreateStringList);
+
+        type.AddMethod(L"IsList", TYPE_BOOL, LINK_STATIC)
+            .AddParameter(L"value", TYPE_ANY)
+            .SetCallback(&TextUtils_IsList);
+    });
+}`}
+  language="cpp"
+  filename="textutils.cpp"
+/>
+
+<Prose>
+  <strong>4. Add a lazy lookup helper.</strong>
+</Prose>
+
+<Prose>
+  Store the looked-up symbol in a static pointer and resolve it on first use. The helper takes a{' '}
+  <InlineCode>SymbolTable*</InlineCode> from the current call context, so it works regardless of which
+  library finished loading first.
+</Prose>
+
+<CodeBlock
+  code={`static ClassSymbol* g_listClass = nullptr;
+
+static void EnsureSymbols(SymbolTable* table)
+{
+    if (g_listClass != nullptr)
+    {
+        return;
+    }
+
+    TypeSymbol* listType = SemanticModel::FindTypeByName(table, L"collections.List");
+    if (listType == nullptr)
+    {
+        return;
+    }
+
+    g_listClass = dynamic_cast<ClassSymbol*>(listType);
+}`}
+  language="cpp"
+  filename="textutils.cpp"
+/>
+
+<Prose>
+  <strong>5. Use the looked-up type in callbacks.</strong>
+</Prose>
+
+<Prose>
+  Call <InlineCode>EnsureSymbols</InlineCode> at the start of every callback that needs the symbol. If the
+  dependency is missing, fail gracefully instead of dereferencing a null pointer. The first callback
+  allocates a generic <InlineCode>List&lt;string&gt;</InlineCode> instance; the second checks the runtime
+  type of an arbitrary object.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* TextUtils_CreateStringList(const CallState& context)
+{
+    EnsureSymbols(context.GetSemanticModel().Table.get());
+
+    if (g_listClass == nullptr)
+    {
+        // collections.List is not available; return null so the caller can react.
+        return GarbageCollector::NullInstance;
+    }
+
+    // AllocateGeneric constructs List<string> from the raw List<T> definition.
+    return context.Collector.AllocateGeneric(g_listClass, { TYPE_STRING });
+}
+
+static ObjectInstance* TextUtils_IsList(const CallState& context)
+{
+    EnsureSymbols(context.GetSemanticModel().Table.get());
+
+    ObjectInstance* value = context.Args[0];
+    if (value == nullptr || value == GarbageCollector::NullInstance)
+    {
+        return context.Collector.FromValue(false);
+    }
+
+    // For generic instances, getInfo() returns the raw generic definition.
+    ClassSymbol* runtimeType = value->getInfo();
+    bool isList = (runtimeType != nullptr && runtimeType == g_listClass);
+
+    return context.Collector.FromValue(isList);
+}`}
+  language="cpp"
+  filename="textutils.cpp"
+/>
+
+<Prose>
+  <strong>6. Write the build script.</strong>
+</Prose>
+
+<Prose>
+  The CMake target is a normal shared library. It links against the ShardScript runtime shared library and
+  points the include path at <InlineCode>ShardScript/include</InlineCode>. Because this library depends on
+  <InlineCode>shard.collections</InlineCode>, both shared libraries must be loaded at runtime.
+</Prose>
+
+<CodeBlock
+  code={`cmake_minimum_required(VERSION 3.20)
+project(TextUtils CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(SHARDSCRIPT_ROOT "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript"
+    CACHE PATH "Root of the ShardScript repository or install prefix")
+
+find_library(SHARDSCRIPT_LIB
+    NAMES ShardScript libShardScript
+    PATHS
+        "\${SHARDSCRIPT_ROOT}/build/bin"
+        "\${SHARDSCRIPT_ROOT}/build/bin/Release"
+        "\${SHARDSCRIPT_ROOT}/lib"
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+add_library(textutils SHARED textutils.cpp)
+
+set_target_properties(textutils PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+    RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+    LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+)
+
+target_include_directories(textutils PRIVATE "\${SHARDSCRIPT_ROOT}/ShardScript/include")
+target_link_libraries(textutils PRIVATE \${SHARDSCRIPT_LIB})`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<Prose>
+  <strong>7. Build and load both libraries.</strong>
+</Prose>
+
+<Prose>
+  Configure and build the project, then run the ShardScript interpreter with both the dependency and your
+  library on the command line. The order of <InlineCode>-l</InlineCode> flags does not matter because the
+  metadata dependency declaration tells the loader the correct order.
+</Prose>
+
+<CodeBlock
+  code={`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel`}
+  language="bash"
+/>
+
+<CodeBlock
+  code={`using stdio;
+using textutils;
+using collections;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    list: List<string> = TextUtils.CreateStringList();
+    list.Add("hello");
+    list.Add("world");
+
+    println("length: " + list.Length);
+    println("is list: " + TextUtils.IsList(list));
+    println("is list: " + TextUtils.IsList("not a list"));
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<CodeBlock
+  code={`# Windows
+shard app.shard -l path/to/collections.dll -l build/bin/textutils.dll
+
+# Linux
+shard app.shard -l path/to/libcollections.so -l build/bin/libtextutils.so
+
+# macOS
+shard app.shard -l path/to/libcollections.dylib -l build/bin/libtextutils.dylib`}
+  language="bash"
+/>
+
+<H2>Verification</H2>
+
+<Prose>
+  Confirm that both shared libraries are found in their expected output directories.
+</Prose>
+
+<CodeBlock
+  code={`# Windows
+ls path/to/collections.dll
+ls build/bin/textutils.dll
+
+# Linux
+ls path/to/libcollections.so
+ls build/bin/libtextutils.so`}
+  language="bash"
+/>
+
+<Prose>
+  Run the ShardScript program. If the dependency declaration and lazy lookup are correct, the output should
+  show that the list was created, populated, and identified as a list:
+</Prose>
+
+<Prose>
+  <InlineCode>length: 2</InlineCode>
+  <br />
+  <InlineCode>is list: True</InlineCode>
+  <br />
+  <InlineCode>is list: False</InlineCode>
+</Prose>
+
+<Callout tone="green" title="Success criteria">
+  The program prints the list length and correctly distinguishes a <InlineCode>List&lt;string&gt;</InlineCode>
+  instance from a plain string. If <InlineCode>TextUtils.CreateStringList</InlineCode> returned null, the
+  dependency was not loaded or the symbol lookup failed.
+</Callout>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">The callback receives a null symbol pointer.</strong> Make sure
+    every callback that needs the symbol calls <InlineCode>EnsureSymbols</InlineCode> before using the cached
+    pointer. Do not access the pointer from a static constructor or from{' '}
+    <InlineCode>SHARDLIB_ENTRYPOINT</InlineCode> before the dependency&apos;s entry point has run.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The lookup returns null even though the dependency is loaded.</strong>
+    Check the fully qualified name passed to <InlineCode>SemanticModel::FindTypeByName</InlineCode>. For
+    <InlineCode>collections.List</InlineCode>, the namespace is <InlineCode>collections</InlineCode> and the
+    type name is <InlineCode>List</InlineCode>. Generic type arguments are not part of the lookup name.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The loader reports a missing dependency.</strong> Verify that the
+    dependency is listed in <InlineCode>lib.Dependencies</InlineCode> and that the version string matches a
+    loaded library. If the dependency is optional, do not list it in metadata; instead, handle a null lookup
+    gracefully at runtime.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The program crashes during module load.</strong> Look for global
+    constructors or non-trivial static initializers that touch ShardScript symbols before all entry points
+    have run. Move that work into <InlineCode>EnsureSymbols</InlineCode> or into the callback body.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Generic allocation fails.</strong> When calling{' '}
+    <InlineCode>AllocateGeneric</InlineCode>, pass the raw generic class symbol and the concrete type
+    arguments in the same order as the type parameters were registered. Do not pass a constructed generic
+    type symbol.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/reflection-style-lookups</InlineCode> — reflection-style symbol lookups.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/generic-types-and-type-parameters</InlineCode> — generic type construction across libraries.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/library-build-setup</InlineCode> — declaring dependencies in CMake and metadata.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/design-best-practices</InlineCode> — design guidelines.
+  </Bullet>
+</ul>

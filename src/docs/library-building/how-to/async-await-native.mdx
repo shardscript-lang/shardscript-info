@@ -1,0 +1,439 @@
+---
+title: Async / Await in Native Libraries
+group: How-To Guides
+order: 11
+slug: async-await-native
+groupOrder: 3
+type: How-To
+---
+
+<Prose>
+  ShardScript&apos;s <InlineCode>async</InlineCode> and <InlineCode>await</InlineCode> keywords work on any object
+  that exposes the async-state trait, including objects built by native C++ libraries. The runtime provides
+  helpers in <InlineCode>shard/runtime/NativeAsync.hpp</InlineCode> so a native library can produce
+  <InlineCode>async.Task</InlineCode> and <InlineCode>async.ValueTask&lt;T&gt;</InlineCode> without writing a
+  state machine by hand. This guide shows how to use <InlineCode>DoAsync</InlineCode>,{' '}
+  <InlineCode>DoValueTask</InlineCode>, the completed and faulted shortcuts, and the event-loop rules that keep
+  the VM safe.
+</Prose>
+
+<H2>Prerequisites</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    A working native-library project that links against the ShardScript runtime shared library and includes{' '}
+    <InlineCode>ShardScript/include</InlineCode>.
+  </Bullet>
+  <Bullet>
+    The async helper header <InlineCode>&lt;shard/runtime/NativeAsync.hpp&gt;</InlineCode> (included transitively
+    by <InlineCode>&lt;ShardScript.hpp&gt;</InlineCode>).
+  </Bullet>
+  <Bullet>
+    Familiarity with the callback contract described in{' '}
+    <InlineCode>library-building/native-library-overview</InlineCode>: every native callback receives a{' '}
+    <InlineCode>CallState&amp;</InlineCode> and returns an <InlineCode>ObjectInstance*</InlineCode>.
+  </Bullet>
+  <Bullet>
+    A ShardScript interpreter that loads your shared library with the <InlineCode>-l</InlineCode> flag.
+  </Bullet>
+</ul>
+
+<H2>Goal</H2>
+
+<Prose>
+  Expose native methods that return awaitable tasks from a C++ shared library. The consumer code in ShardScript
+  should be able to call the methods with <InlineCode>await</InlineCode> exactly as if they were written in the
+  language.
+</Prose>
+
+<H2>Step-by-Step Instructions</H2>
+
+<Prose>
+  <strong>1. Create the library skeleton.</strong>
+</Prose>
+
+<Prose>
+  Include the umbrella header and the library macros, then export the two required C-linkage entry points. The
+  example below registers a namespace called <InlineCode>native_async</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`#include <ShardScript.hpp>
+
+using namespace shard;
+
+SHARDLIB_GETMETADATA
+{
+    lib.Name        = L"shard.nativeasync";
+    lib.Description = L"Native async/await helpers";
+    lib.Version     = L"1.0.0";
+}
+
+SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"native_async");
+
+    // Register methods here as the steps progress.
+    (void)ns;
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Prose>
+  <strong>2. Return a plain <InlineCode>async.Task</InlineCode> with <InlineCode>DoAsync</InlineCode>.</strong>
+</Prose>
+
+<Prose>
+  <InlineCode>shard::DoAsync</InlineCode> creates a pending <InlineCode>async.Task</InlineCode>, passes an
+  <InlineCode>AsyncScope</InlineCode> to your work lambda, and returns the task object. Call{' '}
+  <InlineCode>async.Complete()</InlineCode> when the operation finishes, or <InlineCode>async.Fail(...)</InlineCode>{' '}
+  when it errors.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* NativeAsync_Delay(const CallState& context) noexcept
+{
+    std::int64_t milliseconds = context.Args[0]->AsInteger();
+
+    return shard::DoAsync(context, [milliseconds](shard::AsyncScope async)
+    {
+        async.Delay(milliseconds, [async]() mutable
+        {
+            async.Complete();
+        });
+    });
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<CodeBlock
+  code={`SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"native_async");
+
+    ns.AddMethod(L"Delay", CLASS_TASK, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"milliseconds", TYPE_INT)
+        .SetCallback(&NativeAsync_Delay);
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Prose>
+  <strong>3. Return a valued task with <InlineCode>DoValueTask</InlineCode>.</strong>
+</Prose>
+
+<Prose>
+  <InlineCode>shard::DoValueTask&lt;T&gt;</InlineCode> produces an{' '}
+  <InlineCode>async.ValueTask&lt;T&gt;</InlineCode>. Register the method with the generic return type built from
+  <InlineCode>CLASS_VALUETASK</InlineCode> and a <InlineCode>SymbolFactory</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* NativeAsync_ReadNumberAsync(const CallState& context) noexcept
+{
+    std::int64_t value = context.Args[0]->AsInteger();
+    std::int64_t delayMs = context.Args[1]->AsInteger();
+
+    return shard::DoValueTask<std::int64_t>(context, [value, delayMs](shard::AsyncValueScope<std::int64_t> async)
+    {
+        async.Delay(delayMs, [async, value]() mutable
+        {
+            async.Complete(value);
+        });
+    });
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<CodeBlock
+  code={`SHARDLIB_ENTRYPOINT
+{
+    SymbolBuilder<NamespaceSymbol> ns(context, L"native_async");
+    SymbolFactory factory(context.GetSemanticModel().Table.get());
+
+    GenericTypeSymbol* valueTaskOfInt = factory.GenericType(CLASS_VALUETASK, { { L"T", TYPE_INT } });
+
+    ns.AddMethod(L"ReadNumberAsync", valueTaskOfInt, LINK_STATIC, ACS_PUBLIC)
+        .AddParameter(L"value", TYPE_INT)
+        .AddParameter(L"delayMs", TYPE_INT)
+        .SetCallback(&NativeAsync_ReadNumberAsync);
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Prose>
+  <strong>4. Use completed and faulted shortcuts for synchronous outcomes.</strong>
+</Prose>
+
+<Prose>
+  When the result is already known, avoid scheduling a callback. Return a task that is already in the completed
+  or faulted state.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* NativeAsync_AlreadyDone(const CallState& context) noexcept
+{
+    (void)context;
+    return shard::CompletedTask(context);
+}
+
+static ObjectInstance* NativeAsync_AlwaysFails(const CallState& context) noexcept
+{
+    return shard::FaultedTask(context, L"native async fault");
+}
+
+static ObjectInstance* NativeAsync_AlreadyHasValue(const CallState& context) noexcept
+{
+    (void)context;
+    return shard::CompletedValueTask<std::int64_t>(context, 42);
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Prose>
+  <strong>5. Move blocking work off the event-loop thread.</strong>
+</Prose>
+
+<Prose>
+  The VM runs async continuations on the <InlineCode>ApplicationDomain</InlineCode>&apos;s event-loop thread.
+  Never block that thread with synchronous I/O or heavy computation. Use{' '}
+  <InlineCode>async.RunOnThreadPool</InlineCode> to run work on a pool thread and marshal the callback back to
+  the loop thread.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* NativeAsync_ComputeOffLoop(const CallState& context) noexcept
+{
+    std::int64_t input = context.Args[0]->AsInteger();
+
+    return shard::DoValueTask<std::int64_t>(context, [input](shard::AsyncValueScope<std::int64_t> async)
+    {
+        async.RunOnThreadPool(
+            [input]()
+            {
+                // Heavy work happens on a thread-pool thread, not the event loop.
+                (void)input;
+            },
+            [async, input]() mutable
+            {
+                // This callback runs on the event-loop thread, so it is safe to complete the task.
+                async.Complete(input * input);
+            });
+    });
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Callout tone="blue">
+  Always complete or fault tasks on the owning <InlineCode>ApplicationDomain</InlineCode>&apos;s event-loop
+  thread. Calling <InlineCode>Complete</InlineCode>, <InlineCode>Fail</InlineCode>, or{' '}
+  <InlineCode>ResumeContinuation</InlineCode> from a raw worker thread without marshalling can corrupt VM state.
+</Callout>
+
+<Prose>
+  <strong>6. Manipulate tasks manually when the helpers are not enough.</strong>
+</Prose>
+
+<Prose>
+  For operations with complex lifecycles, allocate a <InlineCode>ValueTask&lt;T&gt;</InlineCode> directly, set
+  its state fields, store the result, and resume awaiters with{' '}
+  <InlineCode>ResumeContinuation</InlineCode>.
+</Prose>
+
+<CodeBlock
+  code={`static ObjectInstance* NativeAsync_ManualValueTask(const CallState& context) noexcept
+{
+    ObjectInstance* task = context.Collector.AllocateGeneric(CLASS_VALUETASK, { TYPE_INT });
+
+    // Start in the pending state so awaiters register a continuation.
+    SetTaskState(task, CLASS_VALUETASK_StateField, AsyncState::PENDING, context.Collector);
+
+    // Schedule completion later; in real code this would come from an OS callback or thread-pool result.
+    shard::AsyncScope placeholder;
+    placeholder.Delay(100, [task]() mutable
+    {
+        (void)task;
+        // On the event-loop thread, promote to completed and resume awaiters.
+        // SetTaskState(task, CLASS_VALUETASK_StateField, AsyncState::COMPLETED, gc);
+        // task->SetField(CLASS_VALUETASK_ResultField->SlotIndex, result);
+        // ResumeContinuation(task, CLASS_VALUETASK_ContinuationField, TRAIT_ASYNCSTATE_MoveNext, domain);
+    });
+
+    return task;
+}`}
+  language="cpp"
+  filename="native_async.cpp"
+/>
+
+<Callout tone="amber">
+  Manual task state changes must happen on the event-loop thread and must use a stable GC reference for the
+  task. Pin any borrowed arguments with <InlineCode>ObjectRef</InlineCode> if they outlive the synchronous
+  callback.
+</Callout>
+
+<H2>Verification</H2>
+
+<Prose>
+  Build the shared library with a normal CMake target. The example below assumes the ShardScript runtime library
+  and headers are next to the project directory; adjust <InlineCode>SHARDSCRIPT_ROOT</InlineCode> to match your
+  layout.
+</Prose>
+
+<CodeBlock
+  code={`cmake_minimum_required(VERSION 3.20)
+project(NativeAsync CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(SHARDSCRIPT_ROOT "\${CMAKE_CURRENT_SOURCE_DIR}/../ShardScript"
+    CACHE PATH "Root of the ShardScript repository or install prefix")
+
+find_library(SHARDSCRIPT_LIB
+    NAMES ShardScript libShardScript
+    PATHS
+        "\${SHARDSCRIPT_ROOT}/build/bin"
+        "\${SHARDSCRIPT_ROOT}/build/bin/Release"
+        "\${SHARDSCRIPT_ROOT}/lib"
+    NO_DEFAULT_PATH
+    REQUIRED
+)
+
+add_library(native_async SHARED native_async.cpp)
+
+set_target_properties(native_async PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
+    RUNTIME_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+    LIBRARY_OUTPUT_DIRECTORY "\${CMAKE_BINARY_DIR}/bin"
+)
+
+target_include_directories(native_async PRIVATE "\${SHARDSCRIPT_ROOT}/ShardScript/include")
+target_link_libraries(native_async PRIVATE \${SHARDSCRIPT_LIB})`}
+  language="cmake"
+  filename="CMakeLists.txt"
+/>
+
+<CodeBlock
+  code={`# Configure and build.
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target native_async
+
+# Confirm the shared library was produced.
+ls build/bin/native_async.dll   # Windows
+ls build/bin/libnative_async.so # Linux`}
+  language="bash"
+/>
+
+<Prose>
+  Write a ShardScript program that awaits the native methods.
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using native_async;
+
+namespace demo;
+
+public static async func Main() -> void
+{
+    await native_async.Delay(100);
+
+    value: int = await native_async.ReadNumberAsync(7, 50);
+    println("value: " + value);
+
+    try
+    {
+        await native_async.AlwaysFails();
+    }
+    catch (e: Exception)
+    {
+        println("caught expected fault");
+    }
+
+    squared: int = await native_async.ComputeOffLoop(12);
+    println("squared: " + squared);
+}`}
+  language="csharp"
+  filename="app.shard"
+/>
+
+<CodeBlock
+  code={`# On Windows.
+shard app.shard -l build/bin/native_async.dll
+
+# On Linux.
+shard app.shard -l build/bin/libnative_async.so
+
+# On macOS.
+shard app.shard -l build/bin/libnative_async.dylib`}
+  language="bash"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`value: 7
+caught expected fault
+squared: 144`}
+  language="bash"
+/>
+
+<H2>Troubleshooting</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">The VM crashes after the async callback fires.</strong> Verify that
+    the callback that completes or faults the task is running on the same{' '}
+    <InlineCode>ApplicationDomain</InlineCode>&apos;s event-loop thread. If the work started on a thread-pool
+    thread, use <InlineCode>RunOnThreadPool</InlineCode>&apos;s second lambda to marshal the completion back.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">A borrowed object is collected before the async operation finishes.</strong>{' '}
+    Pin it with <InlineCode>ObjectRef</InlineCode> before handing it to a thread-pool lambda or a libuv handle.
+    The scope keeps the object alive until the reference is released.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The compiler cannot resolve the <InlineCode>ValueTask&lt;T&gt;</InlineCode>{' '}
+    return type.</strong> Build the generic type with <InlineCode>factory.GenericType(CLASS_VALUETASK, {' '}
+    {'{ { L"T", TYPE_INT } }'})</InlineCode> and pass that to <InlineCode>AddMethod</InlineCode>. Do not pass
+    the raw <InlineCode>CLASS_VALUETASK</InlineCode> symbol as the return type.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The task never completes.</strong> Ensure{' '}
+    <InlineCode>async.Complete()</InlineCode> or <InlineCode>async.Fail(...)</InlineCode> is called exactly once.
+    The helper guards against double completion, but a missing callback or an exception swallowed on a worker
+    thread will leave the task pending forever.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">The shared library fails to load.</strong> Confirm that the binary
+    exports <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>, that
+    the runtime shared library is discoverable by the OS loader, and that the path passed to{' '}
+    <InlineCode>-l</InlineCode> points at the file you just built.
+  </Bullet>
+</ul>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>library-building/async-helpers-reference</InlineCode> — async helper reference.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/example-async-io</InlineCode> — async file and stream example.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/working-with-objects</InlineCode> — pinning objects across async boundaries.
+  </Bullet>
+  <Bullet>
+    <InlineCode>library-building/garbage-collection-rules</InlineCode> — object lifetime rules.
+  </Bullet>
+</ul>

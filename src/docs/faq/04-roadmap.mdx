@@ -1,0 +1,127 @@
+---
+title: Roadmap
+group: FAQ
+order: 4
+slug: roadmap
+groupOrder: 12
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  ShardScript is a working language and runtime. The compiler, virtual machine, event loop, standard
+  library shards, and native-library framework are all functional today. Ongoing work focuses on expanding
+  the standard library, improving tooling, and maturing the package ecosystem.
+</Prose>
+
+<H2>What problem it solves</H2>
+
+<Prose>
+  A young language needs clear expectations. This roadmap describes what is already available, what is
+  actively being developed, and what remains future work, so users can decide whether ShardScript is ready
+  for their project.
+</Prose>
+
+<H2>How the roadmap is organized</H2>
+
+<Prose>
+  Items are grouped by maturity: <strong>Available now</strong> ships in the repository today,
+  <strong>Near term</strong> is under active development or design, and <strong>Future</strong> is planned
+  but not yet scheduled. The roadmap is a snapshot; the source repository remains the authoritative status.
+</Prose>
+
+<H2>Key ideas</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Core runtime is stable.</strong> Lexing, parsing, semantic
+    analysis, async lowering, bytecode emission, VM execution, garbage collection, and the libuv event loop
+    are all implemented.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Standard library is growing.</strong> Core I/O, collections,
+    math, text, JSON, files, processes, networking, async primitives, reflection, time, and interop shards
+    exist, with more coverage planned.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Tooling is expanding.</strong> A language server is part of the
+    ecosystem; future work includes richer diagnostics and editor integration.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Package management is on the horizon.</strong> Geode is the
+    planned package manager, but it is not yet shipped.
+  </Bullet>
+</ul>
+
+<H2>Roadmap</H2>
+
+<DocsTable
+  headers={['Maturity', 'Area', 'Status']}
+  rows={[
+    [
+      <>Available now</>,
+      <>Compiler pipeline and bytecode VM</>,
+      <>Lexer, parser, semantic model, async lowering, layout, emission, and execution are complete.</>,
+    ],
+    [
+      <>Available now</>,
+      <>libuv event loop and async/await</>,
+      <>Single-threaded cooperative concurrency with Task, ValueTask, and cancellation tokens.</>,
+    ],
+    [
+      <>Available now</>,
+      <>Native library framework</>,
+      <>Symbol builders, callback contract, async helpers, and inter-library dependencies are implemented.</>,
+    ],
+    [
+      <>Available now</>,
+      <>Core standard shards</>,
+      <>stdio, collections, math, streams, JSON, filesystem, subprocess, async, reflection, time, socket, HTTP, and interop.</>,
+    ],
+    [
+      <>Near term</>,
+      <>Standard library expansion</>,
+      <>Additional utilities, broader platform coverage, and more framework shards.</>,
+    ],
+    [
+      <>Near term</>,
+      <>Developer tooling</>,
+      <>Improved diagnostics, VM inspection, and language-server features.</>,
+    ],
+    [
+      <>Future</>,
+      <>Package management (Geode)</>,
+      <>Dependency resolution, publishing, and library search-path integration.</>,
+    ],
+    [
+      <>Future</>,
+      <>Formal specification and grammar</>,
+      <>Reference-level language specification and complete grammar documentation.</>,
+    ],
+  ]}
+/>
+
+<H2>When to use / When not to use</H2>
+
+<Prose>
+  ShardScript is usable today for embedded scripting, native-library extensions, and I/O-heavy applications
+  that fit its cooperative concurrency model. It is not yet a mature ecosystem with a broad third-party
+  package market or IDE marketplace, so evaluate it against the features that are actually shipped.
+</Prose>
+
+<H2>Related articles</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Runtime Architecture</InlineCode> — the current compiler and runtime design.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Installation</InlineCode> — how to obtain the current release.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Building from Source</InlineCode> — compiling the runtime and standard shards yourself.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Design Goals</InlineCode> — the principles guiding future development.
+  </Bullet>
+</ul>

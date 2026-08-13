@@ -509,3 +509,23 @@ public static func Main() -> void
   The default accessibility for methods is <InlineCode>private</InlineCode>. Mark methods that form
   the public API of a type with <InlineCode>public</InlineCode> explicitly.
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Functions</InlineCode> — core function declaration and call syntax shared by every callable named block.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Constructors and Initialization</InlineCode> — special <InlineCode>init</InlineCode> methods for object creation.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Delegates</InlineCode> — callable value types for storing and passing functions.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Method declarations are parsed into <InlineCode>MethodDeclarationSyntax</InlineCode> nodes in <InlineCode>ShardScript/ShardScript/src/parsing/SourceParser.cpp</InlineCode>. The syntax node definition is in <InlineCode>ShardScript/ShardScript/include/shard/parsing/nodes/MemberDeclarations/MethodDeclarationSyntax.hpp</InlineCode>.
+</Prose>

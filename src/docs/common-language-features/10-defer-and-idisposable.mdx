@@ -1,0 +1,670 @@
+---
+title: Defer and IDisposable
+group: Common Language Features
+order: 10
+slug: defer-and-idisposable
+type: Reference
+groupOrder: 4
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>defer</InlineCode> statement schedules cleanup that runs when control leaves the
+  enclosing scope. The resource-defer form binds an <InlineCode>IDisposable</InlineCode> variable
+  and calls <InlineCode>Dispose()</InlineCode> automatically, giving ShardScript deterministic,
+  exception-safe cleanup without a C#-style <InlineCode>using</InlineCode> block.
+</Prose>
+
+<H2>Syntax</H2>
+
+<Prose>
+  A defer statement begins with the <InlineCode>defer</InlineCode> keyword. The statement-defer form
+  evaluates any expression at scope exit; the resource-defer form declares a variable whose type
+  implements <InlineCode>IDisposable</InlineCode> and calls <InlineCode>Dispose()</InlineCode> when
+  the scope exits.
+</Prose>
+
+<CodeBlock
+  code={`// Statement defer: evaluate the expression when the scope exits.
+defer <expression>;
+
+// Resource defer: declare a variable and call Dispose when the scope exits.
+defer <identifier>: <type> = <expression>;
+
+// Inferred resource defer.
+defer <identifier> := <expression>;`}
+  language="csharp"
+  filename="defer_syntax.shard"
+/>
+
+<Prose>
+  <InlineCode>IDisposable</InlineCode> is a compiler-provided interface with a single parameterless
+  cleanup method:
+</Prose>
+
+<CodeBlock
+  code={`public interface IDisposable
+{
+    func Dispose() -> void;
+}`}
+  language="csharp"
+  filename="idisposable.shard"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Form', 'Argument', 'Description']}
+  rows={[
+    [<InlineCode>defer expr;</InlineCode>, 'expr', 'Any expression statement evaluated at scope exit.'],
+    [<InlineCode>defer v: T = expr;</InlineCode>, 'v: T = expr', 'A variable declaration where T implements IDisposable; Dispose() is called at scope exit.'],
+    [<InlineCode>defer v := expr;</InlineCode>, 'v := expr', 'Same as the resource-defer form, but the type is inferred from the initializer.'],
+    [<InlineCode>IDisposable.Dispose()</InlineCode>, 'none', 'The concrete Dispose implementation resolved at compile time for the deferred variable.'],
+  ]}
+/>
+
+<Prose>
+  The deferred statement is captured at the point <InlineCode>defer</InlineCode> is written, but it
+  runs when the scope exits. For resource defers, the initializer executes immediately so the object
+  exists, but <InlineCode>Dispose()</InlineCode> is delayed until scope exit.
+</Prose>
+
+<H2>Returns</H2>
+
+<Prose>
+  A <InlineCode>defer</InlineCode> statement itself has no value. <InlineCode>IDisposable.Dispose()</InlineCode>
+  returns <InlineCode>void</InlineCode> and exists only for side effects.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Empty defer</strong> — <InlineCode>defer;</InlineCode>{' '}
+    with no statement is a parse error: &quot;defer statement cannot be empty&quot;.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Defer outside a block</strong> — The emitter reports an
+    error if <InlineCode>defer</InlineCode> is not inside a statements block.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Non-disposable resource defer</strong> — A variable
+    declaration in <InlineCode>defer</InlineCode> requires the type to implement{' '}
+    <InlineCode>IDisposable</InlineCode>; otherwise semantic analysis fails.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing Dispose implementation</strong> — The type must
+    provide an implementation for <InlineCode>IDisposable.Dispose()</InlineCode>.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Double dispose</strong> — Manually calling{' '}
+    <InlineCode>Dispose()</InlineCode> on a resource-deferred instance can invoke the method twice.
+    Implementations should guard against this with a disposed flag.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Exception inside a defer</strong> — If a deferred
+    expression throws, the exception propagates normally. Any defers that have not yet run are still
+    drained during unwinding.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Defer stack and LIFO order.</strong> Every call frame owns a defer stack. Each{' '}
+  <InlineCode>defer</InlineCode> statement emits a <InlineCode>DEFER</InlineCode> opcode that pushes
+  the bytecode offset of the deferred expression onto that stack. When the scope exits, the runtime
+  emits <InlineCode>DEFER_DRAIN</InlineCode> with the number of defers to run; the VM pops them from
+  the back and executes them last-in, first-out.
+</Prose>
+
+<Prose>
+  <strong>Scope boundaries.</strong> A scope is a block delimited by braces. The compiler drains the
+  defers registered in that block when execution reaches the closing brace. Nested blocks drain
+  their own defers first; outer blocks drain afterward.
+</Prose>
+
+<Prose>
+  <strong>Compile-time binding.</strong> The resource-defer form is not duck typing. The binder
+  resolves the concrete <InlineCode>Dispose()</InlineCode> method and stores it directly in the defer
+  AST node. At bytecode level, the deferred expression is a direct{' '}
+  <InlineCode>LOADVARIABLE</InlineCode> followed by <InlineCode>CALLMETHODSYMBOL</InlineCode> on that
+  concrete method. There is no interface dispatch at runtime.
+</Prose>
+
+<Prose>
+  <strong>Interaction with return.</strong> The return expression is evaluated before defers run,
+  then <InlineCode>DEFER_DRAIN</InlineCode> clears every defer in the method, and finally the frame
+  returns. This guarantees cleanup runs before the caller receives the result.
+</Prose>
+
+<Prose>
+  <strong>Interaction with break.</strong> <InlineCode>break</InlineCode> drains defers from the
+  innermost scope up to and including the enclosing loop scope, then jumps to the loop end. Defers
+  declared outside the loop remain scheduled.
+</Prose>
+
+<Prose>
+  <strong>Interaction with exceptions.</strong> When an exception is thrown, exception dispatch
+  records the defer stack size at each <InlineCode>try</InlineCode> boundary and drains only the
+  defers registered since that boundary before entering the matching <InlineCode>catch</InlineCode>.
+  If no handler is found in the frame, all remaining defers run before the exception propagates to
+  the caller.
+</Prose>
+
+<Prose>
+  <strong>Async methods.</strong> Async state-machine lowering re-registers active defers at every{' '}
+  <InlineCode>await</InlineCode> resume point so that cleanup still executes correctly across
+  suspension boundaries. Resource defers emit the variable declaration into the{' '}
+  <InlineCode>MoveNext</InlineCode> method and schedule <InlineCode>Dispose</InlineCode> exactly as
+  in synchronous code.
+</Prose>
+
+<Prose>
+  <strong>Disposal chains.</strong> A class that owns another disposable object should call the
+  owned object&apos;s <InlineCode>Dispose()</InlineCode> inside its own. Because defers run LIFO, the
+  outermost resource is disposed last, which is the safe order for nested ownership.
+</Prose>
+
+<Prose>
+  <strong>VM opcodes.</strong> Three opcodes implement deferred execution:
+</Prose>
+
+<DocsTable
+  headers={['Opcode', 'Description']}
+  rows={[
+    [<InlineCode>DEFER</InlineCode>, 'Pushes the bytecode offset of a deferred expression onto the frame defer stack.'],
+    [<InlineCode>DEFER_BREAK</InlineCode>, 'Returns from a deferred expression back to the DEFER_DRAIN loop.'],
+    [<InlineCode>DEFER_DRAIN</InlineCode>, 'Pops the top N deferred offsets and executes them LIFO.'],
+  ]}
+/>
+
+<Callout tone="amber" title="Deferred expressions and control flow">
+  You cannot <InlineCode>return</InlineCode> or <InlineCode>break</InlineCode> out of a deferred
+  expression in a meaningful way; the deferred code is emitted as a standalone fragment that ends
+  with <InlineCode>DEFER_BREAK</InlineCode>. Keep deferred statements simple and free of explicit
+  exit statements.
+</Callout>
+
+<Callout tone="blue">
+  Because the concrete <InlineCode>Dispose()</InlineCode> method is resolved at compile time, the
+  resource-defer form is effectively zero-overhead relative to writing the call manually at every
+  exit point. Implement <InlineCode>Dispose()</InlineCode> defensively with a private{' '}
+  <InlineCode>disposed</InlineCode> bool field so repeated calls are harmless.
+</Callout>
+
+<H2>Examples</H2>
+
+<Prose>
+  <strong>Basic statement defer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    println("starting work");
+
+    defer println("cleanup after work");
+
+    println("doing work");
+}`}
+  language="csharp"
+  filename="defer_basic.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`starting work
+doing work
+cleanup after work`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Resource defer with IDisposable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class Resource : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("Resource disposed");
+    }
+}
+
+public static func Main() -> void
+{
+    defer resource: Resource = new Resource();
+
+    println("using resource");
+}`}
+  language="csharp"
+  filename="defer_resource.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`using resource
+Resource disposed`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Nested scopes and LIFO order.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    defer println("outer defer");
+
+    println("enter outer");
+
+    {
+        defer println("inner-2");
+        defer println("inner-1");
+
+        println("inside inner");
+    }
+
+    println("back in outer");
+}`}
+  language="csharp"
+  filename="defer_nested.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`enter outer
+inside inner
+inner-1
+inner-2
+back in outer
+outer defer`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Idempotent Dispose with a disposed flag.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class FileHandle : IDisposable
+{
+    private path: string;
+    private opened: bool;
+
+    public init(path: string)
+    {
+        this.path = path;
+        this.opened = true;
+        println("opened " + path);
+    }
+
+    public func Dispose() -> void
+    {
+        // Guard against repeated disposal from defer + manual call.
+        if (this.opened)
+        {
+            this.opened = false;
+            println("closed " + this.path);
+        }
+    }
+}
+
+public static func Main() -> void
+{
+    defer handle: FileHandle = new FileHandle("data.txt");
+    println("working with data.txt");
+
+    // Output:
+    //   opened data.txt
+    //   working with data.txt
+    //   closed data.txt
+}`}
+  language="csharp"
+  filename="disposable_idempotent.shard"
+/>
+
+<Prose>
+  <strong>Disposal chain: an outer object owns an inner disposable.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class FileHandle : IDisposable
+{
+    private path: string;
+    private opened: bool;
+
+    public init(path: string)
+    {
+        this.path = path;
+        this.opened = true;
+        println("opened " + path);
+    }
+
+    public func Dispose() -> void
+    {
+        if (this.opened)
+        {
+            this.opened = false;
+            println("closed " + this.path);
+        }
+    }
+}
+
+public class BufferedLogger : IDisposable
+{
+    private inner: FileHandle;
+
+    public init(path: string)
+    {
+        this.inner = new FileHandle(path);
+    }
+
+    public func Dispose() -> void
+    {
+        // Forward disposal down the ownership chain.
+        this.inner.Dispose();
+        println("buffered logger disposed");
+    }
+}
+
+public static func Main() -> void
+{
+    defer logger: BufferedLogger = new BufferedLogger("app.log");
+    println("writing logs...");
+
+    // Output:
+    //   opened app.log
+    //   writing logs...
+    //   closed app.log
+    //   buffered logger disposed
+}`}
+  language="csharp"
+  filename="disposable_chain.shard"
+/>
+
+<Prose>
+  <strong>Defer with early return.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func MaybeReturn(takeEarlyPath: bool) -> void
+{
+    defer println("always cleanup");
+
+    println("before check");
+
+    if (takeEarlyPath)
+    {
+        println("early return");
+        return;
+    }
+
+    println("normal path");
+}
+
+public static func Main() -> void
+{
+    MaybeReturn(true);
+    println("---");
+    MaybeReturn(false);
+}`}
+  language="csharp"
+  filename="defer_return.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`before check
+early return
+always cleanup
+---
+before check
+normal path
+always cleanup`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Defer during exception unwinding.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Inner() -> void
+{
+    defer println("inner cleanup");
+    println("inner throwing");
+    throw new RuntimeException();
+}
+
+public static func Outer() -> void
+{
+    defer println("outer cleanup");
+    Inner();
+}
+
+public static func Main() -> void
+{
+    try
+    {
+        Outer();
+    }
+    catch (ex: RuntimeException)
+    {
+        println("caught");
+    }
+}`}
+  language="csharp"
+  filename="defer_exception.shard"
+/>
+
+<Prose>
+  Expected output:
+</Prose>
+
+<CodeBlock
+  code={`inner throwing
+inner cleanup
+outer cleanup
+caught`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Prose>
+  <strong>Resource defer in an async method.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+using async;
+
+namespace demo;
+
+public class Connection : IDisposable
+{
+    public func Dispose() -> void
+    {
+        println("connection closed");
+    }
+}
+
+public class Program
+{
+    public static async func WorkAsync() -> Task
+    {
+        defer conn: Connection = new Connection();
+        println("before await");
+        await Task.Delay(10);
+        println("after await");
+    }
+
+    public static func Main() -> void
+    {
+        Task.Wait(WorkAsync());
+        println("done");
+    }
+}
+
+// Output:
+//   before await
+//   after await
+//   connection closed
+//   done`}
+  language="csharp"
+  filename="disposable_async.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: deferring a non-disposable type.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public class PlainBox
+{
+    public Value: int;
+}
+
+public static func Main() -> void
+{
+    // Compile-time error:
+    // Type 'PlainBox' declared in defer statement must implement IDisposable.
+    defer box: PlainBox = new PlainBox();
+    box.Value = 42;
+}`}
+  language="csharp"
+  filename="disposable_error.shard"
+/>
+
+<Prose>
+  <strong>Common mistake: depending on mutated state inside a defer.</strong>
+</Prose>
+
+<CodeBlock
+  code={`using stdio;
+
+namespace demo;
+
+public static func Main() -> void
+{
+    i: int = 0;
+
+    defer println("deferred i = " + i);
+
+    i = 42;
+    println("before exit, i = " + i);
+}`}
+  language="csharp"
+  filename="defer_state.shard"
+/>
+
+<Prose>
+  Expected output. The deferred expression reads <InlineCode>i</InlineCode> when it executes, after
+  the assignment:
+</Prose>
+
+<CodeBlock
+  code={`before exit, i = 42
+deferred i = 42`}
+  language="plaintext"
+  filename="output.txt"
+/>
+
+<Callout tone="blue">
+  This behavior is useful for cleanup that needs final values, but it can be surprising if you
+  expected the value at the point <InlineCode>defer</InlineCode> was written. Capture values into
+  local variables before deferring if you need snapshot semantics.
+</Callout>
+
+<Prose>
+  <strong>Standard-library types that implement <InlineCode>IDisposable</InlineCode>.</strong>
+</Prose>
+
+<DocsTable
+  headers={['Type', 'Namespace', 'What Dispose() releases']}
+  rows={[
+    [<InlineCode>FileStream</InlineCode>, 'filesystem', 'Closes the underlying OS file handle.'],
+    [<InlineCode>MemoryStream</InlineCode>, 'io', 'Marks the internal buffer as closed.'],
+    [<InlineCode>SocketStream</InlineCode>, 'net', 'Disassociates from the socket handle.'],
+    [<InlineCode>Socket</InlineCode>, 'net', 'Closes the OS socket descriptor.'],
+    [<InlineCode>StreamReader</InlineCode>, 'io', 'Releases the wrapped stream reference and disposed flag.'],
+    [<InlineCode>StreamWriter</InlineCode>, 'io', 'Flushes pending data and releases the wrapped stream.'],
+  ]}
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <a href="/shardscript-info/docs/syntax/exceptions" className="underline">Exceptions and Error Handling</a> — how defer cleanup interacts with try/catch unwinding.
+  </Bullet>
+  <Bullet>
+    <a href="/shardscript-info/docs/syntax/garbage-collection" className="underline">Automatic Memory Management</a> — how deterministic disposal complements the garbage collector.
+  </Bullet>
+  <Bullet>
+    <a href="/shardscript-info/docs/syntax/async-functions" className="underline">Async Functions</a> — how resource defers behave across await suspension points.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The ShardScript compiler, virtual machine, and standard-library implementations live in the{' '}
+  <a href="https://github.com/Rikitav/ShardScript" target="_blank" rel="noreferrer" className="underline">
+    ShardScript repository
+  </a>
+  . The runtime defer mechanism is implemented in the VM execution loop; resource-defer binding and
+  interface implementation resolution are handled during semantic analysis.
+</Prose>

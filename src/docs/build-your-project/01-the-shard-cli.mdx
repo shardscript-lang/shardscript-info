@@ -1,0 +1,139 @@
+---
+title: The shard CLI
+group: Build Your Project
+order: 1
+slug: the-shard-cli
+type: Reference
+groupOrder: 6
+---
+
+<H2>Summary</H2>
+
+<Prose>
+  The <InlineCode>shard</InlineCode> command-line tool compiles one or more ShardScript source files,
+  loads standard and user-provided shards, and runs the program, decompiles it, or starts an interactive
+  REPL session.
+</Prose>
+
+<H2>Syntax</H2>
+
+<CodeBlock
+  code={`shard [options] <source-files...>
+shard
+shard -i
+shard --interactive
+shard -d <source-files...>
+shard --decompiled <source-files...>`}
+  language="bash"
+  filename="cli-syntax.sh"
+/>
+
+<H2>Parameters / Arguments</H2>
+
+<DocsTable
+  headers={['Flag', 'Description']}
+  rows={[
+    ['-h, --help', 'Show the help screen.'],
+    ['-i, --interactive, -r, --repl', 'Start the interactive REPL console.'],
+    ['-d, --decompiled', 'Decompile the entry point and print its bytecode instead of running.'],
+    ['--no-std, --exclude-std', 'Do not load the standard shards from the system directory.'],
+    ['-l, --library <pattern>', 'Load an extra shard DLL; glob patterns are supported.'],
+    ['<file>', 'A source file to compile and run (positional). Globs are supported.'],
+  ]}
+/>
+
+<H2>Returns</H2>
+
+<Prose>
+  By default the command returns the exit status of the compiled program. With{' '}
+  <InlineCode>-d</InlineCode> it prints disassembled bytecode to stdout and exits with status 0 on success.
+  When no source files and no action flags are supplied, or when <InlineCode>-i</InlineCode> is given, it
+  runs an interactive loop until EOF or an explicit exit.
+</Prose>
+
+<H2>Exceptions / Errors</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <strong className="text-text-primary">Compilation errors.</strong> Lexical, syntax, or semantic errors are
+    printed to stderr and the program does not run.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Missing entry point.</strong> A program must contain a public static
+    method named <InlineCode>Main</InlineCode> unless running in REPL mode.
+  </Bullet>
+  <Bullet>
+    <strong className="text-text-primary">Shard load failure.</strong> A library passed with{' '}
+    <InlineCode>-l</InlineCode> that cannot be found or lacks the required exports aborts startup.
+  </Bullet>
+</ul>
+
+<H2>Remarks</H2>
+
+<Prose>
+  <strong>Source globs.</strong> Positional source arguments accept glob patterns, so a command such as{' '}
+  <InlineCode>shard src/**/*.shard</InlineCode> compiles every <InlineCode>.shard</InlineCode> file under{' '}
+  <InlineCode>src/</InlineCode>.
+</Prose>
+
+<Prose>
+  <strong>Standard shard auto-loading.</strong> Unless <InlineCode>--no-std</InlineCode> is passed, the
+  interpreter loads every shard DLL from the <InlineCode>system/</InlineCode> directory beside the
+  executable. This is how namespaces such as <InlineCode>stdio</InlineCode>, <InlineCode>collections</InlineCode>,
+  and <InlineCode>async</InlineCode> become available without explicit <InlineCode>-l</InlineCode> flags.
+</Prose>
+
+<Prose>
+  <strong>REPL mode.</strong> The interactive console evaluates statements one at a time. If you start the
+  interpreter without source files and without <InlineCode>-d</InlineCode> or <InlineCode>-h</InlineCode>,
+  the REPL starts automatically. It is useful for quick experiments, but keep in mind that ShardScript is a
+  compiled language: even the REPL compiles each input before executing it.
+</Prose>
+
+<H2>Examples</H2>
+
+<CodeBlock
+  code={`# Run a script (positional argument; globs allowed)
+shard hello.shard
+
+# Decompile the entry point to bytecode instead of running
+shard -d hello.shard
+
+# Start the interactive REPL explicitly
+shard -i
+
+# Start the REPL implicitly when no action or source file is given
+shard
+
+# Load extra shards in addition to the standard set (globs supported)
+shard app.shard -l path/to/mylib.dll
+shard app.shard -l "libs/*.dll"
+
+# Run with no standard shards at all (a clean sandbox)
+shard app.shard --no-std`}
+  language="bash"
+  filename="cli-examples.sh"
+/>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Project Configuration</InlineCode> — organizing source files and compiler options for real
+    projects.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Library Search Paths</InlineCode> — how the interpreter finds shard DLLs.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Installation</InlineCode> — installing the <InlineCode>shard</InlineCode> interpreter and
+    standard shards.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  The <InlineCode>shard</InlineCode> front-end is implemented in the ShardScript interpreter project. See the
+  ShardScript repository for the command-line parsing and startup code.
+</Prose>
