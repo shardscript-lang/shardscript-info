@@ -267,7 +267,7 @@ public static func Main() -> void
 
     // 'logger' is captured by the delegate, so it stays alive
     // even after Main would otherwise release the local variable.
-    action: func () -> void = () =>
+    action: delegate void() = lambda () -> void
     {
         println(logger.Prefix + ": action");
     };

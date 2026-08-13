@@ -134,13 +134,13 @@ namespace demo;
 
 public static func Main() -> void
 {
-    // The type is inferred from the initializer and then fixed.
-    count   := 42;         // int
-    pi      := 3.14159;    // double
-    flag    := true;       // bool
-    letter  := 'A';        // char
-    channel := 255;        // int -- use byte annotation if the width matters
-    name    := "ShardScript"; // string
+    // Explicit type annotations for each primitive.
+    count: int    = 42;
+    pi: double    = 3.14159;
+    flag: bool    = true;
+    letter: char  = 'A';
+    channel: byte = 255 as byte;   // cast to byte because the literal 255 is int
+    name: string  = "ShardScript";
 
     println(count);
     println(pi);
@@ -162,8 +162,8 @@ namespace demo;
 
 public static func Main() -> void
 {
-    // The type is fixed once inferred.
-    score := 100;
+    // The type is fixed once declared.
+    score: int = 100;
     score = 200;           // OK -- still int
 
     // score = "high";      // ERROR: string is not assignable to int
@@ -269,11 +269,11 @@ public static func Main() -> void
 {
     // Valid ShardScript declarations.
     count: int    = 10;
-    greeting    := "hello";
+    greeting: string = "hello";
 
     // The forms below are invalid and will not compile.
     // int count = 10;          // ERROR: invalid syntax; use 'name: Type = value'
-    // var count = 10;          // ERROR: invalid use of 'var'; use 'name := value'
+    // var count = 10;          // ERROR: invalid use of 'var'; use 'name: Type = value'
     // count: int;              // ERROR: local declarations require an initializer
 
     println(count);

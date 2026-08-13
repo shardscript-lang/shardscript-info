@@ -37,8 +37,8 @@ type: Reference
     ],
     [
       <InlineCode>SetVariable(name, value)</InlineCode>,
-      <><InlineCode>static func SetVariable(name: string, value: string) -&gt; void</InlineCode></>,
-      'Explicit static method.',
+      <><InlineCode>static func SetVariable(name: string, value: string) -&gt; string</InlineCode></>,
+      'Explicit static method. The current implementation returns an empty string.',
     ],
   ]}
 />
@@ -68,7 +68,7 @@ type: Reference
   rows={[
     [<InlineCode>Environment.NAME</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
     [<InlineCode>GetVariable(name)</InlineCode>, 'string', 'The variable value, or an empty string if the variable does not exist.'],
-    [<InlineCode>SetVariable(name, value)</InlineCode>, 'void', 'No value is returned.'],
+    [<InlineCode>SetVariable(name, value)</InlineCode>, 'string', 'The current implementation returns an empty string.'],
   ]}
 />
 

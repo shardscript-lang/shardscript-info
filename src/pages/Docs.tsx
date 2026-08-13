@@ -221,6 +221,17 @@ export default function Docs() {
           }`}
         >
           <div className="p-0">
+            <div className="relative mb-6 m-4">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#252529] border border-[#353539] rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted font-inter focus:outline-none focus:border-[#5A6A82] focus:shadow-[0_0_40px_rgba(90,106,130,0.25)] transition-all duration-300"
+              />
+            </div>
+
             <div className="m-4 mb-5 p-3 border-2 border-[#5A6A82] rounded-card bg-[#151518]">
               <p className="text-xs font-bold tracking-[0.05em] uppercase text-text-muted mb-2">
                 Section
@@ -242,17 +253,6 @@ export default function Docs() {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="relative mb-6 m-4">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#252529] border border-[#353539] rounded-input py-2.5 pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted font-inter focus:outline-none focus:border-[#5A6A82] focus:shadow-[0_0_40px_rgba(90,106,130,0.25)] transition-all duration-300"
-              />
             </div>
 
             <div className="space-y-6">

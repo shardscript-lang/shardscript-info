@@ -71,9 +71,10 @@ shard --decompiled <source-files...>`}
 <H2>Remarks</H2>
 
 <Prose>
-  <strong>Source globs.</strong> Positional source arguments accept glob patterns, so a command such as{' '}
-  <InlineCode>shard src/**/*.shard</InlineCode> compiles every <InlineCode>.shard</InlineCode> file under{' '}
-  <InlineCode>src/</InlineCode>.
+  <strong>Source globs.</strong> Positional source arguments accept single-directory glob patterns such as{' '}
+  <InlineCode>shard src/*.shard</InlineCode>. Recursive globs like{' '}
+  <InlineCode>{'src/**/*.shard'}</InlineCode> must be expanded by the shell; the interpreter does not traverse
+  subdirectories itself.
 </Prose>
 
 <Prose>

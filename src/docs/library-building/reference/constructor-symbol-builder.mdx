@@ -314,8 +314,8 @@ SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
 
-    geometry.AddStruct(L"Point", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> point)
-    {
+    SymbolBuilder<StructSymbol> point = geometry.AddStruct(L"Point", ACS_PUBLIC, LINK_INSTANCE);
+
         g_pointXField = point.AddField(
             L"X",
             TYPE_INT,
@@ -340,7 +340,7 @@ SHARDLIB_ENTRYPOINT
                 self->SetField(g_pointYField->SlotIndex, y);
                 return self;
             });
-    });
+    }
 }`}
   language="cpp"
   filename="geometry.shard.cpp"

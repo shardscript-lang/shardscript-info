@@ -67,7 +67,7 @@ groupOrder: 6
 # run.sh — build and run the project
 set -e
 
-shard src/**/*.shard "$@"`}
+shard src/*.shard "$@"`}
   language="bash"
   filename="run.sh"
 />
@@ -81,7 +81,7 @@ shard src/**/*.shard "$@"`}
 # run.sh — build and run the project with local shards
 set -e
 
-shard src/**/*.shard -l "libs/*.dll" "$@"`}
+shard src/*.shard -l "libs/*.dll" "$@"`}
   language="bash"
   filename="run-with-libs.sh"
 />
@@ -91,8 +91,9 @@ shard src/**/*.shard -l "libs/*.dll" "$@"`}
 </Prose>
 
 <Prose>
-  Exactly one source file should declare a public static <InlineCode>Main</InlineCode> method. Place it in
-  <InlineCode>src/main.shard</InlineCode> or another clearly named file so the project is easy to understand.
+  Exactly one source file should declare a public static <InlineCode>Main</InlineCode> method with no
+  parameters and a <InlineCode>void</InlineCode> return type. Place it in <InlineCode>src/main.shard</InlineCode>{' '}
+  or another clearly named file so the project is easy to understand.
 </Prose>
 
 <CodeBlock
@@ -141,18 +142,20 @@ public static func Main() -> void
 
 <ul className="space-y-2 text-text-secondary">
   <Bullet>
-    <strong className="text-text-primary">Glob does not expand.</strong> Some shells do not expand{' '}
-    <InlineCode>**</InlineCode> by default. Quote the glob so the interpreter expands it, or enable
-    recursive globbing in your shell.
+    <strong className="text-text-primary">Glob does not expand.</strong> The interpreter only expands
+    single-directory globs such as <InlineCode>src/*.shard</InlineCode>. Recursive globs like{' '}
+    <InlineCode>{'src/**/*.shard'}</InlineCode> must be expanded by the shell, or you must list each directory
+    explicitly.
   </Bullet>
   <Bullet>
     <strong className="text-text-primary">Entry point not found.</strong> Make sure <InlineCode>Main</InlineCode>
-    is <InlineCode>public</InlineCode>, <InlineCode>static</InlineCode>, and returns <InlineCode>void</InlineCode>.
+    is <InlineCode>public</InlineCode>, <InlineCode>static</InlineCode>, takes no parameters, and returns{' '}
+    <InlineCode>void</InlineCode>.
   </Bullet>
   <Bullet>
     <strong className="text-text-primary">Missing standard shards.</strong> Verify that the <InlineCode>shard</InlineCode>
-    executable has a <InlineCode>system/</InlineCode> directory beside it, or use the{' '}
-    <InlineCode>SHARDSCRIPT</InlineCode> environment variable if your toolchain supports it.
+    executable has a <InlineCode>system/</InlineCode> directory beside it. The interpreter does not consult
+    the <InlineCode>SHARDSCRIPT</InlineCode> environment variable for the standard shard path.
   </Bullet>
 </ul>
 

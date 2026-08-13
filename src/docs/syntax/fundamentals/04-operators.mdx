@@ -30,7 +30,8 @@ groupOrder: 1
     ['Bitwise', <InlineCode>&amp; | &lt;&lt; &gt;&gt;</InlineCode>, 'AND, OR, left shift, right shift on integral types'],
     ['Logical', <InlineCode>! &amp; | and or not</InlineCode>, 'NOT, AND, OR on bool values'],
     ['Comparison', <InlineCode>== != &lt; &gt; &lt;= &gt;=</InlineCode>, 'Equality and ordering'],
-    ['Assignment', <InlineCode>= += -= *= /= %= ^= &= |=</InlineCode>, 'Simple and compound assignment'],
+    ['Assignment', <InlineCode>=</InlineCode>, 'Simple assignment'],
+    ['Compound assignment', <InlineCode>+= -= *= /= %= ^= &= |=</InlineCode>, 'Recognized by the lexer and parser but not yet correctly emitted (expand manually)'],
   ]}
 />
 

@@ -51,7 +51,9 @@ public static func Main() -> void
   headers={['Method', 'Parameters', 'Returns', 'Description']}
   rows={[
     [<code>ReadAllText(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'string', 'Opens the file and returns its entire contents as a string.'],
+    [<code>ReadAllTextAsync(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'ValueTask<string>', 'Asynchronously opens the file and returns its entire contents as a string.'],
     [<code>WriteAllText(fileName, content)</code>, <><InlineCode>fileName</InlineCode>: string, <InlineCode>content</InlineCode>: string</>, 'void', 'Creates a new file or overwrites an existing one with the supplied text.'],
+    [<code>WriteAllTextAsync(fileName, content)</code>, <><InlineCode>fileName</InlineCode>: string, <InlineCode>content</InlineCode>: string</>, 'Task', 'Asynchronously creates a new file or overwrites an existing one with the supplied text.'],
     [<code>Exists(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'bool', 'Returns true if the path refers to an existing file-system entry.'],
     [<code>Delete(fileName)</code>, <><InlineCode>fileName</InlineCode>: string</>, 'void', 'Deletes the file if it exists; does nothing if it does not.'],
     [<code>Copy(sourceFileName, destFileName)</code>, <><InlineCode>sourceFileName</InlineCode>: string, <InlineCode>destFileName</InlineCode>: string</>, 'void', 'Copies source to destination, overwriting an existing destination file.'],
@@ -94,7 +96,9 @@ public static func Main() -> void
   headers={['Member', 'Return Type', 'Notes']}
   rows={[
     [<code>File.ReadAllText</code>, 'string', 'Content of the file as a wide-character string.'],
+    [<code>File.ReadAllTextAsync</code>, 'ValueTask<string>', 'Content of the file as a wide-character string.'],
     [<code>File.WriteAllText</code>, 'void', 'No value; the file is created or overwritten.'],
+    [<code>File.WriteAllTextAsync</code>, 'Task', 'No value; the file is created or overwritten.'],
     [<code>File.Exists</code>, 'bool', 'True for any existing file-system entry, including directories.'],
     [<code>File.Delete</code>, 'void', 'Silent when the file is already absent.'],
     [<code>File.Copy</code>, 'void', 'No value; destination is overwritten if it already exists.'],

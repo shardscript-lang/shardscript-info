@@ -64,8 +64,8 @@ type: Concept
 <DocsTable
   headers={['Member', 'Type', 'Meaning']}
   rows={[
-    [<InlineCode>context.Domain</InlineCode>, <InlineCode>ApplicationDomain*</InlineCode>, 'Application domain that owns the current call.'],
-    [<InlineCode>context.Program</InlineCode>, <InlineCode>ProgramImage*</InlineCode>, 'Compiled program image being executed.'],
+    [<InlineCode>context.Domain</InlineCode>, <InlineCode>ApplicationDomain&</InlineCode>, 'Application domain that owns the current call.'],
+    [<InlineCode>context.Program</InlineCode>, <InlineCode>ProgramVirtualImage&</InlineCode>, 'Compiled program image being executed.'],
     [<InlineCode>context.Runtimer</InlineCode>, <InlineCode>VirtualMachine*</InlineCode>, 'The executing virtual machine.'],
     [<InlineCode>context.Collector</InlineCode>, <InlineCode>GarbageCollector&amp;</InlineCode>, 'Allocates and boxes return values.'],
     [<InlineCode>context.Frame</InlineCode>, <InlineCode>CallStackFrame*</InlineCode>, 'Current stack frame; holds generic type arguments.'],

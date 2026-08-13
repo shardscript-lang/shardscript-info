@@ -77,7 +77,7 @@ type: Reference
 <H2>Returns</H2>
 
 <Prose>
-  <InlineCode>AddClass</InlineCode> returns a pointer to the registered <InlineCode>ClassSymbol</InlineCode>.
+  The non-callback <InlineCode>AddClass</InlineCode> overload returns a <InlineCode>SymbolBuilder&lt;ClassSymbol&gt;</InlineCode>; the callback overload returns <InlineCode>SymbolBuilder&lt;NamespaceSymbol&gt;&amp;</InlineCode>.
   <InlineCode>AddField</InlineCode> returns a <InlineCode>FieldSymbol*</InlineCode> whose{' '}
   <InlineCode>SlotIndex</InlineCode> is used at runtime to read and write instance state. The remaining
   builder methods return a chained builder reference so that parameters, callbacks, getters, and setters
@@ -464,10 +464,9 @@ SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> ns(context, L"boxes");
 
-    InterfaceSymbol* boxable = ns.AddInterface(L"IBoxable", ACS_PUBLIC, [](SymbolBuilder<InterfaceSymbol> iface)
-    {
-        iface.AddMethod(L"GetValue", TYPE_ANY, LINK_INSTANCE);
-    });
+    SymbolBuilder<InterfaceSymbol> boxableBuilder = ns.AddInterface(L"IBoxable", ACS_PUBLIC);
+    boxableBuilder.AddMethod(L"GetValue", TYPE_ANY, LINK_INSTANCE);
+    InterfaceSymbol* boxable = boxableBuilder.Get();
 
     ns.AddClass(L"Box", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> box)
     {

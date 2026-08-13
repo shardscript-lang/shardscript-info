@@ -31,9 +31,9 @@ catch (variable: ExceptionType)
 {
     // handler for ExceptionType and subtypes
 }
-catch (variable: any)
+catch (variable)
 {
-    // catch-all handler
+    // catch-all handler; the variable is typed as any
 }
 
 // Throw a new exception.
@@ -58,7 +58,7 @@ throw;`}
     [<InlineCode>try</InlineCode>, 'yes', 'keyword', 'Opens the guarded block whose exceptions are eligible for the attached catches.'],
     [<InlineCode>catch</InlineCode>, 'yes (one or more)', 'keyword', 'Opens a handler clause. A try without at least one catch is a parser error.'],
     [<InlineCode>variable</InlineCode>, 'yes (per clause)', 'identifier', 'The local name bound to the caught object inside the handler body.'],
-    [<InlineCode>ExceptionType</InlineCode>, 'no', 'type', 'The type filter. If omitted the clause defaults to <InlineCode>any</InlineCode>. Must implement <InlineCode>IThrowable</InlineCode> unless it is <InlineCode>any</InlineCode>.'],
+    [<InlineCode>ExceptionType</InlineCode>, 'no', 'type', 'The type filter. If omitted the clause defaults to <InlineCode>any</InlineCode>. When present, the type must implement <InlineCode>IThrowable</InlineCode>.'],
     [<InlineCode>throw expression</InlineCode>, 'yes (statement)', 'IThrowable', 'An object implementing <InlineCode>IThrowable</InlineCode> to raise.'],
     [<InlineCode>throw;</InlineCode>, 'yes (rethrow)', 'none', 'Re-raises the active exception from inside a catch body.'],
   ]}
@@ -78,8 +78,8 @@ throw;`}
     inherits from the declared class.
   </Bullet>
   <Bullet>
-    A catch with no explicit type (or with <InlineCode>any</InlineCode>) matches every object and
-    must be placed last, after all typed clauses.
+    A catch with no explicit type matches every object and must be placed last, after all typed
+    clauses.
   </Bullet>
 </ul>
 
@@ -174,9 +174,9 @@ throw;`}
 
 <Prose>
   <strong>Typed versus catch-all clauses.</strong> Use typed catches for code paths that need to
-  inspect a specific failure. Use <InlineCode>catch (ex: any)</InlineCode> or{' '}
-  <InlineCode>catch (ex)</InlineCode> as a final safety net. Because matching is sequential, always
-  place the most specific types first and the catch-all last.
+  inspect a specific failure. Use <InlineCode>catch (ex)</InlineCode> as a final safety net; the
+  variable is typed as <InlineCode>any</InlineCode> when no type is supplied. Because matching is
+  sequential, always place the most specific types first and the catch-all last.
 </Prose>
 
 <Prose>
@@ -390,7 +390,7 @@ public static func Main() -> void
     {
         throw new RuntimeException();
     }
-    catch (ex: any)
+    catch (ex)
     {
         // The catch variable is typed as any, but it is still an IThrowable
         // instance at runtime, so the message property is accessible.

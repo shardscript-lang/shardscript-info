@@ -60,7 +60,7 @@ type: Reference
     [
       <InlineCode>Alloc(size)</InlineCode>,
       <><InlineCode>static func Alloc(size: int) -&gt; nint</InlineCode></>,
-      'Allocates zero-initialized native memory.',
+      'Allocates zero-initialized native memory. The current native callback reads two arguments internally, while the registered symbol only exposes one; this API is unstable.',
     ],
     [
       <InlineCode>Realloc(ptr, size)</InlineCode>,

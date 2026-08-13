@@ -223,10 +223,10 @@ namespace demo;
 public static func Main() -> void
 {
     numbers := [10, 20, 30];     // int[]
-    range := [1..10];            // Range[] because the literal contains Range values
+    range := [1..10];            // int[]; a bracketed range literal is the range itself
 
     println(numbers.Length);     // 3
-    println(range.Length);       // 1
+    println(range.Length);       // 9
 
     // empty: int[] = [];        // OK only with an explicit target type
 }`}

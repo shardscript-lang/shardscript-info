@@ -221,7 +221,7 @@ public class Program
 
     public static func Main() -> void
     {
-        Task task = DelayAndReport();
+        task: Task = DelayAndReport();
         Task.Wait(task);
     }
 }`}
@@ -250,13 +250,13 @@ public class Program
 
     public static async func UseResultAsync() -> Task
     {
-        int value = await ComputeAsync();
+        value: int = await ComputeAsync();
         println(value + 1);
     }
 
     public static func Main() -> void
     {
-        Task task = UseResultAsync();
+        task: Task = UseResultAsync();
         Task.Wait(task);
     }
 }`}
@@ -279,7 +279,7 @@ public class Program
 {
     public static async func CountWithPauses() -> Task
     {
-        int i = 0;
+        i: int = 0;
         while (i < 3)
         {
             println(i);
@@ -292,7 +292,7 @@ public class Program
 
     public static func Main() -> void
     {
-        Task task = CountWithPauses();
+        task: Task = CountWithPauses();
         Task.Wait(task);
     }
 }`}
@@ -316,7 +316,7 @@ public class Program
 {
     public static async func ToggleAsync() -> Task
     {
-        int i = 0;
+        i: int = 0;
         while (i < 4)
         {
             if (i % 2 == 0)
@@ -340,7 +340,7 @@ public class Program
 
     public static func Main() -> void
     {
-        Task task = ToggleAsync();
+        task: Task = ToggleAsync();
         Task.Wait(task);
     }
 }`}
@@ -371,13 +371,13 @@ public class Program
     public static async func OuterAsync() -> ValueTask<int>
     {
         await Task.Delay(10);
-        int inner = await InnerAsync();
+        inner: int = await InnerAsync();
         return inner * 2;
     }
 
     public static func Main() -> void
     {
-        ValueTask<int> task = OuterAsync();
+        task: ValueTask<int> = OuterAsync();
         ValueTask.Wait(task);
         println(task.Result);
     }
@@ -443,14 +443,14 @@ public class Program
 {
     public static async func TestCustomAwaitable() -> Task
     {
-        ImmediateAwaitable awaitable = new ImmediateAwaitable(123);
-        int result = await awaitable;
+        awaitable: ImmediateAwaitable = new ImmediateAwaitable(123);
+        result: int = await awaitable;
         println(result);
     }
 
     public static func Main() -> void
     {
-        Task task = TestCustomAwaitable();
+        task: Task = TestCustomAwaitable();
         Task.Wait(task);
     }
 }`}
@@ -496,7 +496,7 @@ public class Program
 
     public static func Main() -> void
     {
-        Task task = CaughtAwait();
+        task: Task = CaughtAwait();
         Task.Wait(task);
     }
 }`}
@@ -530,7 +530,7 @@ public class Program
         FireAndForget();
 
         // Correct: capture the task and wait.
-        Task task = FireAndForget();
+        task: Task = FireAndForget();
         Task.Wait(task);
     }
 }`}

@@ -188,9 +188,8 @@ groupOrder: 3
 
 <Callout tone="blue">
   Use explicit <InlineCode>public</InlineCode> on every class and member you intend
-  to call from outside its namespace. Unmarked top-level classes are public by
-  default, but unmarked members are private by default, matching C-family
-  conventions.
+  to call from outside its namespace. Unmarked top-level classes and unmarked
+  members are both private by default.
 </Callout>
 
 <H2>Examples</H2>
@@ -474,3 +473,28 @@ public static func Main() -> void
     </Bullet>
   </ul>
 </Callout>
+
+<H2>See also</H2>
+
+<ul className="space-y-2 text-text-secondary">
+  <Bullet>
+    <InlineCode>Fields and Properties</InlineCode> — instance and static fields, properties, and indexers.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Methods</InlineCode> — instance and static methods, access modifiers, and overloading.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Constructors and Initialization</InlineCode> — <InlineCode>init</InlineCode> methods and object creation.
+  </Bullet>
+  <Bullet>
+    <InlineCode>Interfaces and Abstractions</InlineCode> — contracts that classes can implement.
+  </Bullet>
+</ul>
+
+<H2>Source</H2>
+
+<Prose>
+  Class declarations are parsed into <InlineCode>ClassDeclarationSyntax</InlineCode> nodes in{' '}
+  <InlineCode>ShardScript/ShardScript/src/parsing/SourceParser.cpp</InlineCode>. The syntax node definition is in{' '}
+  <InlineCode>ShardScript/ShardScript/include/shard/parsing/nodes/MemberDeclarations/ClassDeclarationSyntax.hpp</InlineCode>.
+</Prose>

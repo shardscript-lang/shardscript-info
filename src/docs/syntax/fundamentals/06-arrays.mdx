@@ -164,10 +164,11 @@ groupOrder: 1
   single-element array of ranges — it is parsed as the range value itself.
 </Prose>
 
-<Callout tone="amber" title="Ranges count upward only">
-  Range expressions always count upward with a step of <InlineCode>1</InlineCode>.
-  Descending sequences, custom steps, or empty descending ranges require a C-style{' '}
-  <InlineCode>for</InlineCode> loop or another explicit construction.
+<Callout tone="blue">
+  Range expressions count up or down with a step of <InlineCode>1</InlineCode>. When
+  the upper bound is smaller than the lower bound (for example <InlineCode>3..0</InlineCode>)
+  the result is a descending array. Custom steps or empty descending ranges still
+  require a C-style <InlineCode>for</InlineCode> loop or another explicit construction.
 </Callout>
 
 <Prose>

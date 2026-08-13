@@ -14,7 +14,7 @@ type: Reference
   <InlineCode>ProgramDisassembler</InlineCode> C++ class provide two complementary ways to inspect a
   ShardScript program: the <InlineCode>-d</InlineCode> (<InlineCode>--decompiled</InlineCode>) CLI flag
   prints the compiled bytecode of every source-defined method, while the{' '}
-  <InlineCode>Debug</InlineCode> static class exposes runtime heap and stack snapshots from inside
+  <InlineCode>debug</InlineCode> namespace exposes runtime heap and stack snapshots from inside
   running ShardScript code.
 </Prose>
 
@@ -50,8 +50,8 @@ disassembler.Disassemble(std::wcout, methodSymbol);`}
 />
 
 <Prose>
-  <strong>Runtime inspection from ShardScript.</strong> Call the static members on the{' '}
-  <InlineCode>Debug</InlineCode> class after importing <InlineCode>debug</InlineCode>:
+  <strong>Runtime inspection from ShardScript.</strong> Call the members directly after importing{' '}
+  <InlineCode>debug</InlineCode>:
 </Prose>
 
 <CodeBlock
@@ -78,8 +78,8 @@ public static func Main() -> void
     [<code>ProgramDisassembler::Disassemble</code>, <code>out</code>, 'std::wostream&amp;', 'Output stream. ANSI colors are emitted only when the stream is std::wcout.'],
     [<code>ProgramDisassembler::Disassemble</code>, <code>program</code>, 'ProgramVirtualImage&amp;', 'Compiled program image whose EntryPoint will be disassembled.'],
     [<code>ProgramDisassembler::Disassemble</code>, <code>method</code>, 'MethodSymbol*', 'Specific method symbol to disassemble.'],
-    [<code>Debug.PrintStackFrameInfo</code>, '(none)', '-', 'Dumps local variables from the caller frame.'],
-    [<code>Debug.PrintGcInfo</code>, '(none)', '-', 'Dumps every live object on the GC heap.'],
+    [<code>PrintStackFrameInfo</code>, '(none)', '-', 'Dumps local variables from the caller frame.'],
+    [<code>PrintGcInfo</code>, '(none)', '-', 'Dumps every live object on the GC heap.'],
   ]}
 />
 
@@ -96,8 +96,8 @@ public static func Main() -> void
   rows={[
     [<code>shard -d</code>, 'Text disassembly written to stdout. Exit code 0 on success, 1 on compilation error.'],
     [<code>ProgramDisassembler::Disassemble</code>, 'None. Formatted text is written to the supplied wostream.'],
-    [<code>Debug.PrintStackFrameInfo</code>, 'void.'],
-    [<code>Debug.PrintGcInfo</code>, 'void.'],
+    [<code>PrintStackFrameInfo</code>, 'void.'],
+    [<code>PrintGcInfo</code>, 'void.'],
   ]}
 />
 

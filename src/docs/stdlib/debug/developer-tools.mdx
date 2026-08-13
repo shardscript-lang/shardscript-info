@@ -78,6 +78,12 @@ public static func Main() -> void
   ]}
 />
 
+<Callout tone="amber" title="sizeof registration inconsistency">
+  The native registration for <InlineCode>sizeof</InlineCode> currently declares a{' '}
+  <InlineCode>string</InlineCode> return type, but the implementation returns a 64-bit integer. The
+  documented signature reflects the intended behavior.
+</Callout>
+
 <H2>Exceptions / Errors</H2>
 
 <ul className="space-y-2 text-text-secondary">

@@ -175,9 +175,10 @@ type: Reference
 </Prose>
 
 <Prose>
-  <strong>One file per shared library.</strong> The CMake glob in <InlineCode>ShardScript.Framework/CMakeLists.txt</InlineCode>
-  builds every <InlineCode>*.shard.cpp</InlineCode> file into its own shared library. Keep one logical library per file so
-  the output name, metadata name, and exported symbols stay aligned.
+  <strong>One logical library per build artifact.</strong> A native library is any shared library that exports
+  <InlineCode>ShardLib_GetMetadata</InlineCode> and <InlineCode>ShardLib_EntryPoint</InlineCode>. How you organize source
+  files and build rules is up to your project; the framework&rsquo;s own CMake setup is one convenient integration, not a
+  requirement of the contract.
 </Prose>
 
 <Prose>

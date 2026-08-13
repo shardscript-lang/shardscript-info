@@ -100,11 +100,11 @@ public static func Main() -> void
     [<InlineCode>TotalMinutes</InlineCode>, 'double', 'Duration expressed in minutes, including fractional part.'],
     [<InlineCode>TotalHours</InlineCode>, 'double', 'Duration expressed in hours, including fractional part.'],
     [<InlineCode>TotalDays</InlineCode>, 'double', 'Duration expressed in days, including fractional part.'],
-    [<InlineCode>Days</InlineCode>, 'int', 'Whole days component of the duration.'],
-    [<InlineCode>Hours</InlineCode>, 'int', 'Whole hours component in the range 0-23.'],
-    [<InlineCode>Minutes</InlineCode>, 'int', 'Whole minutes component in the range 0-59.'],
-    [<InlineCode>Seconds</InlineCode>, 'int', 'Whole seconds component in the range 0-59.'],
-    [<InlineCode>Milliseconds</InlineCode>, 'int', 'Whole milliseconds component in the range 0-999.'],
+    [<InlineCode>Days</InlineCode>, 'int', 'Whole days component of the duration, including the sign.'],
+    [<InlineCode>Hours</InlineCode>, 'int', 'Whole hours component. For negative durations the remainder can be negative.'],
+    [<InlineCode>Minutes</InlineCode>, 'int', 'Whole minutes component. For negative durations the remainder can be negative.'],
+    [<InlineCode>Seconds</InlineCode>, 'int', 'Whole seconds component. For negative durations the remainder can be negative.'],
+    [<InlineCode>Milliseconds</InlineCode>, 'int', 'Whole milliseconds component. For negative durations the remainder can be negative.'],
   ]}
 />
 
@@ -216,7 +216,7 @@ public static func Main() -> void
     </>, 'DateTime', 'Returns a new DateTime offset by a number of days.'],
     [<InlineCode>ToUniversalTime()</InlineCode>, 'none', 'DateTime', 'Converts this DateTime to UTC, preserving the instant.'],
     [<InlineCode>ToLocalTime()</InlineCode>, 'none', 'DateTime', 'Converts this DateTime to local time, preserving the instant.'],
-    [<InlineCode>ToString()</InlineCode>, 'none', 'string', 'Returns a default ISO-8601-style string.'],
+    [<InlineCode>ToString()</InlineCode>, 'none', 'string', 'Returns a culture-invariant "yyyy-MM-dd HH:mm:ss" string.'],
     [<InlineCode>ToString(format)</InlineCode>, <>
       <InlineCode>format</InlineCode>: string
     </>, 'string', 'Returns a string formatted with custom tokens.'],

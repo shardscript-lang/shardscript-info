@@ -1874,15 +1874,6 @@ const manifest: DocManifest = {
       "file": "faq/02-comparison.mdx",
       "section": "faq"
     },
-    "rejected-ideas": {
-      "slug": "rejected-ideas",
-      "title": "Rejected Ideas",
-      "group": "FAQ",
-      "groupOrder": 12,
-      "order": 3,
-      "file": "faq/03-rejected-ideas.mdx",
-      "section": "faq"
-    },
     "roadmap": {
       "slug": "roadmap",
       "title": "Roadmap",
@@ -1899,6 +1890,15 @@ const manifest: DocManifest = {
       "groupOrder": 12,
       "order": 5,
       "file": "faq/05-design-goals.mdx",
+      "section": "faq"
+    },
+    "rejected-ideas": {
+      "slug": "rejected-ideas",
+      "title": "Rejected Ideas",
+      "group": "FAQ",
+      "groupOrder": 12,
+      "order": 3,
+      "file": "faq/03-rejected-ideas.mdx",
       "section": "faq"
     },
     "defer-and-idisposable": {

@@ -20,9 +20,10 @@ groupOrder: 1
 
 <Prose>
   Prebuilt binaries are published for Windows and Linux on the{' '}
-  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.2" className="underline">0.5.2 release</a>{' '}
-  page. The installer scripts below download the matching archive, extract it into a system-wide directory,
-  and set up the <InlineCode>SHARDSCRIPT</InlineCode> environment variable.
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.1" className="underline">0.5.1 release</a>{' '}
+  page. The installer scripts below download the matching archive and extract it into a system-wide directory.
+  The <InlineCode>SHARDSCRIPT</InlineCode> environment variable is created for tooling convenience, but the
+  interpreter itself does not consult it when locating standard shards.
 </Prose>
 
 <h3 className="font-space text-lg font-semibold text-text-primary mb-3 mt-6">Windows</h3>
@@ -86,9 +87,9 @@ sudo bash install-shardscript.sh`}
 
 <Callout tone="blue" title="What the scripts do">
   Both installers require root/Administrator privileges because they write to system directories. They
-  download <InlineCode>shardscript-0.5.2-windows.zip</InlineCode> or{' '}
-  <InlineCode>shardscript-0.5.2-linux.tar.gz</InlineCode> from the{' '}
-  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.2" className="underline">0.5.2 release</a>,
+  download <InlineCode>shardscript-0.5.1-windows.zip</InlineCode> or{' '}
+  <InlineCode>shardscript-0.5.1-linux.tar.gz</InlineCode> from the{' '}
+  <a href="https://github.com/Rikitav/ShardScript/releases/tag/0.5.1" className="underline">0.5.1 release</a>,
   extract the archive, set <InlineCode>SHARDSCRIPT</InlineCode> to the install root, and make the{' '}
   <InlineCode>shard</InlineCode> command available. The Windows script optionally appends the install root to
   machine <InlineCode>PATH</InlineCode>; the Linux script creates a symlink in{' '}
@@ -135,12 +136,16 @@ sudo bash install-shardscript.sh`}
     <p className="text-sm text-text-secondary mt-1">JSON parsing and serialization</p>
   </div>
   <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
-    <code className="text-sm font-jetbrains text-[#7A8AB5]">http</code>
-    <p className="text-sm text-text-secondary mt-1">HTTP client and server</p>
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">net</code>
+    <p className="text-sm text-text-secondary mt-1">HTTP client/server and TCP sockets (http.shard.dll and socket.shard.dll register under net)</p>
   </div>
   <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
-    <code className="text-sm font-jetbrains text-[#7A8AB5]">socket</code>
-    <p className="text-sm text-text-secondary mt-1">TCP socket operations</p>
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">time</code>
+    <p className="text-sm text-text-secondary mt-1">DateTime, TimeSpan, and clock operations</p>
+  </div>
+  <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
+    <code className="text-sm font-jetbrains text-[#7A8AB5]">linq</code>
+    <p className="text-sm text-text-secondary mt-1">Select, Where, OrderBy over IEnumerable</p>
   </div>
   <div className="bg-[#252538] border border-[#3A3A50] rounded-card p-4">
     <code className="text-sm font-jetbrains text-[#7A8AB5]">async</code>

@@ -37,11 +37,11 @@ type.AddProperty(L"Length", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC)
     .AddSetter().SetCallback(&set_length);
 
 // Register a property with an auto-backing field.
-FieldSymbol* backing = type.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC)
-    .AddBackingField(ACS_PRIVATE)
-    .AddGetter().SetCallback(&get_name)
-    .AddSetter().SetCallback(&set_name)
-    .Get();`}
+SymbolBuilder<PropertySymbol> nameProp = type.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+FieldSymbol* backing = nameProp.AddBackingField().Get();
+
+nameProp.AddGetter().SetCallback(&get_name);
+nameProp.AddSetter().SetCallback(&set_name);`}
   language="cpp"
 />
 
@@ -66,7 +66,7 @@ FieldSymbol* backing = type.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS
   rows={[
     [<InlineCode>AddGetter()</InlineCode>, 'Adds a getter accessor to the property. The callback must return a value of the property type.'],
     [<InlineCode>AddSetter()</InlineCode>, 'Adds a setter accessor to the property. The callback receives the new value as its last argument and returns nullptr.'],
-    [<InlineCode>AddBackingField(accessibility)</InlineCode>, 'Creates a compiler-managed field that backs the property. Returns a FieldSymbol* that can be cached for runtime read/write.'],
+    [<InlineCode>AddBackingField()</InlineCode>, 'Creates a compiler-managed field that backs the property. Returns a SymbolBuilder<FieldSymbol>; call .Get() to obtain the FieldSymbol* for runtime read/write.'],
     [<InlineCode>SetCallback(callback)</InlineCode>, 'Binds a native callback to the most recently added accessor (getter or setter).'],
   ]}
 />
@@ -76,7 +76,7 @@ FieldSymbol* backing = type.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS
 <Prose>
   <InlineCode>AddProperty</InlineCode> returns a <InlineCode>PropertySymbol&amp;</InlineCode> (wrapped by the
   fluent <InlineCode>SymbolBuilder&lt;PropertySymbol&gt;</InlineCode>) so you can chain accessor registration.
-  <InlineCode>AddBackingField</InlineCode> returns <InlineCode>FieldSymbol*</InlineCode>, which exposes{' '}
+  <InlineCode>AddBackingField</InlineCode> returns <InlineCode>SymbolBuilder&lt;FieldSymbol&gt;</InlineCode>; call <InlineCode>.Get()</InlineCode> to obtain the <InlineCode>FieldSymbol*</InlineCode>, which exposes{' '}
   <InlineCode>SlotIndex</InlineCode> for runtime field access. <InlineCode>SetCallback</InlineCode> returns a
   reference to the accessor builder so additional parameters may be chained, although property accessors
   typically take no explicit parameters beyond the implicit <InlineCode>this</InlineCode> and setter value.
@@ -145,7 +145,7 @@ FieldSymbol* backing = type.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS
 </Prose>
 
 <Prose>
-  <strong>Auto-backing fields.</strong> Call <InlineCode>AddBackingField(accessibility)</InlineCode> to create a
+  <strong>Auto-backing fields.</strong> Call <InlineCode>AddBackingField()</InlineCode> to create a
   compiler-managed field for the property. Store the returned <InlineCode>FieldSymbol*</InlineCode> and use{' '}
   <InlineCode>{'instance->SetField(backingField->SlotIndex, value)'}</InlineCode> and{' '}
   <InlineCode>{'instance->GetField(backingField->SlotIndex)'}</InlineCode> in the getter and setter callbacks. The
@@ -342,7 +342,7 @@ SHARDLIB_ENTRYPOINT
     {
         SymbolBuilder<PropertySymbol> nameProp = settings.AddProperty(L"Name", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
 
-        g_nameField = nameProp.AddBackingField(ACS_PRIVATE);
+        g_nameField = nameProp.AddBackingField();
         nameProp.AddGetter().SetCallback(&get_name);
         nameProp.AddSetter().SetCallback(&set_name);
     });

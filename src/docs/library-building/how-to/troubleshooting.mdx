@@ -451,16 +451,15 @@ SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> demo(context, L"demo");
 
-    g_pointClass = demo.AddStruct(L"Point", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> point)
-    {
-        g_xField = point.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-        g_yField = point.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+    g_pointClass = demo.AddStruct(L"Point", ACS_PUBLIC, LINK_INSTANCE);
 
-        point.AddMethod(L"Create", TYPE_ANY, LINK_STATIC, ACS_PUBLIC)
-             .AddParameter(L"x", TYPE_DOUBLE)
-             .AddParameter(L"y", TYPE_DOUBLE)
-             .SetCallback(&make_point);
-    });
+    g_xField = g_pointClass.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+    g_yField = g_pointClass.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+
+    g_pointClass.AddMethod(L"Create", TYPE_ANY, LINK_STATIC, ACS_PUBLIC)
+         .AddParameter(L"x", TYPE_DOUBLE)
+         .AddParameter(L"y", TYPE_DOUBLE)
+         .SetCallback(&make_point);
 }`}
   language="cpp"
 />

@@ -33,32 +33,30 @@ using namespace shard;
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> ns(context, L"geometry");
-
-    ns.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> st)
-    {
+    SymbolBuilder<StructSymbol> st = ns.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE);
         st.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
         st.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
 
         st.AddInit()
-            .AddParameter(L"x", TYPE_DOUBLE)
-            .AddParameter(L"y", TYPE_DOUBLE)
-            .SetCallback([](const CallState& context)
-            {
+        .AddParameter(L"x", TYPE_DOUBLE)
+        .AddParameter(L"y", TYPE_DOUBLE)
+        .SetCallback([](const CallState& context)
+        {
                 ObjectInstance* self = context.Args[0];
                 self->SetField(0, context.Args[1]);
                 self->SetField(1, context.Args[2]);
                 return self;
-            });
+        });
 
         st.AddMethod(L"Length", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC)
-            .SetCallback([](const CallState& context)
-            {
+        .SetCallback([](const CallState& context)
+        {
                 ObjectInstance* self = context.Args[0];
                 double x = self->GetField(0)->AsDouble();
                 double y = self->GetField(1)->AsDouble();
                 return context.Collector.FromValue(std::sqrt(x * x + y * y));
-            });
-    });
+        });
+    
 }`}
   language="cpp"
   filename="geometry.shard.cpp"
@@ -224,12 +222,10 @@ static FieldSymbol* g_vector2Y = nullptr;
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
-
-    geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
-    {
+    SymbolBuilder<StructSymbol> v2 = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE);
         g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
         g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-    });
+    
 }`}
   language="cpp"
   filename="geometry.shard.cpp"
@@ -276,26 +272,24 @@ static ObjectInstance* vector2_length(const CallState& context)
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
-
-    geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
-    {
+    SymbolBuilder<StructSymbol> v2 = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE);
         g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
         g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
 
         v2.AddInit()
-            .AddParameter(L"x", TYPE_DOUBLE)
-            .AddParameter(L"y", TYPE_DOUBLE)
-            .SetCallback([](const CallState& context)
-            {
+        .AddParameter(L"x", TYPE_DOUBLE)
+        .AddParameter(L"y", TYPE_DOUBLE)
+        .SetCallback([](const CallState& context)
+        {
                 ObjectInstance* self = context.Args[0];
                 self->SetField(g_vector2X->SlotIndex, context.Args[1]);
                 self->SetField(g_vector2Y->SlotIndex, context.Args[2]);
                 return self;
-            });
+        });
 
         v2.AddMethod(L"Length", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC)
-            .SetCallback(&vector2_length);
-    });
+        .SetCallback(&vector2_length);
+    
 }`}
   language="cpp"
   filename="geometry.shard.cpp"
@@ -341,15 +335,13 @@ static ObjectInstance* vector2_zero(const CallState& context)
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE);
+        g_vector2X = g_vector2Symbol.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = g_vector2Symbol.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
 
-    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
-    {
-        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-
-        v2.AddMethod(L"Zero", g_vector2Symbol, LINK_STATIC, ACS_PUBLIC)
-            .SetCallback(&vector2_zero);
-    });
+        g_vector2Symbol.AddMethod(L"Zero", g_vector2Symbol, LINK_STATIC, ACS_PUBLIC)
+        .SetCallback(&vector2_zero);
+    
 }`}
   language="cpp"
   filename="geometry.shard.cpp"
@@ -389,9 +381,9 @@ static ObjectInstance* vector2_add(const CallState& context)
     ObjectInstance* right = context.Args[1];
 
     double x = left->GetField(g_vector2X->SlotIndex)->AsDouble()
-             + right->GetField(g_vector2X->SlotIndex)->AsDouble();
+         + right->GetField(g_vector2X->SlotIndex)->AsDouble();
     double y = left->GetField(g_vector2Y->SlotIndex)->AsDouble()
-             + right->GetField(g_vector2Y->SlotIndex)->AsDouble();
+         + right->GetField(g_vector2Y->SlotIndex)->AsDouble();
 
     ObjectInstance* result = context.Collector.AllocateInstance(g_vector2Symbol);
     result->SetField(g_vector2X->SlotIndex, context.Collector.FromValue(x));
@@ -402,17 +394,15 @@ static ObjectInstance* vector2_add(const CallState& context)
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> geometry(context, L"geometry");
+    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE);
+        g_vector2X = g_vector2Symbol.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
+        g_vector2Y = g_vector2Symbol.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
 
-    g_vector2Symbol = geometry.AddStruct(L"Vector2", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> v2)
-    {
-        g_vector2X = v2.AddField(L"X", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-        g_vector2Y = v2.AddField(L"Y", TYPE_DOUBLE, LINK_INSTANCE, ACS_PUBLIC);
-
-        v2.AddOperator(shard::TokenType::AddOperator, g_vector2Symbol, LINK_STATIC)
-            .AddParameter(L"left", g_vector2Symbol)
-            .AddParameter(L"right", g_vector2Symbol)
-            .SetCallback(&vector2_add);
-    });
+        g_vector2Symbol.AddOperator(shard::TokenType::AddOperator, g_vector2Symbol, LINK_STATIC)
+        .AddParameter(L"left", g_vector2Symbol)
+        .AddParameter(L"right", g_vector2Symbol)
+        .SetCallback(&vector2_add);
+    
 }`}
   language="cpp"
   filename="geometry.shard.cpp"
@@ -465,18 +455,16 @@ static ObjectInstance* color_get_packed(const CallState& context)
 SHARDLIB_ENTRYPOINT
 {
     SymbolBuilder<NamespaceSymbol> graphics(context, L"graphics");
-
-    graphics.AddStruct(L"Color", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<StructSymbol> color)
-    {
+    SymbolBuilder<StructSymbol> color = graphics.AddStruct(L"Color", ACS_PUBLIC, LINK_INSTANCE);
         g_colorR = color.AddField(L"R", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
         g_colorG = color.AddField(L"G", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
         g_colorB = color.AddField(L"B", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC);
         g_colorPacked = color.AddField(L"_packed", TYPE_INT, LINK_INSTANCE, ACS_PRIVATE);
 
         color.AddProperty(L"Packed", TYPE_INT, LINK_INSTANCE, ACS_PUBLIC)
-            .AddGetter()
-            .SetCallback(&color_get_packed);
-    });
+        .AddGetter()
+        .SetCallback(&color_get_packed);
+    
 }`}
   language="cpp"
   filename="graphics.shard.cpp"

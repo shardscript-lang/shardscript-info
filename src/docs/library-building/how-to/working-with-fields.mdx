@@ -258,9 +258,10 @@ SHARDLIB_ENTRYPOINT
 
     devices.AddClass(L"Sensor", ACS_PUBLIC, LINK_INSTANCE, [](SymbolBuilder<ClassSymbol> sensor)
     {
-        sensor.AddProperty(L"Status", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC)
-            .AddBackingField(&g_sensor_statusBacking)
-            .AddGetter()
+        SymbolBuilder<PropertySymbol> statusProp = sensor.AddProperty(L"Status", TYPE_STRING, LINK_INSTANCE, ACS_PUBLIC);
+        g_sensor_statusBacking = statusProp.AddBackingField().Get();
+
+        statusProp.AddGetter()
             .SetCallback([](const CallState& context)
             {
                 ObjectInstance* self = context.Args[0];
